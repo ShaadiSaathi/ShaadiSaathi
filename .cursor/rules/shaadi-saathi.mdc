@@ -1,0 +1,15 @@
+---
+description: Shaadi Saathi wedding planning app — project context
+alwaysApply: true
+---
+
+# Shaadi Saathi
+
+Next.js + TypeScript + Tailwind + Framer Motion wedding planning app for South Asian families and vendors.
+
+- Family portal: guests, RSVPs, events, vendors, bookings, premium themes
+- Vendor portal: jobs, requests, messaging
+- Backend: Firebase (Auth + Firestore) when env vars are set; mock/localStorage fallback otherwise
+- Deploy: Vercel (`shaadi-saathi` project)
+
+Read `AGENTS.md` before writing Next.js code.

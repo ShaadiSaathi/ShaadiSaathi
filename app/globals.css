@@ -1,26 +1,143 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Refine app (dark theme) — used by dashboard, scanner, etc. */
+  --bg: #0A0A0F;
+  --card: #12121A;
+  --border: #1E1E2E;
+  --accent: #E94560;
+  --accent-secondary: #F5A623;
+  --accent-tertiary: #6C5CE7;
+  --text-primary: #F0F0F5;
+  --text-secondary: #8888A0;
+  --text-muted: #555566;
+  --success: #2ECC71;
+  --warning: #F39C12;
+  --error: #E74C3C;
+
+  /* Shaadi Saathi landing page palette */
+  --ivory: #FDF6ED;
+  --maroon: #6A1B4D;
+  --maroon-dark: #4A1235;
+  --gold: #B8860B;
+  --gold-dark: #8B6508;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-tertiary: var(--accent-tertiary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Shaadi Saathi theme tokens */
+  --color-ivory: var(--ivory);
+  --color-maroon: var(--maroon);
+  --color-maroon-dark: var(--maroon-dark);
+  --color-gold: var(--gold);
+  --color-gold-dark: var(--gold-dark);
+
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* Refine app pages keep dark theme */
+body:has(.refine-app) {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+/* Shaadi Saathi landing page */
+.shaadi-saathi {
+  background: var(--ivory);
+  color: var(--maroon-dark);
+  font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+}
+
+.shaadi-saathi .font-display {
+  font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.4; }
+  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.6; }
+}
+
+@keyframes orb-drift {
+  0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
+  33% { transform: translate(-50%, -50%) translate(30px, -20px); }
+  66% { transform: translate(-50%, -50%) translate(-20px, 15px); }
+}
+
+.orb-glow {
+  animation: orb-pulse 6s ease-in-out infinite, orb-drift 12s ease-in-out infinite;
+}
+
+@keyframes fade-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fade-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-24px); }
+}
+
+.step-enter {
+  animation: fade-slide-in 0.35s ease-out forwards;
+}
+
+@keyframes check-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.check-pop {
+  animation: check-pop 0.3s ease-out forwards;
+}
+
+@keyframes scan-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.scan-pulse {
+  animation: scan-pulse 1.5s ease-in-out infinite;
+}
+
+.glow-accent {
+  box-shadow: 0 0 40px rgba(233, 69, 96, 0.25), 0 0 80px rgba(233, 69, 96, 0.1);
+}
+
+.glow-accent-sm {
+  box-shadow: 0 0 20px rgba(233, 69, 96, 0.2);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
 }
