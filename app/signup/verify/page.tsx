@@ -86,9 +86,23 @@ export default function FamilySignupVerifyPage() {
         </p>
       }
     >
-      <div id="recaptcha-container" className="sr-only" aria-hidden="true" />
+      {isFirebaseMode && (
+        <div className="mb-6">
+          <p className="mb-3 text-center text-sm text-maroon/70">
+            {otpReady
+              ? "Verified. Enter the code we texted you."
+              : "Confirm you're not a robot, then we'll text your code."}
+          </p>
+          <div className="flex min-h-[78px] justify-center">
+            <div id="recaptcha-container" className="[&_iframe]:rounded-lg" />
+          </div>
+        </div>
+      )}
+
       {!otpReady && isFirebaseMode ? (
-        <p className="text-center text-sm text-maroon/60">Sending code…</p>
+        <p className="text-center text-sm text-maroon/60">
+          Waiting for verification…
+        </p>
       ) : (
         <OtpVerification
           phone={pending.phone}

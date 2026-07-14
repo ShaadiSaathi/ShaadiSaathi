@@ -31,12 +31,23 @@ function getRecaptchaVerifier(containerId = "recaptcha-container"): RecaptchaVer
   const auth = getFirebaseAuth()
   if (recaptchaVerifier) return recaptchaVerifier
 
+  // Use a visible ("normal") reCAPTCHA checkbox. The container element must be
+  // visible in the layout so the user can actually complete the challenge —
+  // an invisible verifier inside a hidden container silently fails when Google
+  // decides a challenge is required, producing a 400 on sendVerificationCode.
   recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-    size: "invisible",
+    size: "normal",
     callback: () => {},
     "expired-callback": () => {},
   })
   return recaptchaVerifier
+}
+
+/** Render the visible reCAPTCHA widget so the user can solve it before we send the code. */
+export async function renderRecaptcha(containerId = "recaptcha-container"): Promise<void> {
+  if (!isFirebaseConfigured()) return
+  const verifier = getRecaptchaVerifier(containerId)
+  await verifier.render()
 }
 
 export async function sendPhoneOtp(
@@ -48,6 +59,7 @@ export async function sendPhoneOtp(
   }
   const auth = getFirebaseAuth()
   const verifier = getRecaptchaVerifier(containerId)
+  await verifier.render()
   confirmationResult = await signInWithPhoneNumber(auth, formatE164Pakistan(phone), verifier)
 }
 
