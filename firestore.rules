@@ -29,11 +29,13 @@ service cloud.firestore {
     // or editable from a client (inspect it via the Firebase Console/Admin SDK).
     function isValidVerificationError() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['flow', 'stage', 'code', 'message', 'phone', 'uid', 'timestamp'])
+      return d.keys().hasOnly(['flow', 'stage', 'code', 'message', 'rawCode', 'rawMessage', 'phone', 'uid', 'timestamp'])
         && d.flow is string && d.flow.size() <= 40
         && d.stage is string && d.stage.size() <= 20
         && d.code is string && d.code.size() <= 100
         && d.message is string && d.message.size() <= 500
+        && (!d.keys().hasAny(['rawCode']) || (d.rawCode is string && d.rawCode.size() <= 100))
+        && (!d.keys().hasAny(['rawMessage']) || (d.rawMessage is string && d.rawMessage.size() <= 500))
         && d.phone is string && d.phone.size() <= 40
         && d.uid is string && d.uid.size() <= 128
         && d.timestamp is number;

@@ -16,7 +16,7 @@ import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp } from "@/lib/fire
 import { getUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
 import { getWedding } from "@/lib/firebase/weddings"
-import { friendlyAuthErrorMessage, withTimeout } from "@/lib/firebase/auth-errors"
+import { friendlyAuthErrorMessage, rawAuthErrorInfo, withTimeout } from "@/lib/firebase/auth-errors"
 import { logVerificationError } from "@/lib/firebase/verification-errors"
 import {
   createWeddingForUser,
@@ -259,11 +259,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setOtpSent(true)
     } catch (err) {
       const { code, message } = friendlyAuthErrorMessage(err)
+      const { rawCode, rawMessage } = rawAuthErrorInfo(err)
       void logVerificationError({
         flow: pending.flow ?? "unknown",
         stage: "send",
         code,
         message,
+        rawCode,
+        rawMessage,
         phone: pending.phone,
         uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
       })
@@ -290,11 +293,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await confirmPhoneOtp(code)
       } catch (err) {
         const { code: errorCode, message } = friendlyAuthErrorMessage(err)
+        const { rawCode, rawMessage } = rawAuthErrorInfo(err)
         void logVerificationError({
           flow: pending?.flow ?? "unknown",
           stage: "confirm",
           code: errorCode,
           message,
+          rawCode,
+          rawMessage,
           phone: pending?.phone ?? "",
           uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
         })

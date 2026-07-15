@@ -42,6 +42,29 @@ function extractCode(err: unknown): string {
   return "unknown"
 }
 
+/**
+ * Extract the RAW, unmapped error details straight off the thrown error so our
+ * logs always capture the true underlying reason (e.g. "auth/invalid-phone-number"),
+ * even when we couldn't map it to a friendly message and `code` ends up "unknown".
+ */
+export function rawAuthErrorInfo(err: unknown): {
+  rawCode: string
+  rawMessage: string
+} {
+  if (err instanceof AuthTimeoutError) {
+    return { rawCode: err.code, rawMessage: err.message }
+  }
+  if (typeof err === "object" && err !== null) {
+    const maybe = err as { code?: unknown; message?: unknown }
+    return {
+      rawCode: typeof maybe.code === "string" ? maybe.code : "",
+      rawMessage: typeof maybe.message === "string" ? maybe.message : "",
+    }
+  }
+  if (typeof err === "string") return { rawCode: "", rawMessage: err }
+  return { rawCode: "", rawMessage: "" }
+}
+
 const FRIENDLY_MESSAGES: Record<string, string> = {
   timeout:
     "This is taking longer than expected. Please tap Retry to request your code again.",
