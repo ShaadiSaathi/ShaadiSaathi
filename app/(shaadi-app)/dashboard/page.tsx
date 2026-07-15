@@ -52,7 +52,7 @@ export default function DashboardPage() {
         <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
           Welcome back, {familyUser?.name || "there"}
         </h1>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-maroon/70">
+        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-maroon/70 sm:text-base">
           {weddingName}
           {isFamilyPremium && <PremiumBadge />}
         </p>
@@ -131,10 +131,10 @@ export default function DashboardPage() {
       {/* Timeline strip */}
       <section aria-labelledby="timeline-heading">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="timeline-heading" className="font-display text-lg font-semibold text-maroon-dark">
+          <h2 id="timeline-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
             Your events
           </h2>
-          <Link href="/events" className="text-sm font-medium text-gold-dark hover:underline">
+          <Link href="/events" className="inline-flex min-h-[44px] items-center text-sm font-medium text-gold-dark hover:underline">
             View all
           </Link>
         </div>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group min-w-[200px] flex-1 rounded-2xl border border-gold/20 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+              className="group min-w-[220px] flex-1 rounded-2xl border border-gold/20 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
             >
               <div className="flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${EVENT_DOT[event.id] ?? "bg-gold"}`} />
@@ -166,25 +166,25 @@ export default function DashboardPage() {
       <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/guests"
-          className="rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="flex min-h-[44px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
         >
           Review RSVPs →
         </Link>
         <Link
           href="/vendors"
-          className="rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="flex min-h-[44px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
         >
           Browse vendors →
         </Link>
         <Link
           href="/tasks"
-          className="rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="flex min-h-[44px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
         >
           Check tasks →
         </Link>
         <Link
           href="/schedule"
-          className="rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="flex min-h-[44px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
         >
           View schedule →
         </Link>

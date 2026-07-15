@@ -14,17 +14,17 @@ export default function Footer() {
         <nav aria-label="Footer navigation">
           <ul className="flex flex-wrap items-center justify-center gap-6 text-sm">
             <li>
-              <Link href="#" className="transition-colors hover:text-gold">
+              <Link href="#" className="transition-colors hover:text-gold max-sm:inline-flex max-sm:min-h-[44px] max-sm:items-center">
                 About
               </Link>
             </li>
             <li>
-              <Link href="#" className="transition-colors hover:text-gold">
+              <Link href="#" className="transition-colors hover:text-gold max-sm:inline-flex max-sm:min-h-[44px] max-sm:items-center">
                 Privacy
               </Link>
             </li>
             <li>
-              <Link href="#" className="transition-colors hover:text-gold">
+              <Link href="#" className="transition-colors hover:text-gold max-sm:inline-flex max-sm:min-h-[44px] max-sm:items-center">
                 Contact
               </Link>
             </li>

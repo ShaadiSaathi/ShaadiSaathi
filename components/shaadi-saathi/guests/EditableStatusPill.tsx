@@ -76,7 +76,7 @@ export default function EditableStatusPill({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value as RsvpStatus)}
         aria-label={ariaLabel}
-        className={`cursor-pointer appearance-none rounded-full border py-0.5 pl-5 pr-7 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-maroon/20 disabled:cursor-not-allowed disabled:opacity-60 ${badge}`}
+        className={`min-h-[44px] cursor-pointer appearance-none rounded-full border py-0.5 pl-5 pr-7 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-maroon/20 disabled:cursor-not-allowed disabled:opacity-60 ${badge}`}
       >
         {RSVP_STATUS_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>

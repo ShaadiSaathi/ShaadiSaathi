@@ -58,7 +58,7 @@ export default function SettingsPage() {
           <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
             Family & Settings
           </h1>
-          <p className="mt-1 text-maroon/60">
+          <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
             Invite family members to help coordinate your wedding.
           </p>
         </div>
@@ -83,12 +83,12 @@ export default function SettingsPage() {
       {/* Share invite */}
       <section
         aria-labelledby="invite-heading"
-        className="mb-8 rounded-2xl border border-gold/25 bg-white p-6 shadow-sm"
+        className="mb-8 rounded-2xl border border-gold/25 bg-white p-5 shadow-sm sm:p-6"
       >
-        <h2 id="invite-heading" className="font-display text-lg font-semibold text-maroon-dark">
+        <h2 id="invite-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
           Invite your family
         </h2>
-        <p className="mt-2 text-sm text-maroon/60">
+        <p className="mt-2 text-sm leading-relaxed text-maroon/60">
           Share this link or code so siblings, parents, and cousins can join and help plan.
         </p>
 
@@ -112,7 +112,7 @@ export default function SettingsPage() {
                 type="text"
                 readOnly
                 value={WEDDING.shareLink}
-                className="min-w-0 flex-1 rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm text-maroon/70"
+                className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm text-maroon/70"
               />
               <GoldButton onClick={copyLink}>
                 {copied ? "Copied!" : "Copy"}
@@ -126,12 +126,12 @@ export default function SettingsPage() {
       <section
         id="invite-themes"
         aria-labelledby="theme-heading"
-        className="mb-8 rounded-2xl border border-gold/25 bg-white p-6 shadow-sm scroll-mt-6"
+        className="mb-8 rounded-2xl border border-gold/25 bg-white p-5 shadow-sm scroll-mt-6 sm:p-6"
       >
-        <h2 id="theme-heading" className="font-display text-lg font-semibold text-maroon-dark">
+        <h2 id="theme-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
           Guest invite theme
         </h2>
-        <p className="mt-2 text-sm text-maroon/60">
+        <p className="mt-2 text-sm leading-relaxed text-maroon/60">
           Choose how your public guest invite page looks when shared.
         </p>
 
@@ -177,7 +177,7 @@ export default function SettingsPage() {
         </div>
 
         {!isFamilyPremium && (
-          <Link href="/upgrade" className="mt-4 inline-block text-sm font-semibold text-gold-dark hover:underline">
+          <Link href="/upgrade" className="mt-4 inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline">
             Unlock custom themes with Premium →
           </Link>
         )}
@@ -185,7 +185,7 @@ export default function SettingsPage() {
 
       {/* Family members list */}
       <section aria-labelledby="family-heading">
-        <h2 id="family-heading" className="mb-4 font-display text-lg font-semibold text-maroon-dark">
+        <h2 id="family-heading" className="mb-4 font-display text-lg font-semibold text-maroon-dark sm:text-xl">
           Who&apos;s helping
           <span className="ml-2 text-sm font-normal text-maroon/40">
             ({collaborators.length}/{isFamilyPremium ? 8 : 2})
@@ -196,7 +196,7 @@ export default function SettingsPage() {
           {collaborators.map((member) => (
             <li
               key={member.id}
-              className="flex items-center justify-between rounded-xl border border-gold/15 bg-white px-4 py-3.5"
+              className="flex items-center justify-between rounded-xl border border-gold/15 bg-white p-4"
             >
               <div className="flex items-center gap-3">
                 <Avatar initials={member.initials} size="md" />
@@ -206,7 +206,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               {member.role === "owner" && (
-                <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-xs font-medium text-gold-dark">
+                <span className="inline-flex rounded-full bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold-dark">
                   You
                 </span>
               )}
@@ -225,7 +225,7 @@ export default function SettingsPage() {
               value={inviteName}
               onChange={(e) => setInviteName(e.target.value)}
               placeholder="e.g. Fatima Ahmed"
-              className="mt-1 w-full rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm"
+              className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm"
             />
           </div>
           <GoldButton type="button" onClick={handleInviteMember}>

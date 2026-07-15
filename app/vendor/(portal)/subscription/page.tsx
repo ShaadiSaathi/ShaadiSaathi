@@ -22,7 +22,7 @@ export default function VendorSubscriptionPage() {
   return (
     <PageTransition>
       <header className="mb-8">
-        <Link href="/vendor/dashboard" className="text-sm font-medium text-maroon/50 hover:text-maroon">
+        <Link href="/vendor/dashboard" className="inline-flex min-h-[44px] items-center text-sm font-medium text-maroon/50 hover:text-maroon">
           ← Dashboard
         </Link>
         <h1 className="mt-4 font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
@@ -95,7 +95,7 @@ export default function VendorSubscriptionPage() {
               <button
                 type="button"
                 onClick={() => setShowCancelConfirm(false)}
-                className="rounded-full px-4 py-2 text-sm text-maroon/50 hover:text-maroon"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full px-4 py-2 text-sm text-maroon/50 hover:text-maroon"
               >
                 Keep Featured
               </button>

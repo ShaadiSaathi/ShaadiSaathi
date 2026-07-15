@@ -93,12 +93,26 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 sm:items-center sm:p-4"
       role="dialog"
       aria-labelledby="booking-modal-title"
       aria-modal="true"
     >
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gold/25 bg-ivory p-6 shadow-xl">
+      <div className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-full text-maroon/50 transition-colors hover:bg-maroon/5 hover:text-maroon"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+          <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
         {step === "confirmed" ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -118,14 +132,14 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
               Balance ({formatPrice(split.balanceAmount)}):{" "}
               {formatPaymentPathLabel(previewPayment).toLowerCase()}.
             </p>
-            <div className="mt-6 flex flex-col gap-2">
-              <GoldButton onClick={onClose} className="w-full">
+            <div className="mt-6 flex flex-col gap-3">
+              <GoldButton onClick={onClose} className="min-h-[44px] w-full">
                 Done
               </GoldButton>
               <GoldButton
                 variant="ghost"
                 onClick={() => (window.location.href = "/vendors/bookings")}
-                className="w-full"
+                className="min-h-[44px] w-full"
               >
                 View my bookings
               </GoldButton>
@@ -152,7 +166,7 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
               type="button"
               variant="ghost"
               onClick={() => setStep("payment")}
-              className="mt-3 w-full"
+              className="mt-3 min-h-[44px] w-full"
             >
               Back
             </GoldButton>
@@ -175,15 +189,15 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
                 acceptsCardInPerson={vendor.acceptsCardInPerson ?? false}
               />
             </div>
-            <div className="mt-6 flex gap-3">
-              <GoldButton onClick={handlePaymentContinue} className="flex-1">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <GoldButton onClick={handlePaymentContinue} className="min-h-[44px] flex-1">
                 Continue to deposit
               </GoldButton>
               <GoldButton
                 type="button"
                 variant="ghost"
                 onClick={() => setStep("details")}
-                className="flex-1"
+                className="min-h-[44px] flex-1"
               >
                 Back
               </GoldButton>
@@ -205,7 +219,7 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
                   id="booking-event"
                   value={eventId}
                   onChange={(e) => handleEventChange(e.target.value as EventId)}
-                  className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
                 >
                   {availableEvents.map((ev) => (
                     <option key={ev.id} value={ev.id}>
@@ -227,7 +241,7 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
                       const pkg = vendor.packages?.find((p) => p.name === e.target.value)
                       setSelectedPackage(pkg ?? null)
                     }}
-                    className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
                   >
                     {vendor.packages.map((pkg) => (
                       <option key={pkg.name} value={pkg.name}>
@@ -255,7 +269,7 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
                     min={1}
                     value={guestCount}
                     onChange={(e) => setGuestCount(Number(e.target.value))}
-                    className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
                   />
                 </div>
               )}
@@ -278,17 +292,18 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
                 Estimated total: <strong>{formatPrice(totalPrice)}</strong>
               </p>
 
-              <div className="flex gap-3 pt-2">
-                <GoldButton type="submit" className="flex-1">
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                <GoldButton type="submit" className="min-h-[44px] flex-1">
                   Continue
                 </GoldButton>
-                <GoldButton type="button" variant="ghost" onClick={onClose} className="flex-1">
+                <GoldButton type="button" variant="ghost" onClick={onClose} className="min-h-[44px] flex-1">
                   Cancel
                 </GoldButton>
               </div>
             </form>
           </>
         )}
+        </div>
       </div>
     </div>
   )

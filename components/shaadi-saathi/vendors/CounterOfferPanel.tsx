@@ -31,7 +31,7 @@ export default function CounterOfferPanel({
   const canCounter = (booking.negotiationRound ?? 0) < 2
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+    <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5">
       <p className="text-sm font-semibold text-amber-900">
         Awaiting your response to {vendorName}&apos;s counter-offer
       </p>
@@ -49,15 +49,15 @@ export default function CounterOfferPanel({
         {offer.note && <p className="text-xs text-amber-800/80">{offer.note}</p>}
       </dl>
       <div className="mt-3 flex flex-wrap gap-2">
-        <GoldButton onClick={onAccept}>Accept offer</GoldButton>
-        <GoldButton variant="ghost" onClick={onDecline}>
+        <GoldButton onClick={onAccept} className="min-h-[44px]">Accept offer</GoldButton>
+        <GoldButton variant="ghost" onClick={onDecline} className="min-h-[44px]">
           Decline
         </GoldButton>
         {canCounter && (
           <button
             type="button"
             onClick={() => setShowCounter(!showCounter)}
-            className="text-sm font-medium text-maroon/70 hover:text-maroon"
+            className="inline-flex min-h-[44px] items-center px-2 text-sm font-medium text-maroon/70 hover:text-maroon"
           >
             Send counter
           </button>
@@ -71,10 +71,10 @@ export default function CounterOfferPanel({
               type="number"
               value={counterPrice}
               onChange={(e) => setCounterPrice(Number(e.target.value))}
-              className="mt-1 block w-32 rounded-lg border border-gold/25 px-2 py-1.5 text-sm"
+              className="mt-1 block min-h-[44px] w-32 rounded-lg border border-gold/25 px-3 py-2.5 text-sm"
             />
           </label>
-          <GoldButton onClick={() => onCounter(counterPrice)}>Send counter</GoldButton>
+          <GoldButton onClick={() => onCounter(counterPrice)} className="min-h-[44px]">Send counter</GoldButton>
         </div>
       )}
     </div>

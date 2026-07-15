@@ -16,7 +16,7 @@ export default function RsvpSourceIndicator({ source }: RsvpSourceIndicatorProps
 
   return (
     <span
-      className="inline-flex shrink-0 text-maroon/40"
+      className="inline-flex shrink-0 items-center text-maroon/40"
       title={label}
       aria-label={label}
     >

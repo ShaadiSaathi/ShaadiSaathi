@@ -73,7 +73,7 @@ function FamilyHeroCopy({ prefersReducedMotion }: { prefersReducedMotion: boolea
         <CTAButton href="/signup">Start Planning Free</CTAButton>
         <a
           href="#how-it-works"
-          className="text-sm font-semibold text-maroon underline-offset-4 hover:text-gold-dark hover:underline"
+          className="text-sm font-semibold text-maroon underline-offset-4 hover:text-gold-dark hover:underline max-sm:inline-flex max-sm:min-h-[44px] max-sm:items-center max-sm:justify-center"
         >
           See how it works →
         </a>
@@ -109,7 +109,7 @@ function VendorHeroCopy({ prefersReducedMotion }: { prefersReducedMotion: boolea
         <CTAButton href="/vendor/signup">List Your Business</CTAButton>
         <a
           href="#for-vendors"
-          className="text-sm font-semibold text-maroon underline-offset-4 hover:text-gold-dark hover:underline"
+          className="text-sm font-semibold text-maroon underline-offset-4 hover:text-gold-dark hover:underline max-sm:inline-flex max-sm:min-h-[44px] max-sm:items-center max-sm:justify-center"
         >
           Why vendors love us →
         </a>

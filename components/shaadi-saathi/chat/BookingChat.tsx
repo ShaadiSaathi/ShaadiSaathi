@@ -95,7 +95,7 @@ export default function BookingChat({
   if (!isFirebaseConfigured()) {
     return (
       <PageTransition>
-        <Link href={backHref} className="mb-4 inline-flex text-sm font-medium text-maroon/60 hover:text-maroon">
+        <Link href={backHref} className="mb-4 inline-flex min-h-[44px] items-center text-sm font-medium text-maroon/60 hover:text-maroon">
           ← {backLabel}
         </Link>
         <p className="text-maroon/70">
@@ -111,13 +111,13 @@ export default function BookingChat({
       <PageTransition>
       <Link
         href={backHref}
-        className="mb-3 inline-flex shrink-0 items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
+        className="mb-3 inline-flex min-h-[44px] shrink-0 items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
       >
         ← {backLabel}
       </Link>
 
       <header className="mb-4 shrink-0">
-        <h1 className="font-display text-xl font-bold text-maroon-dark sm:text-2xl">{title}</h1>
+        <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">{title}</h1>
         {subtitle && <p className="mt-0.5 text-sm text-maroon/60">{subtitle}</p>}
       </header>
 

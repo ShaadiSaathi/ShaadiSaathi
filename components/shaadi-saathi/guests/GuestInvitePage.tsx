@@ -110,7 +110,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
   if (guestLoading) {
     return (
-      <div className="shaadi-saathi flex min-h-screen items-center justify-center bg-ivory px-4">
+      <div className="shaadi-saathi flex min-h-screen items-center justify-center bg-ivory px-5">
         <p className="text-maroon/60">Loading your invitation…</p>
       </div>
     )
@@ -118,7 +118,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
   if (!guest || invalid) {
     return (
-      <div className="shaadi-saathi flex min-h-screen items-center justify-center bg-ivory px-4">
+      <div className="shaadi-saathi flex min-h-screen items-center justify-center bg-ivory px-5">
         <div className="max-w-md text-center">
           <h1 className="font-display text-2xl font-bold text-maroon-dark">
             This invite is no longer valid
@@ -147,7 +147,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
     <div className={`shaadi-saathi relative min-h-screen overflow-hidden ${theme.bg} text-maroon-dark`}>
       <MehndiPattern opacity={0.08} />
 
-      <div className={`relative border-b ${theme.cardBorder} bg-gradient-to-b ${theme.motif} px-4 py-8 text-center`}>
+      <div className={`relative border-b ${theme.cardBorder} bg-gradient-to-b ${theme.motif} px-5 py-8 text-center`}>
         <p className={`text-xs font-medium uppercase tracking-[0.25em] ${theme.accent}`}>
           You are cordially invited
         </p>
@@ -172,7 +172,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
         </p>
       </div>
 
-      <main className="relative mx-auto max-w-lg px-4 py-8">
+      <main className="relative mx-auto max-w-lg px-5 py-8">
         <div className="mb-8">
           <JaaliDivider />
         </div>
@@ -299,7 +299,7 @@ function EventRsvpCard({
               <button
                 type="button"
                 onClick={() => onRsvp(status === "confirmed" ? "declined" : "confirmed")}
-                className="mt-3 text-xs text-maroon/40 underline hover:text-maroon/60"
+                className="mt-3 inline-flex min-h-[44px] items-center text-xs text-maroon/40 underline hover:text-maroon/60"
               >
                 Change my response
               </button>

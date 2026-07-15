@@ -79,7 +79,7 @@ function VendorsBrowseContent() {
         </div>
         <Link
           href="/vendors/bookings"
-          className="text-sm font-semibold text-gold-dark hover:underline"
+          className="inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline"
         >
           My bookings →
         </Link>
@@ -89,7 +89,7 @@ function VendorsBrowseContent() {
         <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-gold/20 bg-gold/5 px-4 py-3">
           <span className="text-sm text-maroon/70">Browsing vendors for</span>
           <EventChip eventId={eventContext} size="sm" />
-          <Link href="/vendors" className="ml-auto text-xs font-medium text-maroon/50 hover:text-maroon">
+          <Link href="/vendors" className="ml-auto inline-flex min-h-[44px] items-center text-xs font-medium text-maroon/50 hover:text-maroon">
             Clear filter
           </Link>
         </div>
@@ -106,7 +106,7 @@ function VendorsBrowseContent() {
           placeholder="Search by name or service..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+          className="min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
         />
 
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -114,7 +114,7 @@ function VendorsBrowseContent() {
             aria-label="Filter by city"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+            className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
           >
             <option value="all">All cities</option>
             {CITIES.map((c) => (
@@ -127,7 +127,7 @@ function VendorsBrowseContent() {
             aria-label="Filter by price range"
             value={priceRange}
             onChange={(e) => setPriceRange(Number(e.target.value))}
-            className="flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+            className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
           >
             {PRICE_RANGES.map((r, i) => (
               <option key={r.label} value={i}>
@@ -139,7 +139,7 @@ function VendorsBrowseContent() {
             aria-label="Filter by minimum rating"
             value={minRating}
             onChange={(e) => setMinRating(Number(e.target.value))}
-            className="flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+            className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
           >
             <option value={0}>Any rating</option>
             <option value={4}>4+ stars</option>

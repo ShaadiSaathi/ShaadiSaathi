@@ -78,7 +78,7 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
 
       <section aria-labelledby="transactions-heading">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 id="transactions-heading" className="font-display text-xl font-semibold text-maroon-dark">
+          <h2 id="transactions-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
             Transaction history
           </h2>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
@@ -94,7 +94,7 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
                 key={key}
                 type="button"
                 onClick={() => setStatusFilter(key)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`inline-flex min-h-[44px] items-center justify-center rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
                   statusFilter === key
                     ? "bg-maroon text-ivory"
                     : "border border-gold/25 text-maroon/70 hover:bg-gold/10"

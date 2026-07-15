@@ -51,7 +51,7 @@ export default function EventVendorsList({
         aria-labelledby="event-vendors-heading"
         className="rounded-2xl border border-gold/20 bg-white p-5 shadow-sm"
       >
-        <h2 id="event-vendors-heading" className="font-display text-lg font-semibold text-maroon-dark">
+        <h2 id="event-vendors-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
           Vendors for {eventName}
         </h2>
         <div className="mt-4">
@@ -80,12 +80,12 @@ export default function EventVendorsList({
       className="rounded-2xl border border-gold/20 bg-white p-5 shadow-sm"
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 id="event-vendors-heading" className="font-display text-lg font-semibold text-maroon-dark">
+        <h2 id="event-vendors-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
           Vendors for {eventName}
         </h2>
         <Link
           href={`/vendors/bookings?event=${eventId}`}
-          className="text-sm font-medium text-gold-dark hover:underline"
+          className="inline-flex min-h-[44px] items-center text-sm font-medium text-gold-dark hover:underline"
         >
           View all bookings →
         </Link>
@@ -101,7 +101,7 @@ export default function EventVendorsList({
             <li key={booking.id}>
               <Link
                 href={`/vendors/bookings?event=${eventId}&highlight=${booking.id}`}
-                className="flex items-center gap-3 rounded-xl border border-gold/10 bg-ivory/50 px-3 py-3 transition-colors hover:border-gold/25 hover:bg-white"
+                className="flex items-center gap-3 rounded-xl border border-gold/10 bg-ivory/50 p-4 transition-colors hover:border-gold/25 hover:bg-white"
               >
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${vendor.coverGradient} text-maroon/70`}
@@ -116,9 +116,9 @@ export default function EventVendorsList({
                     {category?.shortLabel ?? vendor.categoryId}
                     {booking.packageName ? ` · ${booking.packageName}` : ""}
                   </p>
-                  <div className="mt-1 flex flex-wrap gap-1">
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STATUS_STYLES[booking.status]}`}
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${STATUS_STYLES[booking.status]}`}
                     >
                       {STATUS_LABELS[booking.status]}
                     </span>

@@ -17,6 +17,14 @@ interface NavbarProps {
 
 export default function Navbar({ role = "family", onRoleChange }: NavbarProps) {
   const { isFamilyLoggedIn, isVendorLoggedIn } = useAuth()
+  const loginHref =
+    role === "vendor"
+      ? isVendorLoggedIn
+        ? "/vendor/dashboard"
+        : "/vendor/login"
+      : isFamilyLoggedIn
+        ? "/dashboard"
+        : "/login"
   return (
     <nav
       className="sticky top-0 z-50 border-b border-gold/15 bg-ivory/90 backdrop-blur-md"
@@ -60,24 +68,22 @@ export default function Navbar({ role = "family", onRoleChange }: NavbarProps) {
           </li>
         </ul>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 sm:gap-2">
           <Link
-            href={
-              role === "vendor"
-                ? isVendorLoggedIn
-                  ? "/vendor/dashboard"
-                  : "/vendor/login"
-                : isFamilyLoggedIn
-                  ? "/dashboard"
-                  : "/login"
-            }
+            href={loginHref}
+            className="inline-flex min-h-[44px] items-center rounded-full border border-gold/30 px-4 text-sm font-medium text-maroon hover:bg-gold/10 sm:hidden"
+          >
+            Log in
+          </Link>
+          <Link
+            href={loginHref}
             className="hidden rounded-full border border-gold/30 px-4 py-2 text-sm font-medium text-maroon hover:bg-gold/10 sm:inline-block"
           >
             {role === "vendor" ? "Vendor Login" : "Family Login"}
           </Link>
           <Link
             href={role === "vendor" ? "/vendor/signup" : "/signup"}
-            className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-maroon-dark shadow-sm shadow-gold/20 transition-all hover:scale-[1.03] hover:shadow-md hover:shadow-gold/30"
+            className="inline-flex items-center justify-center rounded-full bg-gold px-5 py-2 text-sm font-semibold text-maroon-dark shadow-sm shadow-gold/20 transition-all hover:scale-[1.03] hover:shadow-md hover:shadow-gold/30 max-sm:min-h-[44px]"
           >
             {role === "vendor" ? "List Business" : "Get Started"}
           </Link>

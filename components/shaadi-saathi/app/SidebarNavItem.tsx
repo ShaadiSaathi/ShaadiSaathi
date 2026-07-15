@@ -60,40 +60,38 @@ export default function SidebarNavItem({
   if (variant === "bottom") {
     if (locked) {
       return (
-        <li className="min-w-[4.25rem] shrink-0">
+        <li className="min-w-[4rem] shrink-0 flex-1 snap-start">
           <button
             type="button"
             onClick={() => router.push(upgradeHref)}
             aria-label={lockedAriaLabel}
-            className="flex w-full flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium text-maroon/55 transition-colors hover:bg-gold/8 hover:text-maroon/75"
+            className="flex min-h-[56px] w-full flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1.5 text-[11px] font-medium leading-none text-maroon/55 transition-colors hover:bg-gold/8 hover:text-maroon/75"
           >
-            <span className="relative rounded-lg border border-dashed border-gold/30 bg-gold/5 p-1.5 text-gold-dark/60">
+            <span className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-dashed border-gold/30 bg-gold/5 text-gold-dark/60">
               {icon}
-              <LockIcon className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-ivory text-maroon/50" />
+              <LockIcon className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-ivory text-maroon/50" />
             </span>
-            <span className="flex items-center gap-0.5 leading-tight">
-              {displayLabel}
-            </span>
+            {displayLabel}
           </button>
         </li>
       )
     }
 
     return (
-      <li className="min-w-[4.25rem] shrink-0">
+      <li className="min-w-[4rem] shrink-0 flex-1 snap-start">
         <Link
           href={href}
-          className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium transition-colors ${
-            active ? "text-maroon" : "text-maroon/50"
+          className={`flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1.5 text-[11px] font-medium leading-none transition-colors ${
+            active ? "text-maroon" : "text-maroon/55"
           }`}
           aria-current={active ? "page" : undefined}
         >
           <span
-            className={`relative rounded-lg p-1.5 ${active ? "bg-maroon text-gold" : "text-gold-dark/70"}`}
+            className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${active ? "bg-maroon text-gold" : "text-gold-dark/70"}`}
           >
             {icon}
             {badgeCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold text-white ring-2 ring-white">
                 {badgeCount > 9 ? "9+" : badgeCount}
               </span>
             )}

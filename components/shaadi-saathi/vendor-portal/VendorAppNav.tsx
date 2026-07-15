@@ -167,22 +167,22 @@ export function VendorBottomNav() {
         className="border-t border-gold/20 bg-white/95 backdrop-blur-md"
         aria-label="Vendor mobile navigation"
       >
-        <ul className="flex items-stretch gap-0.5 overflow-x-auto px-1 py-1 scrollbar-none">
+        <ul className="flex snap-x items-stretch gap-1 overflow-x-auto px-2 py-1.5 scrollbar-none [scrollbar-width:none]">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item.href)
             return (
-              <li key={item.href} className="min-w-[3.5rem] shrink-0 flex-1">
+              <li key={item.href} className="min-w-[4rem] shrink-0 flex-1 snap-start">
                 <Link
                   href={item.href}
-                  className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium ${
-                    active ? "text-maroon" : "text-maroon/50"
+                  className={`flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1.5 text-[11px] font-medium leading-none transition-colors ${
+                    active ? "text-maroon" : "text-maroon/55"
                   }`}
                   aria-current={active ? "page" : undefined}
                 >
-                  <span className={`relative rounded-lg p-1.5 ${active ? "bg-maroon text-gold" : "text-gold-dark/70"}`}>
+                  <span className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${active ? "bg-maroon text-gold" : "text-gold-dark/70"}`}>
                     {item.icon}
                     {item.href === "/vendor/jobs" && vendorUnreadCount > 0 && (
-                      <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-rose-600 text-[8px] font-bold text-white">
+                      <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-rose-600 px-0.5 text-[8px] font-bold text-white ring-2 ring-white">
                         {vendorUnreadCount > 9 ? "9+" : vendorUnreadCount}
                       </span>
                     )}

@@ -39,10 +39,10 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
     >
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 id="day-schedule-heading" className="font-display text-lg font-semibold text-maroon-dark">
+          <h2 id="day-schedule-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
             Day-of Schedule
           </h2>
-          <p className="mt-0.5 text-sm text-maroon/50">
+          <p className="mt-0.5 text-sm leading-relaxed text-maroon/50">
             Run-of-show for this event — distinct from the wedding-wide schedule.
           </p>
         </div>
@@ -65,8 +65,8 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
                 aria-hidden="true"
               />
 
-              <div className="min-w-0 flex-1 rounded-xl border border-gold/10 bg-ivory/40 px-3 py-2.5">
-                <div className="flex flex-wrap items-start gap-2">
+              <div className="min-w-0 flex-1 rounded-xl border border-gold/10 bg-ivory/40 p-4">
+                <div className="flex flex-wrap items-center gap-2">
                   <label className="sr-only" htmlFor={`time-${entry.id}`}>
                     Time for {entry.label}
                   </label>
@@ -77,7 +77,7 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
                     onChange={(e) =>
                       updateTimelineEntry(eventId, entry.id, { time: e.target.value })
                     }
-                    className="w-20 shrink-0 rounded-lg border border-gold/20 bg-white px-2 py-1 text-xs font-semibold text-maroon-dark focus:border-maroon/30 focus:outline-none"
+                    className="min-h-[44px] w-20 shrink-0 rounded-lg border border-gold/20 bg-white px-2 py-1 text-xs font-semibold text-maroon-dark focus:border-maroon/30 focus:outline-none"
                     aria-label={`Time: ${entry.label}`}
                   />
                   <label className="sr-only" htmlFor={`label-${entry.id}`}>
@@ -90,16 +90,16 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
                     onChange={(e) =>
                       updateTimelineEntry(eventId, entry.id, { label: e.target.value })
                     }
-                    className="min-w-0 flex-1 rounded-lg border border-gold/20 bg-white px-2 py-1 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-gold/20 bg-white px-2 py-1 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none"
                   />
                 </div>
 
-                <div className="mt-2 flex gap-1">
+                <div className="mt-2 flex gap-2">
                   <button
                     type="button"
                     disabled={i === 0}
                     onClick={() => moveTimelineEntry(eventId, entry.id, "up")}
-                    className="rounded px-1.5 py-0.5 text-xs text-maroon/40 hover:text-maroon disabled:opacity-30"
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-1.5 py-0.5 text-sm text-maroon/40 hover:text-maroon disabled:opacity-30"
                     aria-label={`Move ${entry.label} up`}
                   >
                     ↑
@@ -108,7 +108,7 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
                     type="button"
                     disabled={i === entries.length - 1}
                     onClick={() => moveTimelineEntry(eventId, entry.id, "down")}
-                    className="rounded px-1.5 py-0.5 text-xs text-maroon/40 hover:text-maroon disabled:opacity-30"
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-1.5 py-0.5 text-sm text-maroon/40 hover:text-maroon disabled:opacity-30"
                     aria-label={`Move ${entry.label} down`}
                   >
                     ↓
@@ -116,7 +116,7 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
                   <button
                     type="button"
                     onClick={() => removeTimelineEntry(eventId, entry.id)}
-                    className="ml-auto rounded px-1.5 py-0.5 text-xs text-rose-400 hover:text-rose-600"
+                    className="ml-auto inline-flex min-h-[44px] items-center rounded-lg px-2.5 py-0.5 text-xs text-rose-400 hover:text-rose-600"
                     aria-label={`Remove ${entry.label}`}
                   >
                     Remove
@@ -144,7 +144,7 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
               placeholder="e.g. 6:00 PM"
               value={newTime}
               onChange={(e) => setNewTime(e.target.value)}
-              className="rounded-lg border border-gold/20 bg-white px-3 py-2 text-sm focus:border-maroon/30 focus:outline-none"
+              className="min-h-[44px] rounded-lg border border-gold/20 bg-white px-3 py-2 text-sm focus:border-maroon/30 focus:outline-none"
               required
             />
             <label className="sr-only" htmlFor="new-label">
@@ -156,7 +156,7 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
               placeholder="e.g. Guest arrival"
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
-              className="flex-1 rounded-lg border border-gold/20 bg-white px-3 py-2 text-sm focus:border-maroon/30 focus:outline-none"
+              className="min-h-[44px] flex-1 rounded-lg border border-gold/20 bg-white px-3 py-2 text-sm focus:border-maroon/30 focus:outline-none"
               required
             />
             <GoldButton type="submit">Add</GoldButton>

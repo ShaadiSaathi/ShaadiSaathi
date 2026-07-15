@@ -65,13 +65,13 @@ export default function FirebaseOtpGate({
 
   if (sendState !== "sent") {
     return (
-      <div className="space-y-4">
-        <p className="text-center text-sm text-maroon/70">
+      <div className="space-y-5">
+        <p className="text-center text-sm leading-relaxed text-maroon/70">
           {sendState === "error"
             ? "We couldn't send your code."
             : "Confirm you're not a robot, then we'll text your code."}
         </p>
-        <div className="flex min-h-[78px] justify-center">
+        <div className="flex min-h-[78px] items-center justify-center py-2">
           <div id="recaptcha-container" className="[&_iframe]:rounded-lg" />
         </div>
         {sendState === "sending" && (
@@ -87,7 +87,7 @@ export default function FirebaseOtpGate({
             <button
               type="button"
               onClick={handleRetry}
-              className="mx-auto block rounded-full bg-maroon px-6 py-2.5 text-sm font-semibold text-ivory transition hover:bg-maroon-dark focus:outline-none focus:ring-2 focus:ring-maroon/30"
+              className="mx-auto flex min-h-[44px] items-center justify-center rounded-full bg-maroon px-6 py-2.5 text-sm font-semibold text-ivory transition hover:bg-maroon-dark focus:outline-none focus:ring-2 focus:ring-maroon/30"
             >
               Retry
             </button>
@@ -99,7 +99,7 @@ export default function FirebaseOtpGate({
 
   return (
     <>
-      <div className="mb-6 flex min-h-[1px] justify-center">
+      <div className="mb-6 flex min-h-[1px] items-center justify-center">
         <div id="recaptcha-container" className="[&_iframe]:rounded-lg" />
       </div>
       <OtpVerification

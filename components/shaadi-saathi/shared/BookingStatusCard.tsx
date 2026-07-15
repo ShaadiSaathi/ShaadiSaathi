@@ -45,7 +45,7 @@ export default function BookingStatusCard({
   )
 
   const className =
-    "block rounded-xl border border-gold/15 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+    "block rounded-2xl border border-gold/15 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
 
   if (href) {
     return (

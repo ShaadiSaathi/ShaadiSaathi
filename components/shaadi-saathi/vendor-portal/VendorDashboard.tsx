@@ -60,7 +60,7 @@ export default function VendorDashboard() {
           </div>
           <Link
             href={isFeatured ? "/vendor/subscription" : "/vendor/upgrade"}
-            className="text-sm font-semibold text-gold-dark hover:underline"
+            className="inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline"
           >
             {isFeatured ? "Manage subscription" : "Upgrade to Featured →"}
           </Link>
@@ -70,7 +70,7 @@ export default function VendorDashboard() {
       {pendingCount > 0 && (
         <Link
           href="/vendor/requests"
-          className="mb-6 flex items-center justify-between rounded-2xl border border-gold/40 bg-gradient-to-r from-gold/15 to-gold/5 p-4 transition-shadow hover:shadow-md"
+          className="mb-6 flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gradient-to-r from-gold/15 to-gold/5 p-5 transition-shadow hover:shadow-md"
         >
           <div>
             <p className="font-semibold text-maroon-dark">
@@ -142,10 +142,10 @@ export default function VendorDashboard() {
 
       <section aria-labelledby="upcoming-jobs">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="upcoming-jobs" className="font-display text-xl font-semibold text-maroon-dark">
+          <h2 id="upcoming-jobs" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
             Upcoming jobs
           </h2>
-          <Link href="/vendor/jobs" className="text-sm font-semibold text-maroon hover:text-gold-dark">
+          <Link href="/vendor/jobs" className="inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark">
             View all →
           </Link>
         </div>
@@ -155,7 +155,7 @@ export default function VendorDashboard() {
             <p className="text-maroon/60">No upcoming jobs yet. Accept a booking request to get started.</p>
             <Link
               href="/vendor/requests"
-              className="mt-3 inline-block text-sm font-semibold text-maroon hover:text-gold-dark"
+              className="mt-3 inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
             >
               Check requests →
             </Link>
@@ -166,7 +166,7 @@ export default function VendorDashboard() {
               <li key={job.id}>
                 <Link
                   href={`/vendor/jobs/${job.id}`}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold/20 bg-white p-4 transition-shadow hover:shadow-md"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold/20 bg-white p-5 transition-shadow hover:shadow-md"
                 >
                   <div>
                     <p className="font-semibold text-maroon-dark">{job.familyName}</p>

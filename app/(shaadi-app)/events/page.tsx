@@ -50,7 +50,7 @@ export default function EventsPage() {
           <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
             Events
           </h1>
-          <p className="mt-1 text-maroon/60">
+          <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
             Mehndi, baraat, walima — each with its own guest list and details.
           </p>
         </div>
@@ -83,13 +83,13 @@ export default function EventsPage() {
               value={newEventName}
               onChange={(e) => setNewEventName(e.target.value)}
               placeholder="Event name (e.g. Dholki)"
-              className="flex-1 rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm"
+              className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm"
             />
             <input
               type="date"
               value={newEventDate}
               onChange={(e) => setNewEventDate(e.target.value)}
-              className="rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm"
+              className="min-h-[44px] rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm"
             />
             <GoldButton type="button" onClick={handleAddEvent}>
               Save
@@ -135,7 +135,7 @@ export default function EventsPage() {
             key={event.id}
             className="relative overflow-hidden rounded-2xl border border-dashed border-gold/30 bg-ivory/50 p-5"
           >
-            <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gold-dark">
+            <span className="inline-flex rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold uppercase text-gold-dark">
               Custom
             </span>
             <h2 className="mt-2 font-display text-xl font-semibold text-maroon-dark">{event.name}</h2>

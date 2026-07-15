@@ -18,7 +18,7 @@ export default function GoogleAuthButton({ onSuccess, disabled }: GoogleAuthButt
       type="button"
       disabled={disabled}
       onClick={handleClick}
-      className="flex w-full items-center justify-center gap-3 rounded-xl border border-gold/25 bg-white px-4 py-3 text-sm font-medium text-maroon-dark transition-colors hover:border-gold/40 hover:bg-ivory disabled:opacity-60"
+      className="flex min-h-[44px] w-full items-center justify-center gap-3 rounded-xl border border-gold/25 bg-white px-4 py-3 text-sm font-medium text-maroon-dark transition-colors hover:border-gold/40 hover:bg-ivory disabled:opacity-60"
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
         <path

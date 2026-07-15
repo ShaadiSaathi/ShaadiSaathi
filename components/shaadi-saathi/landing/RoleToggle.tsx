@@ -21,7 +21,7 @@ export default function RoleToggle({ role, onRoleChange, className = "" }: RoleT
         role="tab"
         aria-selected={role === "family"}
         onClick={() => onRoleChange("family")}
-        className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors sm:px-5 ${
+        className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition-colors sm:px-5 max-sm:min-h-[44px] ${
           role === "family"
             ? "bg-maroon text-ivory shadow-sm"
             : "text-maroon/60 hover:text-maroon"
@@ -34,7 +34,7 @@ export default function RoleToggle({ role, onRoleChange, className = "" }: RoleT
         role="tab"
         aria-selected={role === "vendor"}
         onClick={() => onRoleChange("vendor")}
-        className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors sm:px-5 ${
+        className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition-colors sm:px-5 max-sm:min-h-[44px] ${
           role === "vendor"
             ? "bg-maroon text-ivory shadow-sm"
             : "text-maroon/60 hover:text-maroon"

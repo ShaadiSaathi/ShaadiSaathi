@@ -41,13 +41,13 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
     <PageTransition>
       <Link
         href="/events"
-        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
+        className="mb-6 inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
       >
         ← Back to events
       </Link>
 
       {/* 1. Event header */}
-      <header className="mb-8 rounded-2xl border border-gold/20 bg-white p-6 shadow-sm">
+      <header className="mb-6 rounded-2xl border border-gold/20 bg-white p-5 shadow-sm sm:mb-8 sm:p-6">
         <div className="h-1 rounded-full bg-gradient-to-r from-gold/40 via-gold to-gold/40" aria-hidden="true" />
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -55,7 +55,7 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
             <h1 className="mt-3 font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
               {event.name}
             </h1>
-            <p className="mt-2 text-maroon/70">{event.description}</p>
+            <p className="mt-2 text-sm leading-relaxed text-maroon/70 sm:text-base">{event.description}</p>
           </div>
         </div>
 

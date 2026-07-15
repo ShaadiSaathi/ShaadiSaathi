@@ -39,7 +39,7 @@ export default function ConfirmOverrideDialog({
         <h2 id="override-title" className="font-display text-lg font-semibold text-maroon-dark">
           Change RSVP status?
         </h2>
-        <p id="override-desc" className="mt-2 text-sm text-maroon/70">
+        <p id="override-desc" className="mt-2 text-sm leading-relaxed text-maroon/70">
           <strong>{guestName}</strong> already set their status to{" "}
           <strong>{STATUS_LABELS[currentStatus]}</strong> for {eventName} via their invite
           link. Are you sure you want to change it to{" "}

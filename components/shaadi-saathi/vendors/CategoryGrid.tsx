@@ -14,7 +14,7 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
         role="tab"
         aria-selected={selected === "all"}
         onClick={() => onSelect("all")}
-        className={`flex shrink-0 flex-col items-center gap-1.5 rounded-xl border px-4 py-3 transition-colors ${
+        className={`flex min-h-[44px] min-w-[44px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border px-4 py-3 transition-colors ${
           selected === "all"
             ? "border-maroon bg-maroon text-ivory"
             : "border-gold/20 bg-white text-maroon/70 hover:border-gold/40"
@@ -33,7 +33,7 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
           role="tab"
           aria-selected={selected === cat.id}
           onClick={() => onSelect(cat.id)}
-          className={`flex shrink-0 flex-col items-center gap-1.5 rounded-xl border px-3 py-3 transition-colors ${
+          className={`flex min-h-[44px] min-w-[44px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-3 transition-colors ${
             selected === cat.id
               ? "border-maroon bg-maroon text-ivory"
               : "border-gold/20 bg-white text-maroon/70 hover:border-gold/40"

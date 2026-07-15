@@ -152,7 +152,7 @@ export default function BookingRequestCard({
               type="number"
               value={proposedPrice}
               onChange={(e) => setProposedPrice(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-gold/25 px-3 py-2 text-sm"
+              className="mt-1 min-h-[44px] w-full rounded-lg border border-gold/25 px-3 py-2 text-sm"
             />
           </label>
           <label className="block text-xs text-maroon/60">
@@ -161,7 +161,7 @@ export default function BookingRequestCard({
               type="text"
               value={proposedPackage}
               onChange={(e) => setProposedPackage(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gold/25 px-3 py-2 text-sm"
+              className="mt-1 min-h-[44px] w-full rounded-lg border border-gold/25 px-3 py-2 text-sm"
             />
           </label>
           <label className="block text-xs text-maroon/60">
@@ -189,7 +189,7 @@ export default function BookingRequestCard({
         </div>
       )}
 
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-5 flex flex-wrap gap-3">
         <GoldButton onClick={onAccept} disabled={declining}>
           Accept
         </GoldButton>
@@ -200,7 +200,7 @@ export default function BookingRequestCard({
           <button
             type="button"
             onClick={() => setShowPropose(!showPropose)}
-            className="rounded-full px-4 py-2 text-sm font-medium text-maroon/70 hover:bg-maroon/5"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-maroon/70 hover:bg-maroon/5"
           >
             Propose changes
           </button>
@@ -209,7 +209,7 @@ export default function BookingRequestCard({
           <button
             type="button"
             onClick={onMessage}
-            className="rounded-full px-4 py-2 text-sm font-medium text-maroon/70 hover:bg-maroon/5"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-maroon/70 hover:bg-maroon/5"
           >
             Message Family
           </button>

@@ -9,7 +9,7 @@ interface StatusBadgeProps {
 export default function StatusBadge({ label, className }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${className}`}
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${className}`}
     >
       {label}
     </span>

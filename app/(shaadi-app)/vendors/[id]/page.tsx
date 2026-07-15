@@ -47,7 +47,7 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
     <PageTransition>
       <Link
         href="/vendors"
-        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
+        className="mb-6 inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
       >
         ← Back to vendors
       </Link>
@@ -58,17 +58,21 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
           className={`relative h-48 bg-gradient-to-br sm:h-64 ${images[galleryIndex]}`}
         >
           {images.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+            <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1">
               {images.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   aria-label={`View image ${i + 1}`}
                   onClick={() => setGalleryIndex(i)}
-                  className={`h-2 w-2 rounded-full transition-colors ${
-                    i === galleryIndex ? "bg-white" : "bg-white/50"
-                  }`}
-                />
+                  className="flex h-11 w-11 items-end justify-center pb-3"
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full transition-colors ${
+                      i === galleryIndex ? "bg-white" : "bg-white/50"
+                    }`}
+                  />
+                </button>
               ))}
             </div>
           )}
@@ -146,11 +150,11 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
           <h2 id="packages-heading" className="mb-3 font-display text-lg font-semibold text-maroon-dark">
             Packages
           </h2>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3">
             {vendor.packages.map((pkg) => (
               <div
                 key={pkg.name}
-                className="rounded-xl border border-gold/20 bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-gold/20 bg-white p-5 shadow-sm"
               >
                 <h3 className="font-display font-semibold text-maroon-dark">{pkg.name}</h3>
                 <p className="mt-1 text-sm font-medium text-gold-dark">
@@ -197,10 +201,10 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
 
       {/* CTAs */}
       <div className="sticky bottom-20 flex gap-3 border-t border-gold/15 bg-ivory/95 py-4 backdrop-blur-sm lg:bottom-0 lg:static lg:border-0 lg:bg-transparent lg:py-0">
-        <GoldButton onClick={() => setShowBooking(true)} className="flex-1">
+        <GoldButton onClick={() => setShowBooking(true)} className="min-h-[44px] flex-1">
           Request Booking
         </GoldButton>
-        <GoldButton variant="ghost" onClick={() => setShowMessage(true)} className="flex-1">
+        <GoldButton variant="ghost" onClick={() => setShowMessage(true)} className="min-h-[44px] flex-1">
           Message Vendor
         </GoldButton>
       </div>

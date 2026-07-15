@@ -46,7 +46,7 @@ export default function FamilyOnboardingStep() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <p className="text-sm text-maroon/60">
+      <p className="text-sm leading-relaxed text-maroon/60">
         Welcome, <strong>{pending.familyName}</strong>! Let&apos;s set up your wedding space.
       </p>
 

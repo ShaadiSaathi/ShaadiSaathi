@@ -112,7 +112,7 @@ export default function ForgotPasswordFlow({ variant }: ForgotPasswordFlowProps)
       }
     >
       {step === "phone" && (
-        <form onSubmit={handleSendCode} className="space-y-4">
+        <form onSubmit={handleSendCode} className="space-y-5">
           <PhoneInput id="reset-phone" value={phone} onChange={setPhone} error={errors.phone} />
           <AuthSubmitButton loading={loading}>Send Reset Code</AuthSubmitButton>
         </form>
@@ -129,7 +129,7 @@ export default function ForgotPasswordFlow({ variant }: ForgotPasswordFlowProps)
       )}
 
       {step === "new-password" && (
-        <form onSubmit={handleResetPassword} className="space-y-4">
+        <form onSubmit={handleResetPassword} className="space-y-5">
           <div>
             <label htmlFor="new-password" className="mb-1 block text-sm font-medium text-maroon/70">
               New password

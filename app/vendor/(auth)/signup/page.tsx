@@ -73,7 +73,7 @@ export default function VendorSignupPage() {
         </p>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" aria-label="Vendor signup">
+      <form onSubmit={handleSubmit} className="space-y-5" aria-label="Vendor signup">
         <div>
           <label htmlFor="business-name" className="mb-1 block text-sm font-medium text-maroon/70">
             Business name
@@ -174,12 +174,12 @@ export default function VendorSignupPage() {
           )}
         </div>
 
-        <label className="flex items-start gap-2 text-sm text-maroon/70">
+        <label className="flex min-h-[44px] cursor-pointer items-start gap-3 py-2 text-sm leading-relaxed text-maroon/70">
           <input
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1 rounded border-gold/30 text-maroon focus:ring-maroon/20"
+            className="mt-0.5 h-5 w-5 shrink-0 rounded border-gold/30 text-maroon focus:ring-maroon/20"
           />
           <span>
             I agree to the{" "}

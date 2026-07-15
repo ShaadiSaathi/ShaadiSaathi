@@ -44,7 +44,7 @@ function FamilyUpgradeContent() {
   return (
     <PageTransition>
       <header className="mb-8">
-        <Link href="/settings" className="text-sm font-medium text-maroon/50 hover:text-maroon">
+        <Link href="/settings" className="inline-flex min-h-[44px] items-center text-sm font-medium text-maroon/50 hover:text-maroon">
           ← Back to settings
         </Link>
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -72,12 +72,12 @@ function FamilyUpgradeContent() {
           <p className="mt-2 text-sm text-maroon/60">
             Enjoy unlimited events and guests, custom invite themes, and the seating planner.
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
             <Link href="/settings#invite-themes">
-              <GoldButton variant="ghost">Invite theme settings</GoldButton>
+              <GoldButton variant="ghost" className="min-h-[44px] w-full sm:w-auto">Invite theme settings</GoldButton>
             </Link>
             <Link href="/seating">
-              <GoldButton>Open seating planner</GoldButton>
+              <GoldButton className="min-h-[44px] w-full sm:w-auto">Open seating planner</GoldButton>
             </Link>
           </div>
         </div>
@@ -97,7 +97,7 @@ function FamilyUpgradeContent() {
             </p>
             <GoldButton
               type="button"
-              className="mt-5 w-full max-w-xs"
+              className="mt-5 min-h-[44px] w-full max-w-xs"
               onClick={handlePurchase}
               disabled={loading}
             >
@@ -124,7 +124,7 @@ function FamilyUpgradeContent() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="max-w-md rounded-2xl border border-gold/30 bg-white p-8 text-center shadow-xl"
+              className="w-full max-w-md rounded-2xl border border-gold/30 bg-white p-6 text-center shadow-xl sm:p-8"
             >
               <p className="text-4xl" aria-hidden="true">
                 🎉
@@ -135,7 +135,7 @@ function FamilyUpgradeContent() {
               <p className="mt-2 text-maroon/70">
                 Premium is now active for your wedding. Unlimited guests, themes, and seating — enjoy!
               </p>
-              <GoldButton type="button" className="mt-6 w-full" onClick={dismissPremiumConfirmation}>
+              <GoldButton type="button" className="mt-6 min-h-[44px] w-full" onClick={dismissPremiumConfirmation}>
                 Continue planning
               </GoldButton>
             </motion.div>

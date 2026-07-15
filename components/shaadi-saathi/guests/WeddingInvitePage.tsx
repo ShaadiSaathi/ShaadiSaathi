@@ -17,7 +17,7 @@ interface WeddingInvitePageProps {
 export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
   if (token !== WEDDING_PUBLIC_INVITE_TOKEN) {
     return (
-      <div className="shaadi-saathi flex min-h-screen items-center justify-center bg-ivory px-4">
+      <div className="shaadi-saathi flex min-h-screen items-center justify-center bg-ivory px-5">
         <div className="text-center">
           <h1 className="font-display text-2xl font-bold text-maroon-dark">Invitation not found</h1>
           <p className="mt-2 text-maroon/60">This wedding invite link is invalid.</p>
@@ -30,7 +30,7 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
     <div className="shaadi-saathi relative min-h-screen overflow-hidden bg-ivory text-maroon-dark">
       <MehndiPattern opacity={0.08} />
 
-      <div className="relative border-b border-gold/30 bg-gradient-to-b from-gold/10 to-transparent px-4 py-10 text-center">
+      <div className="relative border-b border-gold/30 bg-gradient-to-b from-gold/10 to-transparent px-5 py-10 text-center">
         <p className="text-xs font-medium uppercase tracking-[0.25em] text-gold-dark">
           Save the date
         </p>
@@ -51,16 +51,16 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
         </motion.p>
       </div>
 
-      <main className="relative mx-auto max-w-lg px-4 py-8">
+      <main className="relative mx-auto max-w-lg px-5 py-8">
         <div className="mb-8">
           <JaaliDivider />
         </div>
-        <p className="mb-6 text-center text-sm text-maroon/60">
+        <p className="mb-6 text-center text-sm leading-relaxed text-maroon/60">
           Join us for our wedding celebrations across three beautiful events.
           Individual RSVP links are sent to each guest separately.
         </p>
 
-        <div className="space-y-5">
+        <div className="space-y-6">
           {EVENTS.map((event, i) => (
             <motion.article
               key={event.id}

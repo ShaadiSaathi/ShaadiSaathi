@@ -56,7 +56,7 @@ export default function JobDetail({ job }: JobDetailProps) {
     <PageTransition>
       <Link
         href="/vendor/jobs"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
+        className="mb-4 inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
       >
         ← Back to My Jobs
       </Link>
@@ -239,7 +239,7 @@ export default function JobDetail({ job }: JobDetailProps) {
               <div>
                 <label
                   htmlFor="dispute-file"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-gold/40 bg-white px-4 py-2 text-sm text-maroon/60 hover:bg-gold/5"
+                  className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-dashed border-gold/40 bg-white px-4 py-2 text-sm text-maroon/60 hover:bg-gold/5"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.106 9.192a2.25 2.25 0 01-3.182 0l-3.11-3.11a2.25 2.25 0 010-3.182l3.11-3.11a2.25 2.25 0 013.182 0l3.11 3.11a2.25 2.25 0 010 3.182z" />

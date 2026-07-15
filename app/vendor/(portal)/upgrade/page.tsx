@@ -46,7 +46,7 @@ function VendorUpgradeContent() {
   return (
     <PageTransition>
       <header className="mb-8">
-        <Link href="/vendor/profile" className="text-sm font-medium text-maroon/50 hover:text-maroon">
+        <Link href="/vendor/profile" className="inline-flex min-h-[44px] items-center text-sm font-medium text-maroon/50 hover:text-maroon">
           ← Back to profile
         </Link>
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -80,7 +80,7 @@ function VendorUpgradeContent() {
               <span className="font-medium">{nextBillingDate}</span>
             </p>
           )}
-          <Link href="/vendor/subscription" className="mt-5 inline-block text-sm font-semibold text-gold-dark hover:underline">
+          <Link href="/vendor/subscription" className="mt-5 inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline">
             Manage subscription →
           </Link>
         </div>

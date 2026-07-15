@@ -179,7 +179,7 @@ function BookingCard({
   return (
     <li
       id={`booking-${booking.id}`}
-      className={`rounded-xl border bg-white p-4 shadow-sm ${
+      className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-6 ${
         highlighted ? "border-gold ring-2 ring-gold/30" : "border-gold/15"
       }`}
     >
@@ -265,7 +265,7 @@ function BookingCard({
             <button
               type="button"
               onClick={() => setShowQualityConcern(true)}
-              className="text-xs font-medium text-violet-800 underline-offset-2 hover:underline"
+              className="inline-flex min-h-[44px] items-center text-xs font-medium text-violet-800 underline-offset-2 hover:underline"
             >
               Something&apos;s wrong with the setup
             </button>
@@ -277,7 +277,7 @@ function BookingCard({
               <GoldButton
                 variant="ghost"
                 onClick={() => markBalancePaid(booking.id)}
-                className="text-xs"
+                className="min-h-[44px] text-xs"
               >
                 Mark balance as paid
               </GoldButton>
@@ -291,7 +291,7 @@ function BookingCard({
             <button
               type="button"
               onClick={() => setShowDispute(true)}
-              className="text-xs font-medium text-maroon/60 underline-offset-2 hover:text-maroon hover:underline"
+              className="inline-flex min-h-[44px] items-center text-xs font-medium text-maroon/60 underline-offset-2 hover:text-maroon hover:underline"
             >
               Report an issue (formal dispute)
             </button>
@@ -318,7 +318,7 @@ function BookingCard({
       {isCompleted && (
         <div className="mt-4 border-t border-gold/10 pt-4">
           <Link href={`/vendors/${vendor.id}?rebook=1`}>
-            <GoldButton variant="ghost" className="text-xs">
+            <GoldButton variant="ghost" className="min-h-[44px] text-xs">
               Book this vendor again
             </GoldButton>
           </Link>

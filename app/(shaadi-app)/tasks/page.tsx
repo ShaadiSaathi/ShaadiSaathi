@@ -87,7 +87,7 @@ function TasksPageContent() {
           <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
             Tasks
           </h1>
-          <p className="mt-1 text-maroon/60">
+          <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
             Assign, track, and celebrate what gets done.
           </p>
         </div>
@@ -103,7 +103,7 @@ function TasksPageContent() {
         <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-gold/20 bg-gold/5 px-4 py-3">
           <span className="text-sm text-maroon/70">Showing tasks for</span>
           <EventChip eventId={eventFilter} size="sm" />
-          <Link href="/tasks" className="ml-auto text-xs font-medium text-maroon/50 hover:text-maroon">
+          <Link href="/tasks" className="ml-auto inline-flex min-h-[44px] items-center text-xs font-medium text-maroon/50 hover:text-maroon">
             Show all tasks
           </Link>
         </div>
@@ -115,7 +115,7 @@ function TasksPageContent() {
             key={g}
             type="button"
             onClick={() => setGroupBy(g)}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               groupBy === g ? "bg-maroon text-ivory" : "text-maroon/60 hover:text-maroon"
             }`}
           >
@@ -210,7 +210,7 @@ function TasksPageContent() {
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
                   placeholder="e.g. Confirm florist"
                 />
               </div>
@@ -224,7 +224,7 @@ function TasksPageContent() {
                   value={newAssignee}
                   onChange={(e) => setNewAssignee(e.target.value)}
                   placeholder={familyUser?.name ? `e.g. ${familyUser.name}` : "e.g. Sana"}
-                  className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
                 />
               </div>
               <div>
@@ -236,7 +236,7 @@ function TasksPageContent() {
                   type="date"
                   value={newDueDate}
                   onChange={(e) => setNewDueDate(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
                 />
               </div>
               <div>
@@ -247,7 +247,7 @@ function TasksPageContent() {
                   id="task-event"
                   value={newEvent}
                   onChange={(e) => setNewEvent(e.target.value as EventId | "")}
-                  className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
                 >
                   <option value="">No specific event</option>
                   {EVENTS.map((ev) => (
@@ -303,13 +303,13 @@ function TaskCard({ task, onToggle }: { task: AppTask; onToggle: () => void }) {
             opacity: isDone ? 0.65 : 1,
           }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-          className="flex items-start gap-3 px-4 py-3.5"
+          className="flex items-start gap-3 px-4 py-4"
         >
           <button
             type="button"
             onClick={onToggle}
             aria-label={isDone ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
-            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+            className={`relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors after:absolute after:-inset-3 after:content-[''] ${
               isDone
                 ? "border-emerald-500 bg-emerald-500 text-white"
                 : "border-maroon/30 hover:border-maroon"

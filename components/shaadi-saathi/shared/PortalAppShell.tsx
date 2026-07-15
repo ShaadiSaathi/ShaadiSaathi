@@ -68,8 +68,8 @@ export default function PortalAppShell({
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <main className="flex-1 overflow-x-hidden pb-20 lg:pb-0">
-          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">{children}</div>
+        <main className="flex-1 overflow-x-hidden pb-32 lg:pb-0">
+          <div className="mx-auto max-w-5xl px-5 py-7 sm:px-6 sm:py-9 lg:px-8">{children}</div>
         </main>
 
         <nav
@@ -77,19 +77,19 @@ export default function PortalAppShell({
           aria-label={`${portalType} mobile navigation`}
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <ul className="flex items-stretch justify-around px-1 py-1">
+          <ul className="flex snap-x items-stretch gap-1 overflow-x-auto px-2 py-1.5 scrollbar-none [scrollbar-width:none]">
             {navItems.map((item) => {
               const active = isActive(pathname, item.href, portalType)
               return (
-                <li key={item.href} className="flex-1">
+                <li key={item.href} className="min-w-[4rem] shrink-0 flex-1 snap-start">
                   <Link
                     href={item.href}
-                    className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium ${
-                      active ? "text-maroon" : "text-maroon/50"
+                    className={`flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1.5 text-[11px] font-medium leading-none transition-colors ${
+                      active ? "text-maroon" : "text-maroon/55"
                     }`}
                   >
                     <span
-                      className={`rounded-lg p-1.5 ${active ? "bg-maroon text-gold" : "text-gold-dark/70"}`}
+                      className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${active ? "bg-maroon text-gold" : "text-gold-dark/70"}`}
                     >
                       {item.icon}
                     </span>

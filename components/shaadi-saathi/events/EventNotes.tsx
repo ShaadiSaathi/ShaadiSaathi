@@ -37,7 +37,7 @@ export default function EventNotes({ eventId }: EventNotesProps) {
       aria-labelledby="event-notes-heading"
       className="rounded-2xl border border-gold/20 bg-white p-5 shadow-sm"
     >
-      <h2 id="event-notes-heading" className="font-display text-lg font-semibold text-maroon-dark">
+      <h2 id="event-notes-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
         Notes & Mood Board
       </h2>
 
@@ -53,7 +53,7 @@ export default function EventNotes({ eventId }: EventNotesProps) {
           value={notes}
           onChange={(e) => setNotes(eventId, e.target.value)}
           rows={4}
-          className="mt-2 w-full rounded-xl border border-gold/20 bg-ivory/30 px-4 py-3 text-sm text-maroon-dark placeholder:text-maroon/30 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+          className="mt-2 w-full rounded-xl border border-gold/20 bg-ivory/30 px-4 py-3 text-sm leading-relaxed text-maroon-dark placeholder:text-maroon/30 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
           placeholder="Add notes for this event…"
         />
       </div>
@@ -67,7 +67,7 @@ export default function EventNotes({ eventId }: EventNotesProps) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-lg border border-gold/25 px-3 py-1.5 text-xs font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5"
+            className="inline-flex min-h-[44px] items-center rounded-lg border border-gold/25 px-4 py-1.5 text-sm font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5"
           >
             Upload image
           </button>
@@ -101,12 +101,12 @@ export default function EventNotes({ eventId }: EventNotesProps) {
                   role="img"
                   aria-label={photo.name}
                 />
-                <div className="flex items-center justify-between gap-1 bg-white px-2 py-1.5">
+                <div className="flex items-center justify-between gap-1 bg-white px-2 py-1">
                   <p className="truncate text-xs text-maroon/60">{photo.name}</p>
                   <button
                     type="button"
                     onClick={() => removeMoodPhoto(eventId, photo.id)}
-                    className="shrink-0 text-xs text-rose-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-rose-600"
+                    className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-base text-rose-400 opacity-100 transition-opacity hover:text-rose-600 sm:opacity-0 sm:group-hover:opacity-100"
                     aria-label={`Remove ${photo.name}`}
                   >
                     ×

@@ -21,12 +21,26 @@ export default function MessageModal({ vendor, onClose }: MessageModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 sm:items-center sm:p-4"
       role="dialog"
       aria-labelledby="message-modal-title"
       aria-modal="true"
     >
-      <div className="w-full max-w-md rounded-2xl border border-gold/25 bg-ivory p-6 shadow-xl">
+      <div className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-full text-maroon/50 transition-colors hover:bg-maroon/5 hover:text-maroon"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+          <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
         {sent ? (
           <div className="text-center">
             <h2 id="message-modal-title" className="font-display text-xl font-semibold text-maroon-dark">
@@ -36,7 +50,7 @@ export default function MessageModal({ vendor, onClose }: MessageModalProps) {
               {/* PLACEHOLDER: connect to real messaging when backend exists */}
               Your message to {vendor.name} has been queued. They typically reply within a day.
             </p>
-            <GoldButton onClick={onClose} className="mt-6 w-full">
+            <GoldButton onClick={onClose} className="mt-6 min-h-[44px] w-full">
               Close
             </GoldButton>
           </div>
@@ -60,17 +74,18 @@ export default function MessageModal({ vendor, onClose }: MessageModalProps) {
                   className="mt-1 w-full resize-none rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
                 />
               </div>
-              <div className="flex gap-3">
-                <GoldButton type="submit" className="flex-1">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <GoldButton type="submit" className="min-h-[44px] flex-1">
                   Send
                 </GoldButton>
-                <GoldButton type="button" variant="ghost" onClick={onClose} className="flex-1">
+                <GoldButton type="button" variant="ghost" onClick={onClose} className="min-h-[44px] flex-1">
                   Cancel
                 </GoldButton>
               </div>
             </form>
           </>
         )}
+        </div>
       </div>
     </div>
   )

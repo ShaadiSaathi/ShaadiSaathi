@@ -56,12 +56,12 @@ export default function VendorLoginPage() {
       }
     >
       {loginSuccessMessage && (
-        <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800" role="status">
+        <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm leading-relaxed text-emerald-800" role="status">
           {loginSuccessMessage}
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4" aria-label="Vendor login">
+      <form onSubmit={handleSubmit} className="space-y-5" aria-label="Vendor login">
         <PhoneInput id="vendor-login-phone" value={phone} onChange={setPhone} error={errors.phone} />
 
         <div>
@@ -71,7 +71,7 @@ export default function VendorLoginPage() {
             </label>
             <Link
               href="/vendor/forgot-password"
-              className="text-xs font-medium text-maroon/50 hover:text-maroon"
+              className="inline-flex min-h-[44px] items-center text-xs font-medium text-maroon/50 hover:text-maroon lg:min-h-0"
             >
               Forgot password?
             </Link>

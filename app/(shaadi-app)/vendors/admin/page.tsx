@@ -15,7 +15,7 @@ export default function VendorAdminPage() {
       <header className="mb-8">
         <Link
           href="/vendors"
-          className="mb-2 inline-flex text-sm font-medium text-maroon/60 hover:text-maroon"
+          className="mb-2 inline-flex min-h-[44px] items-center text-sm font-medium text-maroon/60 hover:text-maroon"
         >
           ← Back to vendors
         </Link>
@@ -39,7 +39,7 @@ export default function VendorAdminPage() {
           return (
             <li
               key={vendor.id}
-              className="rounded-xl border border-gold/15 bg-white p-4"
+              className="rounded-2xl border border-gold/15 bg-white p-5 sm:p-6"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>

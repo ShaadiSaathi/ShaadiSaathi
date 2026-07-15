@@ -28,6 +28,9 @@ export default function ModalSheet({
         className={`flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+          <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
+        </div>
         {children}
       </div>
     </div>

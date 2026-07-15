@@ -36,7 +36,7 @@ function VendorBookingsContent() {
         <div>
           <Link
             href="/vendors"
-            className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
+            className="mb-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-maroon/60 hover:text-maroon"
           >
             ← Browse vendors
           </Link>
@@ -55,7 +55,7 @@ function VendorBookingsContent() {
           <EventChip eventId={eventFilter} size="sm" />
           <Link
             href="/vendors/bookings"
-            className="ml-auto text-xs font-medium text-maroon/50 hover:text-maroon"
+            className="ml-auto inline-flex min-h-[44px] items-center text-xs font-medium text-maroon/50 hover:text-maroon"
           >
             Show all bookings
           </Link>
@@ -68,7 +68,7 @@ function VendorBookingsContent() {
             key={g}
             type="button"
             onClick={() => setGroupBy(g)}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`min-h-[44px] flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               groupBy === g ? "bg-maroon text-ivory" : "text-maroon/60 hover:text-maroon"
             }`}
           >

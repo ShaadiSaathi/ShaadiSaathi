@@ -134,7 +134,7 @@ export default function GuestsPage() {
           <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
             Guests
           </h1>
-          <p className="mt-1 text-maroon/60">
+          <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
             Your elegant guest register — one list, tagged per event.
           </p>
         </div>
@@ -173,7 +173,7 @@ export default function GuestsPage() {
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               tab === t ? "bg-maroon text-ivory" : "text-maroon/60 hover:text-maroon"
             }`}
           >
@@ -204,13 +204,13 @@ export default function GuestsPage() {
               placeholder="Search by name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+              className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
             />
             <select
               aria-label="Filter by event"
               value={eventFilter}
               onChange={(e) => setEventFilter(e.target.value as EventId | "all")}
-              className="rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none"
+              className="min-h-[44px] rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none"
             >
               <option value="all">All events</option>
               {EVENTS.map((ev) => (
@@ -223,7 +223,7 @@ export default function GuestsPage() {
               aria-label="Filter by RSVP status"
               value={rsvpFilter}
               onChange={(e) => setRsvpFilter(e.target.value as RsvpStatus | "all")}
-              className="rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none"
+              className="min-h-[44px] rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none"
             >
               <option value="all">All RSVPs</option>
               <option value="confirmed">Confirmed</option>
@@ -313,7 +313,7 @@ export default function GuestsPage() {
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
                   placeholder="e.g. Fatima Khan"
                 />
               </div>
@@ -325,7 +325,7 @@ export default function GuestsPage() {
                       key={ev.id}
                       type="button"
                       onClick={() => toggleNewEvent(ev.id)}
-                      className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+                      className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-sm font-medium transition-colors ${
                         newEvents.includes(ev.id)
                           ? "bg-maroon text-ivory"
                           : "border border-gold/30 text-maroon/60 hover:border-gold/50"
@@ -373,7 +373,7 @@ function GuestRow({
     .slice(0, 2)
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-gold/15 bg-white px-4 py-4 sm:flex-row sm:items-center">
+    <li className="flex flex-col gap-3 rounded-xl border border-gold/15 bg-white p-5 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar initials={initials} size="md" />
         <div className="min-w-0">
@@ -409,7 +409,7 @@ function GuestRow({
         <button
           type="button"
           onClick={onSendInvite}
-          className="ml-1 inline-flex items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5"
+          className="ml-1 inline-flex min-h-[44px] items-center gap-1 rounded-lg border border-gold/25 px-3 py-1 text-xs font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5"
           aria-label={`Send invite link to ${guest.name}`}
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -451,7 +451,7 @@ function RsvpOverview({
             key={ev.id}
             type="button"
             onClick={() => setRsvpEvent(ev.id)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               rsvpEvent === ev.id
                 ? "bg-maroon text-ivory"
                 : "border border-gold/30 text-maroon/60 hover:border-gold/50"
@@ -462,8 +462,8 @@ function RsvpOverview({
         ))}
       </div>
 
-      <div className="mb-6 rounded-2xl border border-gold/20 bg-white p-6">
-        <h2 className="font-display text-lg font-semibold text-maroon-dark">
+      <div className="mb-6 rounded-2xl border border-gold/20 bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
           {event.name} — Live headcount
         </h2>
         <p className="mt-1 text-sm text-maroon/60">
@@ -510,7 +510,7 @@ function RsvpOverview({
         {guests.map((guest) => (
           <li
             key={guest.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-gold/10 bg-white px-4 py-3"
+            className="flex items-center justify-between gap-3 rounded-xl border border-gold/10 bg-white p-4"
           >
             <div className="flex min-w-0 items-center gap-3">
               <Avatar

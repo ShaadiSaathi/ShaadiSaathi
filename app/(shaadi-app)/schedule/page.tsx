@@ -57,7 +57,7 @@ export default function SchedulePage() {
         <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
           Schedule
         </h1>
-        <p className="mt-1 text-maroon/60">
+        <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
           One shared timeline — events and deadlines, all in one place.
         </p>
       </header>
@@ -99,7 +99,7 @@ export default function SchedulePage() {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <span
-                          className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                          className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wider ${
                             item.type === "event"
                               ? "bg-gold/15 text-gold-dark"
                               : "bg-maroon/8 text-maroon/60"

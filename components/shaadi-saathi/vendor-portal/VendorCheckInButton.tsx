@@ -58,7 +58,7 @@ export function VendorGracePeriodBanner({ endsAt }: { endsAt: string }) {
       role="status"
     >
       <p className="font-medium">Check in before the grace period ends</p>
-      <p className="mt-0.5 text-xs text-amber-800/80">
+      <p className="mt-0.5 text-xs leading-relaxed text-amber-800/80">
         Confirm your arrival by {formatted} to release your deposit and protect your reliability
         score.
       </p>

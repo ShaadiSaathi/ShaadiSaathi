@@ -65,7 +65,7 @@ export default function VendorProfile() {
           <button
             type="button"
             onClick={() => updateBusiness({ suspended: false })}
-            className="mt-8 text-sm font-semibold text-amber-900 underline-offset-2 hover:underline"
+            className="mt-8 inline-flex min-h-[44px] items-center text-sm font-semibold text-amber-900 underline-offset-2 hover:underline"
           >
             Demo: restore account
           </button>
@@ -135,7 +135,7 @@ export default function VendorProfile() {
                         setVendorCategories([...vendorCategories, cat.id])
                       }
                     }}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`inline-flex min-h-[44px] items-center justify-center rounded-full px-4 py-1 text-xs font-medium transition-colors ${
                       selected
                         ? "bg-maroon text-ivory"
                         : "border border-gold/25 bg-white text-maroon/60 hover:border-gold/40"
@@ -336,7 +336,7 @@ export default function VendorProfile() {
                 ],
               })
             }
-            className="mt-3 text-sm font-semibold text-maroon/70 hover:text-maroon"
+            className="mt-3 inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon/70 hover:text-maroon"
           >
             Preview suspended account →
           </button>

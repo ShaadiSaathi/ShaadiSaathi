@@ -13,7 +13,7 @@ export default function MessageThread({
   if (messages.length === 0) return null
 
   return (
-    <section className="rounded-2xl border border-gold/25 bg-white p-5">
+    <section className="rounded-2xl border border-gold/25 bg-white p-5 sm:p-6">
       <h2 className="font-display text-lg font-semibold text-maroon-dark">{title}</h2>
       <p className="mt-1 text-xs text-maroon/50">
         Kept on record in Shaadi Saathi — even after the job is done
@@ -31,7 +31,7 @@ export default function MessageThread({
             <p className="text-xs font-semibold text-maroon/50 capitalize">
               {msg.sender === "family" ? "Family" : "Vendor"}
             </p>
-            <p className="mt-0.5">{msg.text}</p>
+            <p className="mt-0.5 leading-relaxed">{msg.text}</p>
             <time className="mt-1 block text-[10px] text-maroon/40">
               {new Date(msg.sentAt).toLocaleString("en-US", {
                 month: "short",
