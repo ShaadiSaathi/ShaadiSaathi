@@ -8,16 +8,15 @@ import WeddingInviteLinkButton from "@/components/shaadi-saathi/guests/WeddingIn
 import PremiumBadge from "@/components/shaadi-saathi/premium/PremiumBadge"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
+import { useTasks } from "@/components/shaadi-saathi/tasks/TasksContext"
 import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
+import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import { getBookingProgress } from "@/lib/mockVendors"
 import {
-  CURRENT_USER,
   EVENTS,
-  WEDDING,
   formatEventDate,
   getDaysUntil,
   getNextUpcomingEvent,
-  getTaskStats,
   getTotalRsvpStats,
 } from "@/lib/mockData"
 
@@ -30,13 +29,20 @@ const EVENT_DOT: Record<string, string> = {
 export default function DashboardPage() {
   const { bookings } = useVendorBookings()
   const { guests } = useGuests()
+  const { tasks } = useTasks()
   const { familyUser } = useAuth()
+  const { wedding } = useWedding()
   const { isFamilyPremium } = usePremium()
   const nextEvent = getNextUpcomingEvent()
   const rsvpStats = getTotalRsvpStats(guests)
-  const taskStats = getTaskStats()
+  const taskStats = {
+    done: tasks.filter((t) => t.status === "done").length,
+    outstanding: tasks.filter((t) => t.status !== "done").length,
+    total: tasks.length,
+  }
   const vendorProgress = getBookingProgress(bookings)
   const daysUntil = nextEvent ? getDaysUntil(nextEvent.date) : 0
+  const weddingName = familyUser?.weddingName || wedding?.name || "Your wedding"
 
   return (
     <PageTransition>
@@ -44,10 +50,10 @@ export default function DashboardPage() {
       <header className="mb-8">
         <p className="text-sm font-medium text-maroon/60">Good morning</p>
         <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
-          Welcome back, {familyUser?.name ?? CURRENT_USER.name}
+          Welcome back, {familyUser?.name || "there"}
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-2 text-maroon/70">
-          {familyUser?.weddingName ?? WEDDING.name}
+          {weddingName}
           {isFamilyPremium && <PremiumBadge />}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">

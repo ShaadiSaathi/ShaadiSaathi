@@ -7,10 +7,10 @@ import type { InPersonMethod, PaymentPath } from "@/lib/mockPayments"
 import { calculateDepositSplit, formatPaymentPathLabel } from "@/lib/mockPayments"
 import {
   formatPrice,
-  getDefaultGuestCount,
   type Vendor,
   type VendorPackage,
 } from "@/lib/mockVendors"
+import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import DepositBalanceCard from "./payments/DepositBalanceCard"
 import PaymentPathSelector, {
@@ -28,12 +28,15 @@ interface BookingModalProps {
 /** Booking flow with payment path + deposit — PLACEHOLDER for real payment gateway */
 export default function BookingModal({ vendor, onClose }: BookingModalProps) {
   const { addBooking } = useVendorBookings()
+  const { guests } = useGuests()
+  const confirmedCountFor = (ev: EventId) =>
+    guests.filter((g) => g.rsvp[ev] === "confirmed").length
   const [step, setStep] = useState<Step>("details")
   const [eventId, setEventId] = useState<EventId>("walima")
   const [selectedPackage, setSelectedPackage] = useState<VendorPackage | null>(
     vendor.packages?.[0] ?? null
   )
-  const [guestCount, setGuestCount] = useState(getDefaultGuestCount("walima"))
+  const [guestCount, setGuestCount] = useState(0)
   const [note, setNote] = useState("")
   const [paymentPath, setPaymentPath] = useState<PaymentPath>("in_person")
   const [inPersonMethod, setInPersonMethod] = useState<InPersonMethod>("cash")
@@ -42,7 +45,7 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
 
   function handleEventChange(id: EventId) {
     setEventId(id)
-    setGuestCount(getDefaultGuestCount(id))
+    setGuestCount(confirmedCountFor(id))
   }
 
   function computePrice(): number {

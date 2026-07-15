@@ -1,4 +1,5 @@
 import {
+  collection,
   doc,
   getDoc,
   onSnapshot,
@@ -9,6 +10,11 @@ import {
 import type { InviteThemeId } from "@/lib/premium"
 import { getFirestoreDb } from "./config"
 import type { FirestoreWedding } from "./types"
+
+/** Generate a fresh, never-reused auto-ID for a new wedding document. */
+export function newWeddingId(): string {
+  return doc(collection(getFirestoreDb(), "weddings")).id
+}
 
 export async function getWedding(weddingId: string): Promise<FirestoreWedding | null> {
   const snap = await getDoc(doc(getFirestoreDb(), "weddings", weddingId))

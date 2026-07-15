@@ -1,12 +1,8 @@
 "use client"
 
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
-import {
-  EVENTS,
-  TASKS,
-  formatEventDate,
-  getFamilyMember,
-} from "@/lib/mockData"
+import { EVENTS, formatEventDate } from "@/lib/mockData"
+import { useTasks } from "@/components/shaadi-saathi/tasks/TasksContext"
 
 interface TimelineItem {
   id: string
@@ -19,6 +15,8 @@ interface TimelineItem {
 }
 
 export default function SchedulePage() {
+  const { tasks } = useTasks()
+
   const items: TimelineItem[] = [
     ...EVENTS.map((e) => ({
       id: `event-${e.id}`,
@@ -29,15 +27,17 @@ export default function SchedulePage() {
       time: e.time,
       eventColor: e.color,
     })),
-    ...TASKS.filter((t) => t.status !== "done").map((t) => ({
-      id: `task-${t.id}`,
-      type: "deadline" as const,
-      date: t.dueDate,
-      title: t.title,
-      subtitle: getFamilyMember(t.assigneeId)?.name ?? "Unassigned",
-      time: undefined,
-      eventColor: undefined,
-    })),
+    ...tasks
+      .filter((t) => t.status !== "done")
+      .map((t) => ({
+        id: `task-${t.id}`,
+        type: "deadline" as const,
+        date: t.dueDate,
+        title: t.title,
+        subtitle: t.assignee || "Unassigned",
+        time: undefined,
+        eventColor: undefined,
+      })),
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
   // Group by month

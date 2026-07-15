@@ -1,8 +1,10 @@
 "use client"
 
+"use client"
+
 import Link from "next/link"
-import { formatEventDate, getEventTaskStats, getUpcomingTasksForEvent, type EventId } from "@/lib/mockData"
-import { getFamilyMember } from "@/lib/mockData"
+import { formatEventDate, type EventId } from "@/lib/mockData"
+import { useTasks } from "@/components/shaadi-saathi/tasks/TasksContext"
 
 interface EventTaskSummaryProps {
   eventId: EventId
@@ -10,8 +12,14 @@ interface EventTaskSummaryProps {
 }
 
 export default function EventTaskSummary({ eventId, eventName }: EventTaskSummaryProps) {
-  const stats = getEventTaskStats(eventId)
-  const upcoming = getUpcomingTasksForEvent(eventId, 3)
+  const { tasks } = useTasks()
+  const eventTasks = tasks.filter((t) => t.eventId === eventId)
+  const done = eventTasks.filter((t) => t.status === "done").length
+  const stats = { done, total: eventTasks.length, outstanding: eventTasks.length - done }
+  const upcoming = eventTasks
+    .filter((t) => t.status !== "done")
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 3)
   const tasksUrl = `/tasks?event=${eventId}`
 
   return (
@@ -50,8 +58,7 @@ export default function EventTaskSummary({ eventId, eventName }: EventTaskSummar
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-maroon-dark">{task.title}</p>
                 <p className="text-xs text-maroon/50">
-                  Due {formatEventDate(task.dueDate)} ·{" "}
-                  {getFamilyMember(task.assigneeId)?.name ?? "Unassigned"}
+                  Due {formatEventDate(task.dueDate)} · {task.assignee || "Unassigned"}
                 </p>
               </div>
               <span

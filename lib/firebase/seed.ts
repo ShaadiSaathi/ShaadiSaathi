@@ -1,21 +1,55 @@
 import { getFirestoreDb, isFirebaseConfigured } from "./config"
 import { getUserProfile } from "./users"
-import { createWedding, getWedding } from "./weddings"
-import { seedGuestsBatch } from "./guests"
-import { seedBookingsBatch } from "./bookings"
+import { createWedding, getWedding, newWeddingId } from "./weddings"
 import { createUserProfile } from "./users"
-import { GUESTS, WEDDING } from "@/lib/mockData"
-import { INITIAL_BOOKINGS, VENDORS } from "@/lib/mockVendors"
+import { WEDDING } from "@/lib/mockData"
 import type { FirestoreWedding } from "./types"
 
+/**
+ * Retained ONLY as the weddingId used in local/mock mode (Firebase not
+ * configured). It is never used to scope a real signed-in user's data.
+ */
 export const DEMO_WEDDING_ID = WEDDING.id
 export const DEMO_VENDOR_ID = "vendor-1"
 
-export async function ensureDemoWeddingSeeded(
+function makeShareCode(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  let code = ""
+  for (let i = 0; i < 6; i++) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)]
+  }
+  return `SS-${code}`
+}
+
+/**
+ * Look up the wedding for a returning family user WITHOUT creating or seeding
+ * anything. Returns null when the user has no wedding yet (→ empty states).
+ */
+export async function getWeddingForUser(uid: string): Promise<string | null> {
+  if (!isFirebaseConfigured()) return DEMO_WEDDING_ID
+
+  const profile = await getUserProfile(getFirestoreDb(), uid)
+  if (!profile?.weddingId) return null
+  const wedding = await getWedding(profile.weddingId)
+  return wedding ? profile.weddingId : null
+}
+
+/**
+ * Create a brand-new, uniquely-scoped wedding for a family user during signup
+ * onboarding — or return their existing wedding if one already exists.
+ *
+ * Guarantees a genuinely fresh start:
+ *  - a fresh auto-generated document ID (never reused / never shared)
+ *  - ownerId + memberUids set to the new user's Firebase Auth UID
+ *  - ONLY the fields the user just entered (name, first event date)
+ *  - NO seeded guests, bookings, or tasks of any kind
+ */
+export async function createWeddingForUser(
   uid: string,
   organiserName: string,
   organiserPhone: string,
-  weddingName?: string
+  weddingName: string,
+  firstEventDate: string
 ): Promise<string> {
   if (!isFirebaseConfigured()) return DEMO_WEDDING_ID
 
@@ -25,49 +59,23 @@ export async function ensureDemoWeddingSeeded(
     if (wedding) return existing.weddingId
   }
 
-  const weddingId = DEMO_WEDDING_ID
-  const weddingDoc = await getWedding(weddingId)
+  const weddingId = newWeddingId()
+  const trimmedName = weddingName.trim()
 
-  if (!weddingDoc) {
-    const wedding: Omit<FirestoreWedding, "createdAt"> = {
-      id: weddingId,
-      name: weddingName ?? WEDDING.name,
-      couple: WEDDING.couple,
-      shareCode: WEDDING.shareCode,
-      isPremium: false,
-      inviteTheme: "classic",
-      memberUids: [uid],
-      organiserName,
-      organiserPhone,
-      firstEventDate: "2026-08-08",
-    }
-    await createWedding(wedding)
-    await seedGuestsBatch(weddingId, GUESTS)
-    await seedBookingsBatch(
-      weddingId,
-      INITIAL_BOOKINGS.map((b) => {
-        const vendor = VENDORS.find((v) => v.id === b.vendorId)
-        return {
-          id: b.id,
-          vendorId: b.vendorId,
-          eventId: b.eventId,
-          status: b.status,
-          price: b.price,
-          packageName: b.packageName,
-          guestCount: b.guestCount,
-          paymentPath: b.payment?.paymentPath ?? "online",
-          familyName: organiserName,
-          weddingName: weddingName ?? WEDDING.name,
-          vendorName: vendor?.name ?? "Vendor",
-        }
-      })
-    )
-  } else if (!weddingDoc.memberUids.includes(uid)) {
-    const { updateDoc, doc } = await import("firebase/firestore")
-    await updateDoc(doc(getFirestoreDb(), "weddings", weddingId), {
-      memberUids: [...weddingDoc.memberUids, uid],
-    })
+  const wedding: Omit<FirestoreWedding, "createdAt"> = {
+    id: weddingId,
+    name: trimmedName,
+    couple: trimmedName,
+    shareCode: makeShareCode(),
+    isPremium: false,
+    inviteTheme: "classic",
+    ownerId: uid,
+    memberUids: [uid],
+    organiserName,
+    organiserPhone,
+    firstEventDate,
   }
+  await createWedding(wedding)
 
   await createUserProfile(getFirestoreDb(), {
     uid,

@@ -26,7 +26,6 @@ import {
 } from "@/lib/firebase/guests"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { WeddingContext } from "@/components/shaadi-saathi/firebase/WeddingContext"
-import { DEMO_WEDDING_ID } from "@/lib/firebase/seed"
 
 const STORAGE_KEY = "shaadi-saathi-guests"
 
@@ -79,21 +78,32 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
   const { weddingId: authWeddingId } = useAuth()
   const weddingCtx = useContext(WeddingContext)
   const ctxWeddingId = weddingCtx?.weddingId ?? null
-  const weddingId = authWeddingId ?? ctxWeddingId ?? DEMO_WEDDING_ID
-  const useFirestore = isFirebaseConfigured() && Boolean(authWeddingId ?? ctxWeddingId)
+  const firebaseMode = isFirebaseConfigured()
+  // Scoped strictly to the signed-in session's wedding — never a shared/fallback id.
+  const weddingId = authWeddingId ?? ctxWeddingId
+  const useFirestore = firebaseMode && Boolean(weddingId)
 
-  const [guests, setGuests] = useState<Guest[]>(INITIAL_GUESTS)
+  const [guests, setGuests] = useState<Guest[]>(firebaseMode ? [] : INITIAL_GUESTS)
   const [hydrated, setHydrated] = useState(false)
-  const [loading, setLoading] = useState(useFirestore)
+  const [loading, setLoading] = useState(firebaseMode)
 
+  // Local/mock mode only (Firebase not configured): hydrate from localStorage.
   useEffect(() => {
-    if (useFirestore) return
+    if (firebaseMode) return
     setGuests(loadGuests())
     setHydrated(true)
-  }, [useFirestore])
+    setLoading(false)
+  }, [firebaseMode])
 
+  // Firebase mode: subscribe to guests scoped to the current wedding.
   useEffect(() => {
-    if (!useFirestore || !weddingId) return
+    if (!firebaseMode) return
+    if (!weddingId) {
+      // Signed out or no wedding yet → empty state, never mock/sample data.
+      setGuests([])
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
     const unsub = subscribeGuestsByWedding(
@@ -106,12 +116,13 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
       () => setLoading(false)
     )
     return unsub
-  }, [useFirestore, weddingId])
+  }, [firebaseMode, weddingId])
 
+  // Persist only in local/mock mode.
   useEffect(() => {
-    if (!hydrated || useFirestore) return
+    if (!hydrated || firebaseMode) return
     persistGuests(guests)
-  }, [guests, hydrated, useFirestore])
+  }, [guests, hydrated, firebaseMode])
 
   const addGuest = useCallback(
     async (input: { name: string; phone?: string; events: EventId[] }) => {

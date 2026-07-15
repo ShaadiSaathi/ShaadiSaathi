@@ -22,10 +22,27 @@ export interface FirestoreWedding {
   shareCode: string
   isPremium: boolean
   inviteTheme: InviteThemeId
+  /** Firebase Auth UID of the account that created this wedding */
+  ownerId: string
   memberUids: string[]
   organiserName: string
   organiserPhone: string
   firstEventDate: string
+  createdAt: number
+}
+
+export type TaskStatusValue = "todo" | "in_progress" | "done"
+
+export interface FirestoreTask {
+  id: string
+  weddingId: string
+  title: string
+  /** Free-text name of the person responsible */
+  assignee: string
+  dueDate: string
+  status: TaskStatusValue
+  eventId?: EventId
+  priority?: "low" | "medium" | "high"
   createdAt: number
 }
 

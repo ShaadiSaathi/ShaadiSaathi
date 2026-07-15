@@ -7,15 +7,13 @@ import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import WeddingInviteLinkButton from "@/components/shaadi-saathi/guests/WeddingInviteLinkButton"
 import UpgradePromptBanner from "@/components/shaadi-saathi/premium/UpgradePromptBanner"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
-import {
-  EVENTS,
-  formatEventDate,
-  getGuestCountForEvent,
-} from "@/lib/mockData"
+import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
+import { EVENTS, formatEventDate } from "@/lib/mockData"
 import { FREE_LIMITS } from "@/lib/premium"
 
 export default function EventsPage() {
   const { isFamilyPremium, extraEvents, addExtraEvent } = usePremium()
+  const { guests } = useGuests()
   const [showEventLimit, setShowEventLimit] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newEventName, setNewEventName] = useState("")
@@ -102,7 +100,7 @@ export default function EventsPage() {
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {EVENTS.map((event) => {
-          const guestCount = getGuestCountForEvent(event.id)
+          const guestCount = guests.filter((g) => g.events.includes(event.id)).length
           return (
             <Link
               key={event.id}

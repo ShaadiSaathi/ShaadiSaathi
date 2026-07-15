@@ -24,6 +24,13 @@ import {
   type BookingStatus,
   getVendorById,
 } from "@/lib/mockVendors"
+import { isFirebaseConfigured } from "@/lib/firebase/config"
+import {
+  createBookingInFirestore,
+  subscribeBookingsByWedding,
+} from "@/lib/firebase/bookings"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
+import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 
 interface CreateBookingInput {
   vendorId: string
@@ -92,10 +99,41 @@ function buildReliabilityMap(): Record<string, VendorReliability> {
   return map
 }
 
-/** Mock booking + payment state — swap for Convex mutations when backend is ready */
 export function VendorBookingsProvider({ children }: { children: ReactNode }) {
-  const [bookings, setBookings] = useState<VendorBooking[]>(INITIAL_BOOKINGS)
+  const { weddingId: authWeddingId, familyUser } = useAuth()
+  const { weddingId: ctxWeddingId, wedding } = useWedding()
+  const firebaseMode = isFirebaseConfigured()
+  const weddingId = authWeddingId ?? ctxWeddingId
+  const useFirestore = firebaseMode && Boolean(weddingId)
+
+  // Firebase mode starts empty and is filled only by the current wedding's
+  // Firestore bookings. Local/mock mode keeps the demo bookings.
+  const [bookings, setBookings] = useState<VendorBooking[]>(
+    firebaseMode ? [] : INITIAL_BOOKINGS
+  )
   const [vendorReliability, setVendorReliability] = useState(buildReliabilityMap)
+
+  // Subscribe to this wedding's bookings. We reconcile by keeping any existing
+  // in-memory booking (which may carry optimistic payment-lifecycle state) and
+  // only introducing newly-created / dropping deleted documents.
+  useEffect(() => {
+    if (!firebaseMode) return
+    if (!weddingId) {
+      setBookings([])
+      return
+    }
+    const unsub = subscribeBookingsByWedding(
+      weddingId,
+      (list) => {
+        setBookings((prev) => {
+          const prevById = new Map(prev.map((b) => [b.id, b]))
+          return list.map((fs) => prevById.get(fs.id) ?? fs)
+        })
+      },
+      () => {}
+    )
+    return unsub
+  }, [firebaseMode, weddingId])
 
   const flagVendorNoShow = useCallback((vendorId: string) => {
     setVendorReliability((prev) => {
@@ -148,31 +186,52 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
     }
   }, [bookings, processNoShow])
 
-  const addBooking = useCallback((input: CreateBookingInput) => {
-    const payment = enrichPaymentWithSchedule(
-      createInitialPayment(
-        input.price,
-        input.paymentPath,
-        input.inPersonMethod
-      ),
-      input.eventId
-    )
+  const addBooking = useCallback(
+    (input: CreateBookingInput) => {
+      const id = `booking-${Date.now()}`
+      const payment = enrichPaymentWithSchedule(
+        createInitialPayment(input.price, input.paymentPath, input.inPersonMethod),
+        input.eventId
+      )
 
-    const booking: VendorBooking = {
-      id: `booking-${Date.now()}`,
-      vendorId: input.vendorId,
-      eventId: input.eventId,
-      status: "confirmed",
-      guestCount: input.guestCount,
-      packageName: input.packageName,
-      price: input.price,
-      note: input.note,
-      createdAt: MOCK_NOW.toISOString().slice(0, 10),
-      payment,
-    }
-    setBookings((prev) => [booking, ...prev])
-    return booking
-  }, [])
+      const booking: VendorBooking = {
+        id,
+        vendorId: input.vendorId,
+        eventId: input.eventId,
+        status: "confirmed",
+        guestCount: input.guestCount,
+        packageName: input.packageName,
+        price: input.price,
+        note: input.note,
+        createdAt: MOCK_NOW.toISOString().slice(0, 10),
+        payment,
+      }
+      setBookings((prev) => [booking, ...prev])
+
+      // Persist to Firestore, scoped to this wedding, so it survives reloads
+      // and only ever belongs to the current account.
+      if (useFirestore && weddingId) {
+        const vendor = getVendorById(input.vendorId)
+        void createBookingInFirestore({
+          id,
+          weddingId,
+          vendorId: input.vendorId,
+          eventId: input.eventId,
+          status: "confirmed",
+          price: input.price,
+          paymentPath: input.paymentPath,
+          familyName: familyUser?.name ?? "",
+          weddingName: wedding?.name ?? familyUser?.weddingName ?? "",
+          vendorName: vendor?.name ?? "Vendor",
+          ...(input.packageName ? { packageName: input.packageName } : {}),
+          ...(input.guestCount != null ? { guestCount: input.guestCount } : {}),
+          ...(input.note ? { note: input.note } : {}),
+        })
+      }
+      return booking
+    },
+    [useFirestore, weddingId, familyUser, wedding]
+  )
 
   const vendorCheckIn = useCallback((bookingId: string, photo: CheckInPhoto) => {
     setBookings((prev) =>

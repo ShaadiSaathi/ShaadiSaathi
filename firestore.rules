@@ -51,6 +51,15 @@ service cloud.firestore {
         || guestRsvpOnlyUpdate();
     }
 
+    match /tasks/{taskId} {
+      allow read: if isSignedIn()
+        && isWeddingMember(resource.data.weddingId);
+      allow create: if isSignedIn()
+        && isWeddingMember(request.resource.data.weddingId);
+      allow update, delete: if isSignedIn()
+        && isWeddingMember(resource.data.weddingId);
+    }
+
     match /vendors/{vendorId} {
       allow read: if true;
       allow create: if isSignedIn();

@@ -15,7 +15,12 @@ import { isFirebaseConfigured, getFirebaseAuth } from "@/lib/firebase/config"
 import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp } from "@/lib/firebase/phone-auth"
 import { getUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
-import { ensureDemoVendorSeeded, ensureDemoWeddingSeeded } from "@/lib/firebase/seed"
+import { getWedding } from "@/lib/firebase/weddings"
+import {
+  createWeddingForUser,
+  ensureDemoVendorSeeded,
+  getWeddingForUser,
+} from "@/lib/firebase/seed"
 
 export interface FamilyUser {
   name: string
@@ -133,14 +138,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const profile = await getUserProfile(getFirestoreDb(), user.uid)
         if (profile?.role === "family") {
+          let weddingName = ""
+          let firstEventDate = ""
+          if (profile.weddingId) {
+            const wedding = await getWedding(profile.weddingId)
+            if (wedding) {
+              weddingName = wedding.name
+              firstEventDate = wedding.firstEventDate
+            }
+          }
           setWeddingId(profile.weddingId ?? null)
           setVendorId(null)
           setVendorUser(null)
           setFamilyUser({
             name: profile.name,
             phone: profile.phone,
-            weddingName: DEFAULT_FAMILY.weddingName,
-            firstEventDate: DEFAULT_FAMILY.firstEventDate,
+            weddingName,
+            firstEventDate,
             uid: user.uid,
           })
         } else if (profile?.role === "vendor") {
@@ -267,13 +281,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user || !pending) return
 
       if (pending.flow === "family-login") {
-        const id = await ensureDemoWeddingSeeded(
-          user.uid,
-          DEFAULT_FAMILY.name,
-          pending.phone
-        )
+        const id = await getWeddingForUser(user.uid)
+        const profile = await getUserProfile(getFirestoreDb(), user.uid)
+        let weddingName = ""
+        let firstEventDate = ""
+        if (id) {
+          const wedding = await getWedding(id)
+          if (wedding) {
+            weddingName = wedding.name
+            firstEventDate = wedding.firstEventDate
+          }
+        }
         setWeddingId(id)
-        setFamilyUser({ ...DEFAULT_FAMILY, phone: pending.phone, uid: user.uid })
+        setFamilyUser({
+          name: profile?.name ?? "",
+          phone: pending.phone,
+          weddingName,
+          firstEventDate,
+          uid: user.uid,
+        })
         setPending(null)
       } else if (pending.flow === "vendor-login") {
         const id = await ensureDemoVendorSeeded(user.uid, {
@@ -296,11 +322,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!pending?.familyName) return
 
       if (isFirebaseMode && firebaseUser) {
-        const id = await ensureDemoWeddingSeeded(
+        const id = await createWeddingForUser(
           firebaseUser.uid,
           pending.familyName,
           pending.phone,
-          weddingName.trim()
+          weddingName.trim(),
+          firstEventDate
         )
         setWeddingId(id)
         setFamilyUser({

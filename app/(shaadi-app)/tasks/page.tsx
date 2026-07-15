@@ -9,15 +9,9 @@ import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
-import {
-  EVENTS,
-  FAMILY_MEMBERS,
-  TASKS as INITIAL_TASKS,
-  type EventId,
-  type Task,
-  type TaskStatus,
-  getFamilyMember,
-} from "@/lib/mockData"
+import { EVENTS, type EventId, type TaskStatus } from "@/lib/mockData"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
+import { useTasks, type AppTask } from "@/components/shaadi-saathi/tasks/TasksContext"
 
 type GroupBy = "status" | "assignee"
 
@@ -48,39 +42,28 @@ function TasksPageContent() {
   const eventParam = searchParams.get("event")
   const eventFilter = EVENTS.find((e) => e.id === eventParam)?.id as EventId | undefined
 
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
+  const { tasks, addTask, toggleTaskDone } = useTasks()
+  const { familyUser } = useAuth()
   const [groupBy, setGroupBy] = useState<GroupBy>("status")
   const [showAddForm, setShowAddForm] = useState(false)
   const [newTitle, setNewTitle] = useState("")
-  const [newAssignee, setNewAssignee] = useState(FAMILY_MEMBERS[0]?.id ?? "")
+  const [newAssignee, setNewAssignee] = useState("")
   const [newDueDate, setNewDueDate] = useState("")
   const [newEvent, setNewEvent] = useState<EventId | "">("")
-
-  function toggleDone(taskId: string) {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId
-          ? { ...t, status: t.status === "done" ? "todo" : "done" }
-          : t
-      )
-    )
-  }
 
   function handleAddTask(e: React.FormEvent) {
     e.preventDefault()
     if (!newTitle.trim()) return
 
-    const task: Task = {
-      id: `task-${Date.now()}`,
+    addTask({
       title: newTitle.trim(),
-      assigneeId: newAssignee,
+      assignee: newAssignee.trim() || familyUser?.name || "Unassigned",
       dueDate: newDueDate || new Date().toISOString().slice(0, 10),
-      status: "todo",
       eventId: newEvent || undefined,
       priority: "medium",
-    }
-    setTasks((prev) => [task, ...prev])
+    })
     setNewTitle("")
+    setNewAssignee("")
     setNewDueDate("")
     setShowAddForm(false)
   }
@@ -91,6 +74,11 @@ function TasksPageContent() {
   )
 
   const activeTasks = displayedTasks.filter((t) => t.status !== "done")
+
+  const assignees = useMemo(
+    () => Array.from(new Set(displayedTasks.map((t) => t.assignee))).sort(),
+    [displayedTasks]
+  )
 
   return (
     <PageTransition>
@@ -162,7 +150,7 @@ function TasksPageContent() {
                 </h2>
                 <ul className="space-y-2">
                   {group.map((task) => (
-                    <TaskCard key={task.id} task={task} onToggle={() => toggleDone(task.id)} />
+                    <TaskCard key={task.id} task={task} onToggle={() => toggleTaskDone(task.id)} />
                   ))}
                 </ul>
               </section>
@@ -171,21 +159,21 @@ function TasksPageContent() {
         </div>
       ) : (
         <div className="space-y-8">
-          {FAMILY_MEMBERS.map((member) => {
-            const group = displayedTasks.filter((t) => t.assigneeId === member.id)
+          {assignees.map((name) => {
+            const group = displayedTasks.filter((t) => t.assignee === name)
             if (group.length === 0) return null
             return (
-              <section key={member.id} aria-labelledby={`member-${member.id}`}>
-                <div id={`member-${member.id}`} className="mb-3 flex items-center gap-2">
-                  <Avatar initials={member.initials} size="sm" />
+              <section key={name} aria-labelledby={`member-${name}`}>
+                <div id={`member-${name}`} className="mb-3 flex items-center gap-2">
+                  <Avatar initials={initialsOf(name)} size="sm" />
                   <h2 className="font-display text-sm font-semibold text-maroon-dark">
-                    {member.name}
+                    {name}
                   </h2>
                   <span className="text-xs text-maroon/40">({group.length})</span>
                 </div>
                 <ul className="space-y-2">
                   {group.map((task) => (
-                    <TaskCard key={task.id} task={task} onToggle={() => toggleDone(task.id)} />
+                    <TaskCard key={task.id} task={task} onToggle={() => toggleTaskDone(task.id)} />
                   ))}
                 </ul>
               </section>
@@ -230,18 +218,14 @@ function TasksPageContent() {
                 <label htmlFor="task-assignee" className="block text-sm font-medium text-maroon/70">
                   Assign to
                 </label>
-                <select
+                <input
                   id="task-assignee"
+                  type="text"
                   value={newAssignee}
                   onChange={(e) => setNewAssignee(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
-                >
-                  {FAMILY_MEMBERS.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder={familyUser?.name ? `e.g. ${familyUser.name}` : "e.g. Sana"}
+                  className="mt-1 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                />
               </div>
               <div>
                 <label htmlFor="task-due" className="block text-sm font-medium text-maroon/70">
@@ -294,9 +278,19 @@ function TasksPageContent() {
   )
 }
 
-function TaskCard({ task, onToggle }: { task: Task; onToggle: () => void }) {
+function initialsOf(name: string): string {
+  return (
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?"
+  )
+}
+
+function TaskCard({ task, onToggle }: { task: AppTask; onToggle: () => void }) {
   const prefersReducedMotion = useReducedMotion()
-  const assignee = getFamilyMember(task.assigneeId)
   const isDone = task.status === "done"
 
   return (
@@ -348,10 +342,10 @@ function TaskCard({ task, onToggle }: { task: Task; onToggle: () => void }) {
               {task.title}
             </motion.p>
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-maroon/50">
-              {assignee && (
+              {task.assignee && (
                 <span className="flex items-center gap-1">
-                  <Avatar initials={assignee.initials} size="sm" className="!h-5 !w-5 !text-[10px]" />
-                  {assignee.name}
+                  <Avatar initials={initialsOf(task.assignee)} size="sm" className="!h-5 !w-5 !text-[10px]" />
+                  {task.assignee}
                 </span>
               )}
               <span>·</span>
