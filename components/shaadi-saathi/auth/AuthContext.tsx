@@ -16,11 +16,16 @@ import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp } from "@/lib/fire
 import { getUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
 import { getWedding } from "@/lib/firebase/weddings"
+import { friendlyAuthErrorMessage, withTimeout } from "@/lib/firebase/auth-errors"
+import { logVerificationError } from "@/lib/firebase/verification-errors"
 import {
   createWeddingForUser,
   ensureDemoVendorSeeded,
   getWeddingForUser,
 } from "@/lib/firebase/seed"
+
+/** How long to wait for a code-send request before offering a retry button. */
+const OTP_SEND_TIMEOUT_MS = 45_000
 
 export interface FamilyUser {
   name: string
@@ -78,6 +83,7 @@ interface AuthContextValue {
   startVendorSignup: (data: Omit<VendorAuthUser, "bio" | "coverPhotoPreview"> & { password: string }) => void
   startPasswordReset: (phone: string, role: "family" | "vendor") => void
   sendOtp: () => Promise<void>
+  resetOtp: () => void
   verifyOtp: (code: string) => boolean
   confirmOtp: (code: string) => Promise<void>
   completeFamilyOnboarding: (weddingName: string, firstEventDate: string) => void
@@ -256,9 +262,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setOtpSent(true)
       return
     }
-    await sendPhoneOtp(pending.phone)
-    setOtpSent(true)
+    try {
+      await withTimeout(sendPhoneOtp(pending.phone), OTP_SEND_TIMEOUT_MS)
+      setOtpSent(true)
+    } catch (err) {
+      const { code, message } = friendlyAuthErrorMessage(err)
+      void logVerificationError({
+        flow: pending.flow ?? "unknown",
+        stage: "send",
+        code,
+        message,
+        phone: pending.phone,
+        uid: getFirebaseAuth().currentUser?.uid ?? "",
+      })
+      throw new Error(message)
+    }
   }, [pending, isFirebaseMode])
+
+  const resetOtp = useCallback(() => {
+    clearPhoneAuthSession()
+    setOtpSent(false)
+  }, [])
 
   const verifyOtp = useCallback(
     (code: string) => {
@@ -274,7 +298,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!/^\d{6}$/.test(code)) throw new Error("Invalid code")
         return
       }
-      await confirmPhoneOtp(code)
+      try {
+        await confirmPhoneOtp(code)
+      } catch (err) {
+        const { code: errorCode, message } = friendlyAuthErrorMessage(err)
+        void logVerificationError({
+          flow: pending?.flow ?? "unknown",
+          stage: "confirm",
+          code: errorCode,
+          message,
+          phone: pending?.phone ?? "",
+          uid: getFirebaseAuth().currentUser?.uid ?? "",
+        })
+        throw new Error(message)
+      }
       setOtpSent(false)
 
       const user = getFirebaseAuth().currentUser
@@ -428,6 +465,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       startVendorSignup,
       startPasswordReset,
       sendOtp,
+      resetOtp,
       verifyOtp,
       confirmOtp,
       completeFamilyOnboarding,
@@ -455,6 +493,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       startVendorSignup,
       startPasswordReset,
       sendOtp,
+      resetOtp,
       verifyOtp,
       confirmOtp,
       completeFamilyOnboarding,
