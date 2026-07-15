@@ -15,12 +15,14 @@ interface FirebaseOtpGateProps {
 }
 
 /**
- * Wraps OTP entry with the full send lifecycle for Firebase phone auth:
- *  - renders the reCAPTCHA container and auto-requests a code on mount
+ * Drives the full, REAL phone-verification lifecycle:
+ *  - renders the reCAPTCHA container and requests a genuine OTP on mount
  *  - surfaces a friendly error + Retry button if the send fails or times out
- *  - only reveals the 6-digit entry once the code has actually been sent
+ *  - only reveals the 6-digit entry once Firebase has actually sent a code
  *
- * In local/mock mode (Firebase not configured) it skips straight to entry.
+ * There is deliberately no mock/dev shortcut: if a code can't be genuinely
+ * sent (e.g. Firebase misconfigured) the user sees an error and can never
+ * reach a state where an unverified code is accepted.
  */
 export default function FirebaseOtpGate({
   phone,
@@ -29,8 +31,8 @@ export default function FirebaseOtpGate({
   verifyError,
   submitLabel,
 }: FirebaseOtpGateProps) {
-  const { isFirebaseMode, sendOtp, resetOtp } = useAuth()
-  const [sendState, setSendState] = useState<SendState>(isFirebaseMode ? "idle" : "sent")
+  const { sendOtp, resetOtp } = useAuth()
+  const [sendState, setSendState] = useState<SendState>("idle")
   const [sendError, setSendError] = useState<string | null>(null)
   const startedRef = useRef(false)
 
@@ -51,19 +53,17 @@ export default function FirebaseOtpGate({
   }, [sendOtp])
 
   useEffect(() => {
-    // Mock mode already starts in the "sent" state, so there's nothing to do.
-    if (!isFirebaseMode) return
     if (startedRef.current) return
     startedRef.current = true
     void doSend()
-  }, [isFirebaseMode, doSend])
+  }, [doSend])
 
   const handleRetry = useCallback(async () => {
     resetOtp()
     await doSend()
   }, [resetOtp, doSend])
 
-  if (isFirebaseMode && sendState !== "sent") {
+  if (sendState !== "sent") {
     return (
       <div className="space-y-4">
         <p className="text-center text-sm text-maroon/70">
@@ -99,15 +99,13 @@ export default function FirebaseOtpGate({
 
   return (
     <>
-      {isFirebaseMode && (
-        <div className="mb-6 flex min-h-[1px] justify-center">
-          <div id="recaptcha-container" className="[&_iframe]:rounded-lg" />
-        </div>
-      )}
+      <div className="mb-6 flex min-h-[1px] justify-center">
+        <div id="recaptcha-container" className="[&_iframe]:rounded-lg" />
+      </div>
       <OtpVerification
         phone={phone}
         onVerify={onVerify}
-        onResend={isFirebaseMode ? handleRetry : undefined}
+        onResend={handleRetry}
         loading={verifyLoading}
         error={verifyError}
         submitLabel={submitLabel}

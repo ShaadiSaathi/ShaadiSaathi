@@ -6,11 +6,10 @@ import { useEffect, useState } from "react"
 import AuthCard from "@/components/shaadi-saathi/auth/AuthCard"
 import FirebaseOtpGate from "@/components/shaadi-saathi/auth/FirebaseOtpGate"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
-import { mockAuthDelay } from "@/components/shaadi-saathi/auth/authValidation"
 
 export default function FamilyLoginVerifyPage() {
   const router = useRouter()
-  const { pending, verifyOtp, confirmOtp, isFirebaseMode } = useAuth()
+  const { pending, verifyOtp, confirmOtp } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,11 +29,9 @@ export default function FamilyLoginVerifyPage() {
     }
     setLoading(true)
     try {
-      if (isFirebaseMode) {
-        await confirmOtp(code)
-      } else {
-        await mockAuthDelay(500)
-      }
+      // Always confirm against Firebase — a wrong code throws and is shown as
+      // an error; we only reach the dashboard after a genuine success.
+      await confirmOtp(code)
       router.push("/dashboard")
     } catch (err) {
       setError(

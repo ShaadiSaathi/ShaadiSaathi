@@ -14,7 +14,6 @@ import {
   mockAuthDelay,
   validatePassword,
 } from "@/components/shaadi-saathi/auth/authValidation"
-import { isFirebaseConfigured } from "@/lib/firebase/config"
 
 export default function FamilyLoginPage() {
   const router = useRouter()
@@ -36,12 +35,9 @@ export default function FamilyLoginPage() {
     setLoading(true)
     await mockAuthDelay()
     setLoginSuccessMessage(null)
+    // Always go through real phone verification before reaching the dashboard.
     loginFamily(phone)
-    if (isFirebaseConfigured()) {
-      router.push("/login/verify")
-    } else {
-      router.push("/dashboard")
-    }
+    router.push("/login/verify")
   }
 
   async function handleGoogle() {

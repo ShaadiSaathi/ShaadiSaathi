@@ -4,13 +4,12 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import AuthCard from "@/components/shaadi-saathi/auth/AuthCard"
-import OtpVerification from "@/components/shaadi-saathi/auth/OtpVerification"
+import FirebaseOtpGate from "@/components/shaadi-saathi/auth/FirebaseOtpGate"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
-import { mockAuthDelay } from "@/components/shaadi-saathi/auth/authValidation"
 
 export default function VendorSignupVerifyPage() {
   const router = useRouter()
-  const { pending, verifyOtp } = useAuth()
+  const { pending, verifyOtp, confirmOtp } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,8 +30,20 @@ export default function VendorSignupVerifyPage() {
       return
     }
     setLoading(true)
-    await mockAuthDelay(500)
-    router.push("/vendor/signup/onboarding")
+    try {
+      // Always confirm against Firebase — a wrong code throws and is shown as
+      // an error; we only proceed to onboarding after a genuine success.
+      await confirmOtp(code)
+      router.push("/vendor/signup/onboarding")
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "That code isn't correct. Please try again."
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -50,11 +61,11 @@ export default function VendorSignupVerifyPage() {
         </p>
       }
     >
-      <OtpVerification
+      <FirebaseOtpGate
         phone={pending.phone}
         onVerify={handleVerify}
-        loading={loading}
-        error={error}
+        verifyLoading={loading}
+        verifyError={error}
       />
     </AuthCard>
   )

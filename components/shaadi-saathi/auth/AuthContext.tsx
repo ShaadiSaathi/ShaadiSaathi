@@ -185,17 +185,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsub
   }, [isFirebaseMode])
 
-  const loginFamily = useCallback(
-    (phone: string) => {
-      const normalized = phone.replace(/\D/g, "").slice(-10)
-      if (isFirebaseMode) {
-        setPending({ flow: "family-login", phone: normalized })
-        return
-      }
-      setFamilyUser({ ...DEFAULT_FAMILY, phone: normalized })
-    },
-    [isFirebaseMode]
-  )
+  const loginFamily = useCallback((phone: string) => {
+    // Always route through phone verification — never sign a family in directly.
+    const normalized = phone.replace(/\D/g, "").slice(-10)
+    setPending({ flow: "family-login", phone: normalized })
+  }, [])
 
   const loginVendor = useCallback(
     (phone: string) => {
@@ -258,10 +252,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendOtp = useCallback(async () => {
     if (!pending?.phone) throw new Error("No phone number")
-    if (!isFirebaseMode) {
-      setOtpSent(true)
-      return
-    }
+    // Real Firebase send ONLY. There is deliberately no mock/dev shortcut: if
+    // Firebase isn't configured, sendPhoneOtp throws and the UI shows an error
+    // with a retry button — it never pretends a code was sent.
     try {
       await withTimeout(sendPhoneOtp(pending.phone), OTP_SEND_TIMEOUT_MS)
       setOtpSent(true)
@@ -273,7 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         code,
         message,
         phone: pending.phone,
-        uid: getFirebaseAuth().currentUser?.uid ?? "",
+        uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
       })
       throw new Error(message)
     }
@@ -284,20 +277,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOtpSent(false)
   }, [])
 
-  const verifyOtp = useCallback(
-    (code: string) => {
-      if (!isFirebaseMode) return /^\d{6}$/.test(code)
-      return /^\d{6}$/.test(code)
-    },
-    [isFirebaseMode]
-  )
+  // Pure client-side FORMAT check only. This never grants access — it just lets
+  // the UI reject obviously-malformed input before we ask Firebase to confirm.
+  const verifyOtp = useCallback((code: string) => /^\d{6}$/.test(code), [])
 
   const confirmOtp = useCallback(
     async (code: string) => {
-      if (!isFirebaseMode) {
-        if (!/^\d{6}$/.test(code)) throw new Error("Invalid code")
-        return
-      }
+      // The ONLY way to be treated as verified: Firebase's confirmationResult
+      // .confirm(code) genuinely succeeds. A wrong code makes Firebase throw
+      // (auth/invalid-verification-code), which we surface as a friendly error.
+      // There is intentionally no mock/dev bypass here.
       try {
         await confirmPhoneOtp(code)
       } catch (err) {
@@ -308,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           code: errorCode,
           message,
           phone: pending?.phone ?? "",
-          uid: getFirebaseAuth().currentUser?.uid ?? "",
+          uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
         })
         throw new Error(message)
       }
