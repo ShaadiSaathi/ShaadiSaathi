@@ -98,7 +98,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 const DEFAULT_FAMILY: FamilyUser = {
   name: "Ayesha",
-  phone: "3215550100",
+  phone: "+923215550100",
   weddingName: "Ayesha & Bilal's Wedding",
   firstEventDate: "2026-08-08",
 }
@@ -107,7 +107,7 @@ const DEFAULT_VENDOR: VendorAuthUser = {
   businessName: "Lahore Feast Catering",
   categoryId: "catering",
   city: "Lahore",
-  phone: "3215550198",
+  phone: "+923215550198",
   bio: "Authentic Pakistani cuisine with live BBQ counters and elegant walima dinner service.",
 }
 
@@ -187,18 +187,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginFamily = useCallback((phone: string) => {
     // Always route through phone verification — never sign a family in directly.
-    const normalized = phone.replace(/\D/g, "").slice(-10)
-    setPending({ flow: "family-login", phone: normalized })
+    // `phone` is already an E.164 string from the international phone input.
+    setPending({ flow: "family-login", phone })
   }, [])
 
   const loginVendor = useCallback(
     (phone: string) => {
-      const normalized = phone.replace(/\D/g, "").slice(-10)
       if (isFirebaseMode) {
-        setPending({ flow: "vendor-login", phone: normalized })
+        setPending({ flow: "vendor-login", phone })
         return
       }
-      setVendorUser({ ...DEFAULT_VENDOR, phone: normalized })
+      setVendorUser({ ...DEFAULT_VENDOR, phone })
     },
     [isFirebaseMode]
   )
@@ -218,7 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (data: { name: string; phone: string; password: string }) => {
       setPending({
         flow: "family-signup",
-        phone: data.phone.replace(/\D/g, "").slice(-10),
+        phone: data.phone,
         password: data.password,
         familyName: data.name.trim(),
       })
@@ -230,13 +229,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (data: Omit<VendorAuthUser, "bio" | "coverPhotoPreview"> & { password: string }) => {
       setPending({
         flow: "vendor-signup",
-        phone: data.phone.replace(/\D/g, "").slice(-10),
+        phone: data.phone,
         password: data.password,
         vendor: {
           businessName: data.businessName,
           categoryId: data.categoryId,
           city: data.city,
-          phone: data.phone.replace(/\D/g, "").slice(-10),
+          phone: data.phone,
         },
       })
     },
@@ -246,7 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const startPasswordReset = useCallback((phone: string, role: "family" | "vendor") => {
     setPending({
       flow: role === "family" ? "family-reset" : "vendor-reset",
-      phone: phone.replace(/\D/g, "").slice(-10),
+      phone,
     })
   }, [])
 

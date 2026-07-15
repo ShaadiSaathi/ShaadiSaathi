@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { formatPhoneDisplay } from "./authValidation"
+import { formatPhoneNumberIntl } from "react-phone-number-input"
 import AuthSubmitButton from "./AuthSubmitButton"
 
 interface OtpVerificationProps {
@@ -68,13 +68,15 @@ export default function OtpVerification({
     onVerify(digits.join(""))
   }
 
-  const masked = formatPhoneDisplay(phone)
+  // `phone` is an E.164 string (e.g. "+447911123456"); show it nicely formatted
+  // for whatever country the user chose, falling back to the raw value.
+  const prettyPhone = formatPhoneNumberIntl(phone) || phone
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
       <p className="text-center text-sm leading-relaxed text-maroon/70">
         Enter the code sent to{" "}
-        <span className="font-medium text-maroon-dark">+92 {masked}</span>
+        <span className="font-medium text-maroon-dark">{prettyPhone}</span>
       </p>
 
       <div

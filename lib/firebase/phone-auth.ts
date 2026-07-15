@@ -10,9 +10,17 @@ import { getFirebaseAuth, isFirebaseConfigured } from "./config"
 let confirmationResult: ConfirmationResult | null = null
 let recaptchaVerifier: RecaptchaVerifier | null = null
 
-function formatE164Pakistan(phone: string): string {
-  const digits = phone.replace(/\D/g, "").slice(-10)
-  return `+92${digits}`
+/**
+ * Ensure the number is E.164 before handing it to Firebase. The international
+ * phone input already emits E.164 (e.g. "+923001234567"), so this is normally a
+ * no-op; the fallback only guards any legacy value that arrives without a "+"
+ * (treated as a Pakistani national number for backwards compatibility).
+ */
+function toE164(phone: string): string {
+  const trimmed = phone.trim()
+  if (trimmed.startsWith("+")) return trimmed
+  const digits = trimmed.replace(/\D/g, "")
+  return `+92${digits.slice(-10)}`
 }
 
 export function clearPhoneAuthSession(): void {
@@ -60,7 +68,7 @@ export async function sendPhoneOtp(
   const auth = getFirebaseAuth()
   const verifier = getRecaptchaVerifier(containerId)
   await verifier.render()
-  confirmationResult = await signInWithPhoneNumber(auth, formatE164Pakistan(phone), verifier)
+  confirmationResult = await signInWithPhoneNumber(auth, toE164(phone), verifier)
 }
 
 export async function confirmPhoneOtp(code: string): Promise<void> {

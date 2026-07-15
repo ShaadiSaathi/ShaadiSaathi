@@ -6,9 +6,9 @@ import { useState } from "react"
 import AuthCard from "@/components/shaadi-saathi/auth/AuthCard"
 import AuthSubmitButton from "@/components/shaadi-saathi/auth/AuthSubmitButton"
 import PhoneInput from "@/components/shaadi-saathi/auth/PhoneInput"
+import { isValidPhoneNumber } from "react-phone-number-input"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import {
-  isValidPakistanPhone,
   mockAuthDelay,
   validatePassword,
   validatePasswordMatch,
@@ -33,9 +33,7 @@ export default function VendorSignupPage() {
     e.preventDefault()
     const nextErrors = {
       business: validateRequired(businessName, "Business name"),
-      phone: isValidPakistanPhone(phone)
-        ? null
-        : "Enter a valid 10-digit mobile number starting with 3",
+      phone: isValidPhoneNumber(phone) ? null : "Please enter a valid phone number",
       password: validatePassword(password),
       confirm: validatePasswordMatch(password, confirmPassword),
       terms: agreed ? null : "Please accept the Vendor Terms & Privacy Policy",

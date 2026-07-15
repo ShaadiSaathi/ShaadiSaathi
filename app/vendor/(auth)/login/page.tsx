@@ -6,9 +6,9 @@ import { useState } from "react"
 import AuthCard from "@/components/shaadi-saathi/auth/AuthCard"
 import AuthSubmitButton from "@/components/shaadi-saathi/auth/AuthSubmitButton"
 import PhoneInput from "@/components/shaadi-saathi/auth/PhoneInput"
+import { isValidPhoneNumber } from "react-phone-number-input"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import {
-  isValidPakistanPhone,
   mockAuthDelay,
   validatePassword,
 } from "@/components/shaadi-saathi/auth/authValidation"
@@ -23,9 +23,7 @@ export default function VendorLoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const phoneErr = isValidPakistanPhone(phone)
-      ? null
-      : "Enter a valid 10-digit mobile number starting with 3"
+    const phoneErr = isValidPhoneNumber(phone) ? null : "Please enter a valid phone number"
     const passErr = validatePassword(password)
     setErrors({ phone: phoneErr ?? undefined, password: passErr ?? undefined })
     if (phoneErr || passErr) return

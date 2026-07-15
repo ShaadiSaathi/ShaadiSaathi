@@ -8,9 +8,9 @@ import AuthDivider from "@/components/shaadi-saathi/auth/AuthDivider"
 import AuthSubmitButton from "@/components/shaadi-saathi/auth/AuthSubmitButton"
 import GoogleAuthButton from "@/components/shaadi-saathi/auth/GoogleAuthButton"
 import PhoneInput from "@/components/shaadi-saathi/auth/PhoneInput"
+import { isValidPhoneNumber } from "react-phone-number-input"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import {
-  isValidPakistanPhone,
   mockAuthDelay,
   validatePassword,
   validatePasswordMatch,
@@ -32,9 +32,7 @@ export default function FamilySignupPage() {
     e.preventDefault()
     const nextErrors = {
       name: validateRequired(name, "Full name"),
-      phone: isValidPakistanPhone(phone)
-        ? null
-        : "Enter a valid 10-digit mobile number starting with 3",
+      phone: isValidPhoneNumber(phone) ? null : "Please enter a valid phone number",
       password: validatePassword(password),
       confirm: validatePasswordMatch(password, confirmPassword),
       terms: agreed ? null : "Please accept the Terms & Privacy Policy",

@@ -7,9 +7,9 @@ import AuthCard from "./AuthCard"
 import AuthSubmitButton from "./AuthSubmitButton"
 import OtpVerification from "./OtpVerification"
 import PhoneInput from "./PhoneInput"
+import { isValidPhoneNumber } from "react-phone-number-input"
 import { useAuth } from "./AuthContext"
 import {
-  isValidPakistanPhone,
   mockAuthDelay,
   validatePassword,
   validatePasswordMatch,
@@ -44,9 +44,7 @@ export default function ForgotPasswordFlow({ variant }: ForgotPasswordFlowProps)
 
   async function handleSendCode(e: React.FormEvent) {
     e.preventDefault()
-    const phoneErr = isValidPakistanPhone(phone)
-      ? null
-      : "Enter a valid 10-digit mobile number starting with 3"
+    const phoneErr = isValidPhoneNumber(phone) ? null : "Please enter a valid phone number"
     setErrors({ phone: phoneErr })
     if (phoneErr) return
 
