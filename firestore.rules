@@ -41,6 +41,19 @@ service cloud.firestore {
         && d.timestamp is number;
     }
 
+    // Written when signInWithPhoneNumber genuinely resolves with a verificationId.
+    // Same pre-auth create policy as verification_errors — client cannot read.
+    function isValidVerificationSuccess() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['flow', 'phone', 'verificationId', 'hasVerificationId', 'uid', 'timestamp'])
+        && d.flow is string && d.flow.size() <= 40
+        && d.phone is string && d.phone.size() <= 40
+        && d.verificationId is string && d.verificationId.size() > 0 && d.verificationId.size() <= 24
+        && d.hasVerificationId is bool && d.hasVerificationId == true
+        && d.uid is string && d.uid.size() <= 128
+        && d.timestamp is number;
+    }
+
     function guestRsvpOnlyUpdate() {
       let allowed = ['rsvp', 'rsvpSource', 'updatedAt'];
       let changed = request.resource.data.diff(resource.data).affectedKeys();
@@ -126,6 +139,11 @@ service cloud.firestore {
 
     match /verification_errors/{errorId} {
       allow create: if isValidVerificationError();
+      allow read, update, delete: if false;
+    }
+
+    match /verification_success/{successId} {
+      allow create: if isValidVerificationSuccess();
       allow read, update, delete: if false;
     }
   }

@@ -99,17 +99,38 @@ export async function renderRecaptcha(containerId = "recaptcha-container"): Prom
   await verifier.render()
 }
 
+/**
+ * Request a real Firebase phone OTP. Resolves ONLY after
+ * `signInWithPhoneNumber` successfully returns a ConfirmationResult that
+ * includes a non-empty verificationId. A resolve here means Firebase Auth
+ * accepted the request — it does NOT by itself guarantee carrier SMS delivery
+ * (and Firebase test numbers never send SMS at all).
+ *
+ * @returns The verificationId from the ConfirmationResult (for success logging).
+ */
 export async function sendPhoneOtp(
   phone: string,
   containerId = "recaptcha-container"
-): Promise<void> {
+): Promise<{ verificationId: string }> {
   if (!isFirebaseConfigured()) {
     throw new Error("Firebase is not configured")
   }
   const auth = getFirebaseAuth()
   const verifier = getRecaptchaVerifier(containerId)
   await verifier.render()
-  confirmationResult = await signInWithPhoneNumber(auth, toE164(phone), verifier)
+  const result = await signInWithPhoneNumber(auth, toE164(phone), verifier)
+  const verificationId =
+    typeof result?.verificationId === "string" ? result.verificationId.trim() : ""
+  if (!verificationId) {
+    // Defensive: Firebase should always return a verificationId on success.
+    // Treat a missing one as a hard failure so the UI never shows a false "sent".
+    confirmationResult = null
+    throw new Error(
+      "Firebase accepted the request but did not return a verification ID. Please try again."
+    )
+  }
+  confirmationResult = result
+  return { verificationId }
 }
 
 export async function confirmPhoneOtp(code: string): Promise<void> {

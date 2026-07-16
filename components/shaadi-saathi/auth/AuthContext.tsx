@@ -18,6 +18,7 @@ import { getFirestoreDb } from "@/lib/firebase/config"
 import { getWedding } from "@/lib/firebase/weddings"
 import { friendlyAuthErrorMessage, rawAuthErrorInfo, withTimeout } from "@/lib/firebase/auth-errors"
 import { logVerificationError } from "@/lib/firebase/verification-errors"
+import { logVerificationSuccess } from "@/lib/firebase/verification-success"
 import {
   createWeddingForUser,
   ensureDemoVendorSeeded,
@@ -254,8 +255,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Real Firebase send ONLY. There is deliberately no mock/dev shortcut: if
     // Firebase isn't configured, sendPhoneOtp throws and the UI shows an error
     // with a retry button — it never pretends a code was sent.
+    //
+    // "sent" / otpSent is set ONLY after sendPhoneOtp's promise resolves with a
+    // real ConfirmationResult.verificationId — never optimistically.
     try {
-      await withTimeout(sendPhoneOtp(pending.phone), OTP_SEND_TIMEOUT_MS)
+      const { verificationId } = await withTimeout(
+        sendPhoneOtp(pending.phone),
+        OTP_SEND_TIMEOUT_MS
+      )
+      void logVerificationSuccess({
+        flow: pending.flow ?? "unknown",
+        phone: pending.phone,
+        verificationId,
+        uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
+      })
       setOtpSent(true)
     } catch (err) {
       const { code, message } = friendlyAuthErrorMessage(err)
