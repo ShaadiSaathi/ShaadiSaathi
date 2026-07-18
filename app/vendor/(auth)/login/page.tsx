@@ -31,8 +31,9 @@ export default function VendorLoginPage() {
     setLoading(true)
     await mockAuthDelay()
     setLoginSuccessMessage(null)
+    // Always go through real phone verification before reaching the dashboard.
     loginVendor(phone)
-    router.push("/vendor/dashboard")
+    router.push("/vendor/login/verify")
   }
 
   const inputClass =

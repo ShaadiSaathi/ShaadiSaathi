@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { clearRecaptcha } from "@/lib/firebase/phone-auth"
+import type { OtpChannel } from "@/lib/auth/otp-client"
 import { useAuth } from "./AuthContext"
 import OtpVerification from "./OtpVerification"
 
@@ -16,14 +16,9 @@ interface FirebaseOtpGateProps {
 }
 
 /**
- * Drives the full, REAL phone-verification lifecycle:
- *  - renders the reCAPTCHA container and requests a genuine OTP on mount
- *  - surfaces a friendly error + Retry button if the send fails or times out
- *  - only reveals the 6-digit entry once Firebase has actually sent a code
- *
- * There is deliberately no mock/dev shortcut: if a code can't be genuinely
- * sent (e.g. Firebase misconfigured) the user sees an error and can never
- * reach a state where an unverified code is accepted.
+ * WhatsApp-first OTP gate (Twilio Verify via /api/auth/*).
+ * Sends on mount, surfaces Retry on failure, and only reveals the 6-digit
+ * entry after a genuine successful send. SMS fallback is offered after send.
  */
 export default function FirebaseOtpGate({
   phone,
@@ -32,76 +27,72 @@ export default function FirebaseOtpGate({
   verifyError,
   submitLabel,
 }: FirebaseOtpGateProps) {
-  const { sendOtp, resetOtp } = useAuth()
+  const { sendOtp, resetOtp, lastOtpChannel } = useAuth()
   const [sendState, setSendState] = useState<SendState>("idle")
   const [sendError, setSendError] = useState<string | null>(null)
+  const [channel, setChannel] = useState<OtpChannel>("whatsapp")
+  const [smsFallbackLoading, setSmsFallbackLoading] = useState(false)
   const startedRef = useRef(false)
 
-  const doSend = useCallback(async () => {
-    setSendError(null)
-    setSendState("sending")
-    try {
-      await sendOtp()
-      setSendState("sent")
-    } catch (err) {
-      setSendError(
-        err instanceof Error
-          ? err.message
-          : "We couldn't send your code. Please try again."
-      )
-      setSendState("error")
-    }
-  }, [sendOtp])
+  const doSend = useCallback(
+    async (nextChannel: OtpChannel = "whatsapp") => {
+      setSendError(null)
+      setSendState("sending")
+      try {
+        const used = await sendOtp(nextChannel)
+        setChannel(used)
+        setSendState("sent")
+      } catch (err) {
+        setSendError(
+          err instanceof Error
+            ? err.message
+            : "We couldn't send your code. Please try again."
+        )
+        setSendState("error")
+      }
+    },
+    [sendOtp]
+  )
 
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
-    void doSend()
+    void doSend("whatsapp")
   }, [doSend])
-
-  // Drop the reCAPTCHA widget when this gate leaves the screen so a later mount
-  // never inherits a verifier bound to a now-removed container node.
-  useEffect(() => {
-    return () => {
-      clearRecaptcha()
-    }
-  }, [])
 
   const handleRetry = useCallback(async () => {
     resetOtp()
-    await doSend()
+    await doSend(channel)
+  }, [resetOtp, doSend, channel])
+
+  const handleSmsFallback = useCallback(async () => {
+    setSmsFallbackLoading(true)
+    resetOtp()
+    try {
+      await doSend("sms")
+    } finally {
+      setSmsFallbackLoading(false)
+    }
   }, [resetOtp, doSend])
 
   const sent = sendState === "sent"
+  const activeChannel = sent ? lastOtpChannel || channel : channel
 
-  // IMPORTANT: the reCAPTCHA container is rendered exactly ONCE, in a single
-  // stable position, for every state. It must never be conditionally
-  // mounted/unmounted or moved between branches, or Firebase loses the DOM node
-  // its widget was rendered into ("reCAPTCHA client element has been removed").
   return (
     <div className="space-y-5">
       {!sent && (
         <p className="text-center text-sm leading-relaxed text-maroon/70">
           {sendState === "error"
             ? "We couldn't send your code."
-            : "Confirm you're not a robot, then we'll text your code."}
+            : "We'll send a 6-digit code to your WhatsApp."}
         </p>
       )}
 
-      <div
-        className={
-          sent
-            ? "h-0 overflow-hidden"
-            : "flex min-h-[78px] items-center justify-center py-2"
-        }
-        aria-hidden={sent}
-      >
-        <div id="recaptcha-container" className="[&_iframe]:rounded-lg" />
-      </div>
-
       {sendState === "sending" && (
         <p className="text-center text-sm text-maroon/60" role="status">
-          Sending your code…
+          {channel === "sms"
+            ? "Sending your code via SMS…"
+            : "Sending your code on WhatsApp…"}
         </p>
       )}
 
@@ -117,14 +108,29 @@ export default function FirebaseOtpGate({
           >
             Retry
           </button>
+          {channel !== "sms" && (
+            <button
+              type="button"
+              onClick={handleSmsFallback}
+              disabled={smsFallbackLoading}
+              className="mx-auto flex min-h-[44px] items-center justify-center px-4 text-sm font-medium text-maroon hover:text-gold-dark disabled:opacity-60"
+            >
+              Didn&apos;t get it on WhatsApp? Send via SMS instead
+            </button>
+          )}
         </div>
       )}
 
       {sent && (
         <OtpVerification
           phone={phone}
+          channel={activeChannel}
           onVerify={onVerify}
           onResend={handleRetry}
+          onSmsFallback={
+            activeChannel === "whatsapp" ? handleSmsFallback : undefined
+          }
+          smsFallbackLoading={smsFallbackLoading}
           loading={verifyLoading}
           error={verifyError}
           submitLabel={submitLabel}

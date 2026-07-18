@@ -2,12 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { formatPhoneNumberIntl } from "react-phone-number-input"
+import type { OtpChannel } from "@/lib/auth/otp-client"
 import AuthSubmitButton from "./AuthSubmitButton"
 
 interface OtpVerificationProps {
   phone: string
+  channel?: OtpChannel
   onVerify: (code: string) => void
   onResend?: () => void | Promise<void>
+  onSmsFallback?: () => void | Promise<void>
+  smsFallbackLoading?: boolean
   loading?: boolean
   error?: string | null
   submitLabel?: string
@@ -16,8 +20,11 @@ interface OtpVerificationProps {
 /** Reusable 6-digit OTP entry with resend countdown */
 export default function OtpVerification({
   phone,
+  channel = "whatsapp",
   onVerify,
   onResend,
+  onSmsFallback,
+  smsFallbackLoading = false,
   loading = false,
   error,
   submitLabel = "Verify",
@@ -71,11 +78,12 @@ export default function OtpVerification({
   // `phone` is an E.164 string (e.g. "+447911123456"); show it nicely formatted
   // for whatever country the user chose, falling back to the raw value.
   const prettyPhone = formatPhoneNumberIntl(phone) || phone
+  const channelLabel = channel === "sms" ? "SMS" : "WhatsApp"
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
       <p className="text-center text-sm leading-relaxed text-maroon/70">
-        Enter the code sent to{" "}
+        Enter the code we sent to your {channelLabel} at{" "}
         <span className="font-medium text-maroon-dark">{prettyPhone}</span>
       </p>
 
@@ -113,22 +121,40 @@ export default function OtpVerification({
         {submitLabel}
       </AuthSubmitButton>
 
-      <p className="text-center text-sm text-maroon/50">
-        {countdown > 0 ? (
-          <>Resend code in 0:{String(countdown).padStart(2, "0")}</>
-        ) : (
+      <div className="space-y-2 text-center text-sm text-maroon/50">
+        <p>
+          {countdown > 0 ? (
+            <>Resend code in 0:{String(countdown).padStart(2, "0")}</>
+          ) : (
+            <button
+              type="button"
+              onClick={async () => {
+                setCountdown(30)
+                if (onResend) await onResend()
+              }}
+              className="inline-flex min-h-[44px] items-center justify-center px-4 font-medium text-maroon hover:text-gold-dark"
+            >
+              Resend code
+            </button>
+          )}
+        </p>
+
+        {onSmsFallback && (
           <button
             type="button"
             onClick={async () => {
               setCountdown(30)
-              if (onResend) await onResend()
+              await onSmsFallback()
             }}
-            className="inline-flex min-h-[44px] items-center justify-center px-4 font-medium text-maroon hover:text-gold-dark"
+            disabled={smsFallbackLoading}
+            className="inline-flex min-h-[44px] items-center justify-center px-4 font-medium text-maroon/70 hover:text-gold-dark disabled:opacity-60"
           >
-            Resend code
+            {smsFallbackLoading
+              ? "Sending via SMS…"
+              : "Didn't get it on WhatsApp? Send via SMS instead"}
           </button>
         )}
-      </p>
+      </div>
     </form>
   )
 }

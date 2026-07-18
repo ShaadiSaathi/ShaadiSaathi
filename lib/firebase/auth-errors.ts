@@ -32,10 +32,10 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 function extractCode(err: unknown): string {
   if (err instanceof AuthTimeoutError) return "timeout"
   if (typeof err === "object" && err !== null) {
-    const maybe = err as { code?: unknown; message?: unknown }
+    const maybe = err as { code?: unknown; message?: unknown; name?: unknown }
     if (typeof maybe.code === "string" && maybe.code) return maybe.code
     if (typeof maybe.message === "string") {
-      const match = maybe.message.match(/auth\/[a-z0-9-]+/i)
+      const match = maybe.message.match(/(?:auth|otp)\/[a-z0-9-]+/i)
       if (match) return match[0]
     }
   }
@@ -68,6 +68,23 @@ export function rawAuthErrorInfo(err: unknown): {
 const FRIENDLY_MESSAGES: Record<string, string> = {
   timeout:
     "This is taking longer than expected. Please tap Retry to request your code again.",
+  "otp/not-configured":
+    "Verification isn't set up yet. Please try again later.",
+  "otp/invalid-phone":
+    "That phone number doesn't look right. Please go back and check it.",
+  "otp/invalid-code":
+    "That code isn't correct. Please re-check the 6 digits and try again.",
+  "otp/invalid-channel": "Please choose WhatsApp or SMS and try again.",
+  "otp/send-failed":
+    "We couldn't send your code. Please tap Retry, or try SMS instead.",
+  "otp/check-failed":
+    "We couldn't verify that code. Please try again or request a new one.",
+  "otp/code-expired": "That code has expired. Tap Resend to get a new one.",
+  "otp/too-many-requests":
+    "Too many attempts. Please wait a little while, then tap Retry.",
+  "otp/network": "Network problem — check your connection and try again.",
+  "otp/auth-failed":
+    "We verified your code but couldn't sign you in. Please try again.",
   "auth/invalid-phone-number":
     "That phone number doesn't look right. Please go back and check it.",
   "auth/missing-phone-number": "Please enter your phone number and try again.",
@@ -75,10 +92,6 @@ const FRIENDLY_MESSAGES: Record<string, string> = {
     "We're getting a lot of requests right now. Please try again in a few minutes.",
   "auth/too-many-requests":
     "Too many attempts from this device. Please wait a little while, then tap Retry.",
-  "auth/captcha-check-failed":
-    "The reCAPTCHA check didn't pass. Please complete it and tap Retry.",
-  "auth/invalid-app-credential":
-    "The verification check expired. Please tap Retry to start again.",
   "auth/network-request-failed":
     "Network problem — check your connection and tap Retry.",
   "auth/invalid-verification-code":
@@ -87,6 +100,10 @@ const FRIENDLY_MESSAGES: Record<string, string> = {
   "auth/missing-verification-code": "Please enter the 6-digit code we sent you.",
   "auth/session-expired": "Your code expired. Tap Resend to get a new one.",
   "auth/user-disabled": "This number has been disabled. Please contact support.",
+  "auth/invalid-custom-token":
+    "We verified your code but couldn't sign you in. Please try again.",
+  "auth/custom-token-mismatch":
+    "We verified your code but couldn't sign you in. Please try again.",
 }
 
 /** Map any thrown auth error into a stable code + friendly, actionable message. */

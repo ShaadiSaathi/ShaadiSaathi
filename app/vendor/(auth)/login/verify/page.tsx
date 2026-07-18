@@ -7,21 +7,19 @@ import AuthCard from "@/components/shaadi-saathi/auth/AuthCard"
 import FirebaseOtpGate from "@/components/shaadi-saathi/auth/FirebaseOtpGate"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 
-export default function VendorSignupVerifyPage() {
+export default function VendorLoginVerifyPage() {
   const router = useRouter()
   const { pending, verifyOtp, confirmOtp } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!pending || pending.flow !== "vendor-signup") {
-      router.replace("/vendor/signup")
+    if (!pending || pending.flow !== "vendor-login") {
+      router.replace("/vendor/login")
     }
   }, [pending, router])
 
-  if (!pending || pending.flow !== "vendor-signup") {
-    return null
-  }
+  if (!pending || pending.flow !== "vendor-login") return null
 
   async function handleVerify(code: string) {
     setError(null)
@@ -31,10 +29,8 @@ export default function VendorSignupVerifyPage() {
     }
     setLoading(true)
     try {
-      // Always confirm against Firebase — a wrong code throws and is shown as
-      // an error; we only proceed to onboarding after a genuine success.
       await confirmOtp(code)
-      router.push("/vendor/signup/onboarding")
+      router.push("/vendor/dashboard")
     } catch (err) {
       setError(
         err instanceof Error
@@ -51,15 +47,7 @@ export default function VendorSignupVerifyPage() {
       variant="vendor"
       badge="Vendor portal"
       title="Verify your number"
-      subtitle="We've sent a 6-digit code to your WhatsApp."
-      footer={
-        <p className="text-center text-sm text-maroon/60">
-          Wrong number?{" "}
-          <Link href="/vendor/signup" className="font-semibold text-maroon hover:text-gold-dark">
-            Go back
-          </Link>
-        </p>
-      }
+      subtitle="Enter the code we sent to your WhatsApp."
     >
       <FirebaseOtpGate
         phone={pending.phone}
@@ -67,6 +55,14 @@ export default function VendorSignupVerifyPage() {
         verifyLoading={loading}
         verifyError={error}
       />
+      <p className="mt-4 text-center text-sm text-maroon/60">
+        <Link
+          href="/vendor/login"
+          className="font-semibold text-maroon hover:text-gold-dark"
+        >
+          Back to login
+        </Link>
+      </p>
     </AuthCard>
   )
 }
