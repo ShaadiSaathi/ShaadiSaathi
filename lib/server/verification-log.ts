@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs"
 import { parsePhoneNumber } from "libphonenumber-js"
 import { getAdminDb, isFirebaseAdminConfigured } from "./firebase-admin"
 import type { OtpChannel, OtpFlow } from "@/lib/auth/otp-types"
@@ -48,7 +49,13 @@ export async function logOtpSuccess(input: {
         timestamp: Date.now(),
         uid: (input.uid ?? "").slice(0, 128),
       })
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        component: "verification-log",
+        collection: "verification_success",
+      },
+    })
     // Logging must never interrupt verification.
   }
 }
@@ -64,6 +71,28 @@ export async function logOtpError(input: {
   rawMessage?: string
   uid?: string
 }): Promise<void> {
+  const isExpectedUserError =
+    input.code.startsWith("otp/invalid-") ||
+    input.code === "otp/code-expired" ||
+    input.code === "otp/too-many-requests"
+
+  Sentry.captureException(
+    new Error(`OTP ${input.stage} failed: ${input.code}`),
+    {
+      level: isExpectedUserError ? "warning" : "error",
+      tags: {
+        provider: "twilio",
+        channel: input.channel ?? "unknown",
+        flow: String(input.flow).slice(0, 40),
+        stage: input.stage,
+        otp_code: input.code.slice(0, 100),
+      },
+      extra: {
+        providerCode: (input.rawCode ?? "").slice(0, 100),
+      },
+    }
+  )
+
   if (!isFirebaseAdminConfigured()) return
   try {
     await getAdminDb()
@@ -81,7 +110,13 @@ export async function logOtpError(input: {
         timestamp: Date.now(),
         uid: (input.uid ?? "").slice(0, 128),
       })
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        component: "verification-log",
+        collection: "verification_errors",
+      },
+    })
     // Logging must never interrupt verification.
   }
 }
