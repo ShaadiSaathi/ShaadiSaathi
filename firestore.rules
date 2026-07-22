@@ -23,6 +23,10 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/vendors/$(vendorId)).data.ownerUid == request.auth.uid;
     }
 
+    function isPlatformAdmin() {
+      return isSignedIn() && request.auth.token.platformAdmin == true;
+    }
+
     function guestRsvpOnlyUpdate() {
       let allowed = ['rsvp', 'rsvpSource', 'updatedAt'];
       let changed = request.resource.data.diff(resource.data).affectedKeys();
@@ -31,20 +35,48 @@ service cloud.firestore {
         || changed.hasOnly(['rsvpSource', 'updatedAt']);
     }
 
+    // Client-side OTP audit logs (written pre-auth). Shape/size limited;
+    // readable by platform admin claim or Admin SDK only.
+    function isValidVerificationError() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['flow', 'stage', 'code', 'message', 'rawCode', 'rawMessage', 'phone', 'uid', 'timestamp'])
+        && d.flow is string && d.flow.size() <= 40
+        && d.stage is string && d.stage.size() <= 20
+        && d.code is string && d.code.size() <= 100
+        && d.message is string && d.message.size() <= 500
+        && (!d.keys().hasAny(['rawCode']) || (d.rawCode is string && d.rawCode.size() <= 100))
+        && (!d.keys().hasAny(['rawMessage']) || (d.rawMessage is string && d.rawMessage.size() <= 500))
+        && d.phone is string && d.phone.size() <= 40
+        && d.uid is string && d.uid.size() <= 128
+        && d.timestamp is number;
+    }
+
+    function isValidVerificationSuccess() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['flow', 'phone', 'verificationId', 'hasVerificationId', 'uid', 'timestamp'])
+        && d.flow is string && d.flow.size() <= 40
+        && d.phone is string && d.phone.size() <= 40
+        && d.verificationId is string && d.verificationId.size() > 0 && d.verificationId.size() <= 24
+        && d.hasVerificationId is bool && d.hasVerificationId == true
+        && d.uid is string && d.uid.size() <= 128
+        && d.timestamp is number;
+    }
+
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isPlatformAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     match /weddings/{weddingId} {
-      allow read: if isWeddingMember(weddingId);
+      allow read: if isWeddingMember(weddingId) || isPlatformAdmin();
       allow create: if isSignedIn();
-      allow update, delete: if isWeddingMember(weddingId);
+      allow update, delete: if isWeddingMember(weddingId) || isPlatformAdmin();
     }
 
     match /guests/{inviteToken} {
       allow get: if true;
-      allow list: if isSignedIn()
-        && isWeddingMember(resource.data.weddingId);
+      allow list: if isPlatformAdmin()
+        || (isSignedIn() && isWeddingMember(resource.data.weddingId));
       allow create, delete: if isSignedIn()
         && isWeddingMember(request.resource.data.weddingId);
       allow update: if isWeddingMember(resource.data.weddingId)
@@ -52,8 +84,8 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      allow read: if isSignedIn()
-        && isWeddingMember(resource.data.weddingId);
+      allow read: if isPlatformAdmin() || (isSignedIn()
+        && isWeddingMember(resource.data.weddingId));
       allow create: if isSignedIn()
         && isWeddingMember(request.resource.data.weddingId);
       allow update, delete: if isSignedIn()
@@ -67,24 +99,24 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      allow read: if isSignedIn() && (
+      allow read: if isPlatformAdmin() || (isSignedIn() && (
         isWeddingMember(resource.data.weddingId)
         || isVendorOwner(resource.data.vendorId)
-      );
+      ));
       allow create: if isSignedIn()
         && isWeddingMember(request.resource.data.weddingId);
-      allow update: if isSignedIn() && (
+      allow update: if isPlatformAdmin() || (isSignedIn() && (
         isWeddingMember(resource.data.weddingId)
         || isVendorOwner(resource.data.vendorId)
-      );
-      allow delete: if isWeddingMember(resource.data.weddingId);
+      ));
+      allow delete: if isWeddingMember(resource.data.weddingId) || isPlatformAdmin();
     }
 
     match /messages/{messageId} {
-      allow read: if isSignedIn() && (
+      allow read: if isPlatformAdmin() || (isSignedIn() && (
         isWeddingMember(get(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.weddingId)
         || isVendorOwner(get(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.vendorId)
-      );
+      ));
       allow create: if isSignedIn()
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
@@ -106,14 +138,18 @@ service cloud.firestore {
         && isWeddingMember(request.resource.data.weddingId);
     }
 
-    // OTP audit logs are written only by the Firebase Admin SDK from the
-    // server (Twilio Verify routes). Clients must not create or read them.
+    // OTP audit logs: clients may create (pre-auth) with strict validation;
+    // only platform admins may read. Updates/deletes are forbidden.
     match /verification_errors/{errorId} {
-      allow read, create, update, delete: if false;
+      allow create: if isValidVerificationError();
+      allow read: if isPlatformAdmin();
+      allow update, delete: if false;
     }
 
     match /verification_success/{successId} {
-      allow read, create, update, delete: if false;
+      allow create: if isValidVerificationSuccess();
+      allow read: if isPlatformAdmin();
+      allow update, delete: if false;
     }
   }
 }
