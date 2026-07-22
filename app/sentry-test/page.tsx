@@ -27,7 +27,22 @@ export default function SentryTestPage() {
 
     try {
       const response = await fetch("/api/sentry-test", { method: "POST" })
-      setServerStatus(response.status === 500 ? "sent" : "failed")
+      if (response.status === 500) {
+        setServerStatus("sent")
+        return
+      }
+
+      // Surface missing/malformed DSN without relying on opaque button text alone.
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; dsnCheck?: { present?: boolean; host?: string | null } }
+        | null
+      console.warn("[sentry-test] server response", {
+        status: response.status,
+        error: payload?.error,
+        dsnPresent: payload?.dsnCheck?.present,
+        dsnHost: payload?.dsnCheck?.host ?? null,
+      })
+      setServerStatus("failed")
     } catch {
       setServerStatus("failed")
     }
