@@ -49,7 +49,7 @@ export default function FamilySignupVerifyPage() {
   return (
     <AuthCard
       title="Verify your number"
-      subtitle="We've sent a 6-digit code to your WhatsApp."
+      subtitle="We've sent a 6-digit code to your phone."
       footer={
         <p className="text-center text-sm text-maroon/60">
           Wrong number?{" "}

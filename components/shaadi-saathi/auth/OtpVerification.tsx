@@ -78,13 +78,27 @@ export default function OtpVerification({
   // `phone` is an E.164 string (e.g. "+447911123456"); show it nicely formatted
   // for whatever country the user chose, falling back to the raw value.
   const prettyPhone = formatPhoneNumberIntl(phone) || phone
-  const channelLabel = channel === "sms" ? "SMS" : "WhatsApp"
+  const deliveryLabel =
+    channel === "whatsapp"
+      ? "WhatsApp"
+      : channel === "sms"
+        ? "SMS"
+        : null
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
       <p className="text-center text-sm leading-relaxed text-maroon/70">
-        Enter the code we sent to your {channelLabel} at{" "}
-        <span className="font-medium text-maroon-dark">{prettyPhone}</span>
+        {deliveryLabel ? (
+          <>
+            Enter the code we sent to your {deliveryLabel} at{" "}
+            <span className="font-medium text-maroon-dark">{prettyPhone}</span>
+          </>
+        ) : (
+          <>
+            Enter the code sent to{" "}
+            <span className="font-medium text-maroon-dark">{prettyPhone}</span>
+          </>
+        )}
       </p>
 
       <div

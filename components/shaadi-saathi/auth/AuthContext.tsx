@@ -11,21 +11,18 @@ import {
 } from "react"
 import {
   onAuthStateChanged,
-  signInWithCustomToken,
   signOut,
   type User,
 } from "firebase/auth"
 import type { VendorCategoryId } from "@/lib/mockVendors"
 import { isFirebaseConfigured, getFirebaseAuth } from "@/lib/firebase/config"
+import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp } from "@/lib/firebase/phone-auth"
 import { getUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
 import { getWedding } from "@/lib/firebase/weddings"
-import { friendlyAuthErrorMessage, withTimeout } from "@/lib/firebase/auth-errors"
-import {
-  requestSendOtp,
-  requestVerifyOtp,
-  type OtpChannel,
-} from "@/lib/auth/otp-client"
+import { friendlyAuthErrorMessage, rawAuthErrorInfo, withTimeout } from "@/lib/firebase/auth-errors"
+import { logVerificationError } from "@/lib/firebase/verification-errors"
+import { logVerificationSuccess } from "@/lib/firebase/verification-success"
 import {
   createWeddingForUser,
   ensureDemoVendorSeeded,
@@ -90,11 +87,10 @@ interface AuthContextValue {
   startFamilySignup: (data: { name: string; phone: string; password: string }) => void
   startVendorSignup: (data: Omit<VendorAuthUser, "bio" | "coverPhotoPreview"> & { password: string }) => void
   startPasswordReset: (phone: string, role: "family" | "vendor") => void
-  sendOtp: (channel?: OtpChannel) => Promise<OtpChannel>
+  sendOtp: () => Promise<void>
   resetOtp: () => void
   verifyOtp: (code: string) => boolean
   confirmOtp: (code: string) => Promise<void>
-  lastOtpChannel: OtpChannel
   completeFamilyOnboarding: (weddingName: string, firstEventDate: string) => void
   completeVendorOnboarding: (bio: string, coverPhotoPreview?: string) => void
   completePasswordReset: (password: string) => void
@@ -131,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [vendorId, setVendorId] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(isFirebaseMode)
   const [otpSent, setOtpSent] = useState(false)
-  const [lastOtpChannel, setLastOtpChannel] = useState<OtpChannel>("whatsapp")
 
   useEffect(() => {
     if (!isFirebaseMode) {
@@ -259,32 +254,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const sendOtp = useCallback(
-    async (channel: OtpChannel = "whatsapp") => {
-      if (!pending?.phone) throw new Error("No phone number")
-      // Twilio Verify via server API ONLY. "sent" is set only after the send
-      // route returns ok — never optimistically. Logging happens server-side.
-      try {
-        const result = await withTimeout(
-          requestSendOtp({
-            phone: pending.phone,
-            channel,
-            flow: pending.flow ?? "unknown",
-          }),
-          OTP_SEND_TIMEOUT_MS
-        )
-        setLastOtpChannel(result.channel)
-        setOtpSent(true)
-        return result.channel
-      } catch (err) {
-        const { message } = friendlyAuthErrorMessage(err)
-        throw new Error(message)
-      }
-    },
-    [pending]
-  )
+  const sendOtp = useCallback(async () => {
+    if (!pending?.phone) throw new Error("No phone number")
+    try {
+      const { verificationId } = await withTimeout(
+        sendPhoneOtp(pending.phone),
+        OTP_SEND_TIMEOUT_MS
+      )
+      void logVerificationSuccess({
+        flow: pending.flow ?? "unknown",
+        phone: pending.phone,
+        verificationId,
+        uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
+      })
+      setOtpSent(true)
+    } catch (err) {
+      const { code, message } = friendlyAuthErrorMessage(err)
+      const { rawCode, rawMessage } = rawAuthErrorInfo(err)
+      void logVerificationError({
+        flow: pending.flow ?? "unknown",
+        stage: "send",
+        code,
+        message,
+        rawCode,
+        rawMessage,
+        phone: pending.phone,
+        uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
+      })
+      throw new Error(message)
+    }
+  }, [pending, isFirebaseMode])
 
   const resetOtp = useCallback(() => {
+    clearPhoneAuthSession()
     setOtpSent(false)
   }, [])
 
@@ -294,27 +296,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const confirmOtp = useCallback(
     async (code: string) => {
-      // The ONLY way to be treated as verified: Twilio Verify approves the code
-      // server-side, we receive a Firebase custom token, and signInWithCustomToken
-      // succeeds. There is intentionally no mock/dev bypass here.
-      if (!pending?.phone) throw new Error("No phone number")
-      if (!isFirebaseMode) {
-        throw new Error("Verification isn't set up yet. Please try again later.")
-      }
-
       try {
-        const { token, channel } = await withTimeout(
-          requestVerifyOtp({
-            phone: pending.phone,
-            code,
-            flow: pending.flow ?? "unknown",
-          }),
-          OTP_SEND_TIMEOUT_MS
-        )
-        setLastOtpChannel(channel)
-        await signInWithCustomToken(getFirebaseAuth(), token)
+        await confirmPhoneOtp(code)
       } catch (err) {
-        const { message } = friendlyAuthErrorMessage(err)
+        const { code: errorCode, message } = friendlyAuthErrorMessage(err)
+        const { rawCode, rawMessage } = rawAuthErrorInfo(err)
+        void logVerificationError({
+          flow: pending?.flow ?? "unknown",
+          stage: "confirm",
+          code: errorCode,
+          message,
+          rawCode,
+          rawMessage,
+          phone: pending?.phone ?? "",
+          uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
+        })
         throw new Error(message)
       }
       setOtpSent(false)
@@ -425,14 +421,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const clearPending = useCallback(() => {
+    clearPhoneAuthSession()
     setOtpSent(false)
-    setLastOtpChannel("whatsapp")
     setPending(null)
   }, [])
 
   const logoutFamily = useCallback(async () => {
     if (isFirebaseMode) {
       await signOut(getFirebaseAuth())
+      clearPhoneAuthSession()
     }
     setFamilyUser(null)
     setWeddingId(null)
@@ -441,6 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutVendor = useCallback(async () => {
     if (isFirebaseMode) {
       await signOut(getFirebaseAuth())
+      clearPhoneAuthSession()
     }
     setVendorUser(null)
     setVendorId(null)
@@ -461,7 +459,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isFirebaseMode,
       authLoading,
       otpSent,
-      lastOtpChannel,
       loginFamily,
       loginVendor,
       loginWithGoogle,
@@ -490,7 +487,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isFirebaseMode,
       authLoading,
       otpSent,
-      lastOtpChannel,
       loginFamily,
       loginVendor,
       loginWithGoogle,

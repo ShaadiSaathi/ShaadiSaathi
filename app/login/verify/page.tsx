@@ -47,7 +47,7 @@ export default function FamilyLoginVerifyPage() {
   return (
     <AuthCard
       title="Verify your number"
-      subtitle="Enter the code we sent to your WhatsApp."
+      subtitle="Enter the code we sent to your phone."
     >
       <FirebaseOtpGate
         phone={pending.phone}
