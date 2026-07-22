@@ -104,7 +104,7 @@ export function scoreFrontFace(positions: Point[], gender: "male" | "female"): F
   for (const key of keysToShow) {
     const rm = m.get(key)
     if (!rm) continue
-    let score: number | null = (key === "gonial" || key === "cervicomental") ? null : scoreMetric(key, rm.value, gender)
+    const score: number | null = (key === "gonial" || key === "cervicomental") ? null : scoreMetric(key, rm.value, gender)
     const unreliable = rm.unreliable || rm.confidence < CONFIDENCE_THRESHOLD
     const includeInOverall = score != null && !unreliable && (weights[key] ?? 0) > 0
     if (includeInOverall && score != null) overallItems.push({ score, weight: weights[key] })

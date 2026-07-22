@@ -8,7 +8,8 @@
     "preview:tunnel": "node scripts/preview.mjs --tunnel",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

@@ -12,7 +12,9 @@ const STEPS = [
           <div className="mx-auto h-8 w-8 rounded-lg bg-maroon/20" />
           <div className="mx-auto h-2 w-20 rounded bg-maroon/15" />
           <div className="mx-auto h-2 w-16 rounded bg-gold/20" />
-          <p className="text-[10px] text-maroon/50">/* PLACEHOLDER: event setup screenshot */</p>
+          <p className="text-[10px] text-maroon/50">
+            {"/* PLACEHOLDER: event setup screenshot */"}
+          </p>
         </div>
       </div>
     ),

@@ -255,7 +255,7 @@ export function prepareSideAnalysis(
   const rawLandmarks = pixelLms.map(pt => ({ ...pt }))
   const side = detectProfileSide(pixelLms)
   const pose = estimatePoseFromLandmarks(pixelLms)
-  let poseFactor = poseConfidenceFactor(pose, true) * extraPoseFactor
+  const poseFactor = poseConfidenceFactor(pose, true) * extraPoseFactor
   let resolutionFactor = 0.9
 
   if (imageSize) {
