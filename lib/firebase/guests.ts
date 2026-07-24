@@ -21,6 +21,8 @@ function toGuest(docId: string, data: FirestoreGuest): Guest {
     events: data.events,
     rsvp: data.rsvp,
     rsvpSource: data.rsvpSource,
+    rsvpUpdatedAt: data.rsvpUpdatedAt,
+    rsvpOrganiserAlert: data.rsvpOrganiserAlert,
     inviteToken: data.inviteToken || docId,
     notes: data.notes,
   }
@@ -77,6 +79,12 @@ export async function addGuestToFirestore(
   const rsvpSource = Object.fromEntries(
     input.events.map((e) => [e, "organiser" as RsvpSource])
   ) as Record<EventId, RsvpSource | null>
+  const rsvpUpdatedAt = Object.fromEntries(
+    input.events.map((e) => [e, null])
+  ) as Record<EventId, number | null>
+  const rsvpOrganiserAlert = Object.fromEntries(
+    input.events.map((e) => [e, false])
+  ) as Record<EventId, boolean>
 
   const guest: FirestoreGuest = {
     id: input.id,
@@ -86,6 +94,8 @@ export async function addGuestToFirestore(
     events: input.events,
     rsvp,
     rsvpSource,
+    rsvpUpdatedAt,
+    rsvpOrganiserAlert,
     inviteToken: input.inviteToken,
     updatedAt: Date.now(),
   }
@@ -98,11 +108,18 @@ export async function updateGuestRsvpByOrganiser(
   eventId: EventId,
   status: RsvpStatus
 ): Promise<void> {
+  const now = Date.now()
   await updateDoc(doc(getFirestoreDb(), "guests", inviteToken), {
     [`rsvp.${eventId}`]: status,
     [`rsvpSource.${eventId}`]: "organiser" as RsvpSource,
-    updatedAt: Date.now(),
+    [`rsvpUpdatedAt.${eventId}`]: now,
+    [`rsvpOrganiserAlert.${eventId}`]: false,
+    updatedAt: now,
   })
+}
+
+function isRespondedStatus(status: unknown): status is "confirmed" | "declined" {
+  return status === "confirmed" || status === "declined"
 }
 
 export async function updateGuestRsvpByGuest(
@@ -110,11 +127,65 @@ export async function updateGuestRsvpByGuest(
   eventId: EventId,
   status: Exclude<RsvpStatus, "cancelled" | "pending">
 ): Promise<void> {
-  await updateDoc(doc(getFirestoreDb(), "guests", inviteToken), {
+  const ref = doc(getFirestoreDb(), "guests", inviteToken)
+  const snap = await getDoc(ref)
+  const prev = snap.exists()
+    ? (snap.data() as FirestoreGuest).rsvp?.[eventId]
+    : null
+  const now = Date.now()
+  const isChange = isRespondedStatus(prev) && prev !== status
+
+  await updateDoc(ref, {
     [`rsvp.${eventId}`]: status,
     [`rsvpSource.${eventId}`]: "guest" as RsvpSource,
-    updatedAt: Date.now(),
+    [`rsvpUpdatedAt.${eventId}`]: now,
+    updatedAt: now,
+    ...(isChange ? { [`rsvpOrganiserAlert.${eventId}`]: true } : {}),
   })
+}
+
+/** Bulk RSVP for every invited event on the guest's invite page. */
+export async function updateGuestRsvpBulkByGuest(
+  inviteToken: string,
+  status: Exclude<RsvpStatus, "cancelled" | "pending">,
+  eventIds: EventId[]
+): Promise<void> {
+  const ref = doc(getFirestoreDb(), "guests", inviteToken)
+  const snap = await getDoc(ref)
+  const existing = snap.exists() ? (snap.data() as FirestoreGuest) : null
+  const now = Date.now()
+
+  const patch: Record<string, string | number | boolean> = {
+    updatedAt: now,
+  }
+
+  for (const eventId of eventIds) {
+    const prev = existing?.rsvp?.[eventId]
+    const isChange = isRespondedStatus(prev) && prev !== status
+    patch[`rsvp.${eventId}`] = status
+    patch[`rsvpSource.${eventId}`] = "guest"
+    patch[`rsvpUpdatedAt.${eventId}`] = now
+    if (isChange) {
+      patch[`rsvpOrganiserAlert.${eventId}`] = true
+    }
+  }
+
+  await updateDoc(ref, patch)
+}
+
+/** Clear organiser "Updated" cues after they've been seen. */
+export async function clearGuestRsvpOrganiserAlerts(
+  inviteToken: string,
+  eventIds: EventId[]
+): Promise<void> {
+  if (eventIds.length === 0) return
+  const patch: Record<string, boolean | number> = {
+    updatedAt: Date.now(),
+  }
+  for (const eventId of eventIds) {
+    patch[`rsvpOrganiserAlert.${eventId}`] = false
+  }
+  await updateDoc(doc(getFirestoreDb(), "guests", inviteToken), patch)
 }
 
 export async function seedGuestsBatch(
@@ -132,6 +203,16 @@ export async function seedGuestsBatch(
         events: g.events,
         rsvp: g.rsvp,
         rsvpSource: g.rsvpSource,
+        rsvpUpdatedAt: g.rsvpUpdatedAt ?? {
+          mehndi: null,
+          baraat: null,
+          walima: null,
+        },
+        rsvpOrganiserAlert: g.rsvpOrganiserAlert ?? {
+          mehndi: false,
+          baraat: false,
+          walima: false,
+        },
         inviteToken: g.inviteToken,
         notes: g.notes,
         updatedAt: Date.now(),

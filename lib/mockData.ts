@@ -60,6 +60,13 @@ export interface Guest {
   rsvp: Record<EventId, RsvpStatus | null>
   /** Who last set each event's RSVP */
   rsvpSource: Record<EventId, RsvpSource | null>
+  /** Per-event timestamp (ms) of last RSVP change */
+  rsvpUpdatedAt?: Partial<Record<EventId, number | null>>
+  /**
+   * True when a guest changed an existing Confirmed/Declined answer —
+   * surfaces an "Updated" cue for organisers until cleared.
+   */
+  rsvpOrganiserAlert?: Partial<Record<EventId, boolean>>
   /** Unique token for shareable invite link — /invite/[inviteToken] */
   inviteToken: string
   notes?: string
@@ -284,7 +291,19 @@ function emptyRsvpFields(events: EventId[]) {
     walima: events.includes("walima") ? ("organiser" as RsvpSource) : null,
   } satisfies Record<EventId, RsvpSource | null>
 
-  return { rsvp, rsvpSource }
+  const rsvpUpdatedAt = {
+    mehndi: null,
+    baraat: null,
+    walima: null,
+  } satisfies Record<EventId, number | null>
+
+  const rsvpOrganiserAlert = {
+    mehndi: false,
+    baraat: false,
+    walima: false,
+  } satisfies Record<EventId, boolean>
+
+  return { rsvp, rsvpSource, rsvpUpdatedAt, rsvpOrganiserAlert }
 }
 
 /** ~40 guests with varied event tags and RSVP statuses */

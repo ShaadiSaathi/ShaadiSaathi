@@ -1,7 +1,9 @@
 import type { EventId, RsvpSource, RsvpStatus } from "@/lib/mockData"
 import type { InviteThemeId } from "@/lib/premium"
 import type { BookingStatus, VendorCategoryId } from "@/lib/mockVendors"
+import type { DisputeCategory } from "@/lib/mockPayments"
 import type { PaymentPath } from "@/lib/mockPayments"
+import type { FirestoreBookingPayment } from "@/lib/payments/types"
 
 export type UserRole = "family" | "vendor"
 
@@ -54,6 +56,10 @@ export interface FirestoreGuest {
   events: EventId[]
   rsvp: Record<EventId, RsvpStatus | null>
   rsvpSource: Record<EventId, RsvpSource | null>
+  /** Per-event last RSVP change (ms) */
+  rsvpUpdatedAt?: Partial<Record<EventId, number | null>>
+  /** Guest changed an existing response — organiser "Updated" cue */
+  rsvpOrganiserAlert?: Partial<Record<EventId, boolean>>
   inviteToken: string
   notes?: string
   updatedAt: number
@@ -71,6 +77,22 @@ export interface FirestoreVendor {
   createdAt: number
 }
 
+export interface FirestoreBookingDispute {
+  status: "under_review" | "resolved"
+  category?: DisputeCategory
+  description: string
+  submittedAt: number
+  disputedAmount?: number
+  familyReason?: string
+  vendorResponse?: string
+  evidenceFileName?: string
+  resolution?: "family" | "vendor" | "split"
+  splitFamilyAmount?: number
+  splitVendorAmount?: number
+  resolvedAt?: number
+  resolvedByUid?: string
+}
+
 export interface FirestoreBooking {
   id: string
   weddingId: string
@@ -86,6 +108,11 @@ export interface FirestoreBooking {
   weddingName: string
   vendorName: string
   createdAt: number
+  /** Persisted deposit/balance lifecycle (Stripe + Safepay) */
+  payment?: FirestoreBookingPayment
+  createdByUid?: string
+  updatedAt?: number
+  dispute?: FirestoreBookingDispute
   /** Per-user last read timestamp for unread badges */
   lastReadByFamily?: number
   lastReadByVendor?: number

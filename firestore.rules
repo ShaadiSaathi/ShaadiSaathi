@@ -28,11 +28,10 @@ service cloud.firestore {
     }
 
     function guestRsvpOnlyUpdate() {
-      let allowed = ['rsvp', 'rsvpSource', 'updatedAt'];
+      // Public invite link may update RSVP fields without auth.
+      let allowed = ['rsvp', 'rsvpSource', 'updatedAt', 'rsvpUpdatedAt', 'rsvpOrganiserAlert'];
       let changed = request.resource.data.diff(resource.data).affectedKeys();
-      return changed.hasOnly(allowed)
-        || changed.hasOnly(['rsvp', 'updatedAt'])
-        || changed.hasOnly(['rsvpSource', 'updatedAt']);
+      return changed.hasOnly(allowed);
     }
 
     // Client-side OTP audit logs (written pre-auth). Shape/size limited;

@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useMemo, useState } from "react"
 import MehndiPattern from "@/components/shaadi-saathi/MehndiPattern"
 import JaaliDivider from "@/components/shaadi-saathi/JaaliDivider"
@@ -17,6 +17,7 @@ import { isFirebaseConfigured } from "@/lib/firebase/config"
 import {
   getGuestByInviteToken,
   subscribeGuestByToken,
+  updateGuestRsvpBulkByGuest,
   updateGuestRsvpByGuest as updateGuestRsvpFirestore,
 } from "@/lib/firebase/guests"
 import { getWedding, subscribeWedding } from "@/lib/firebase/weddings"
@@ -27,15 +28,37 @@ interface GuestInvitePageProps {
 
 type RsvpChoice = "confirmed" | "declined"
 
+function formatLastUpdated(ms: number | null | undefined): string | null {
+  if (!ms) return null
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(ms))
+  } catch {
+    return new Date(ms).toLocaleString()
+  }
+}
+
 export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
-  const { guests, getGuestByToken, updateRsvpByGuest } = useGuests()
+  const {
+    guests,
+    getGuestByToken,
+    updateRsvpByGuest,
+    updateRsvpBulkByGuest,
+  } = useGuests()
   const [firestoreGuest, setFirestoreGuest] = useState<Guest | null>(null)
   const [guestLoading, setGuestLoading] = useState(isFirebaseConfigured())
   const [invalid, setInvalid] = useState(false)
   const [coupleName, setCoupleName] = useState(WEDDING.couple)
-  const [weddingName, setWeddingName] = useState(WEDDING.name)
   const [inviteTheme, setInviteTheme] = useState<InviteThemeId>("classic")
   const [isPremium, setIsPremium] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [pulseEvent, setPulseEvent] = useState<EventId | null>(null)
 
   const mockGuest = useMemo(
     () => getGuestByToken(guestToken) ?? guests.find((g) => g.inviteToken === guestToken),
@@ -43,6 +66,18 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   )
 
   const guest = isFirebaseConfigured() ? firestoreGuest : mockGuest
+
+  useEffect(() => {
+    if (!toast) return
+    const t = window.setTimeout(() => setToast(null), 2800)
+    return () => window.clearTimeout(t)
+  }, [toast])
+
+  useEffect(() => {
+    if (!pulseEvent) return
+    const t = window.setTimeout(() => setPulseEvent(null), 700)
+    return () => window.clearTimeout(t)
+  }, [pulseEvent])
 
   useEffect(() => {
     if (!isFirebaseConfigured()) return
@@ -73,7 +108,6 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
           )
           if (wedding) {
             setCoupleName(wedding.couple)
-            setWeddingName(wedding.name)
             setInviteTheme(wedding.inviteTheme)
             setIsPremium(wedding.isPremium)
             weddingUnsub = subscribeWedding(wedding.id, (w) => {
@@ -102,12 +136,6 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
   const theme = getInviteTheme(inviteTheme)
 
-  const [submitted, setSubmitted] = useState<Record<EventId, boolean>>({
-    mehndi: false,
-    baraat: false,
-    walima: false,
-  })
-
   if (guestLoading) {
     return (
       <div className="shaadi-saathi flex min-h-screen items-center justify-center bg-ivory px-5">
@@ -133,14 +161,42 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   }
 
   const invitedEvents = EVENTS.filter((e) => guest.events.includes(e.id))
+  const invitedIds = invitedEvents.map((e) => e.id)
+
+  function showUpdatedToast() {
+    setToast("Got it, we've updated your response!")
+  }
 
   async function handleRsvp(eventId: EventId, choice: RsvpChoice) {
-    if (isFirebaseConfigured()) {
-      await updateGuestRsvpFirestore(guest!.inviteToken, eventId, choice)
-    } else {
-      updateRsvpByGuest(guest!.id, eventId, choice)
+    if (busy) return
+    setBusy(true)
+    try {
+      if (isFirebaseConfigured()) {
+        await updateGuestRsvpFirestore(guest!.inviteToken, eventId, choice)
+      } else {
+        await updateRsvpByGuest(guest!.id, eventId, choice)
+      }
+      setPulseEvent(eventId)
+      showUpdatedToast()
+    } finally {
+      setBusy(false)
     }
-    setSubmitted((prev) => ({ ...prev, [eventId]: true }))
+  }
+
+  async function handleBulkRsvp(choice: RsvpChoice) {
+    if (busy || invitedIds.length === 0) return
+    setBusy(true)
+    try {
+      if (isFirebaseConfigured()) {
+        await updateGuestRsvpBulkByGuest(guest!.inviteToken, choice, invitedIds)
+      } else {
+        await updateRsvpBulkByGuest(guest!.id, choice, invitedIds)
+      }
+      setPulseEvent(invitedIds[0] ?? null)
+      showUpdatedToast()
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -177,15 +233,25 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
           <JaaliDivider />
         </div>
 
-        <div className="space-y-6">
+        {invitedIds.length > 1 && (
+          <BulkRsvpBanner
+            disabled={busy}
+            themeAccent={theme.accent}
+            onAcceptAll={() => void handleBulkRsvp("confirmed")}
+            onDeclineAll={() => void handleBulkRsvp("declined")}
+          />
+        )}
+
+        <div className="mt-6 space-y-6">
           {invitedEvents.map((event, i) => (
             <EventRsvpCard
               key={event.id}
               event={event}
               guest={guest}
               index={i}
-              justSubmitted={submitted[event.id]}
-              onRsvp={(choice) => handleRsvp(event.id, choice)}
+              busy={busy}
+              pulse={pulseEvent === event.id}
+              onRsvp={(choice) => void handleRsvp(event.id, choice)}
             />
           ))}
         </div>
@@ -197,7 +263,73 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
           )}
         </footer>
       </main>
+
+      <AnimatePresence>
+        {toast ? (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="rounded-full border border-gold/30 bg-maroon px-5 py-3 text-sm font-medium text-ivory shadow-lg">
+              {toast}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
+  )
+}
+
+function BulkRsvpBanner({
+  disabled,
+  themeAccent,
+  onAcceptAll,
+  onDeclineAll,
+}: {
+  disabled: boolean
+  themeAccent: string
+  onAcceptAll: () => void
+  onDeclineAll: () => void
+}) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="overflow-hidden rounded-2xl border-2 border-gold/40 bg-gradient-to-br from-gold/15 via-white to-maroon/5 p-5 shadow-md"
+      aria-label="Respond to all events at once"
+    >
+      <p className={`text-center text-[11px] font-semibold uppercase tracking-[0.2em] ${themeAccent}`}>
+        Respond for everything at once
+      </p>
+      <p className="mt-2 text-center font-display text-lg font-semibold text-maroon-dark">
+        One tap for every celebration
+      </p>
+      <p className="mt-1 text-center text-xs text-maroon/55">
+        You can still adjust individual events below anytime.
+      </p>
+      <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onAcceptAll}
+          className="min-h-12 flex-1 rounded-2xl bg-maroon px-4 py-3 text-sm font-semibold text-ivory shadow-sm transition hover:bg-maroon-dark focus:outline-none focus:ring-2 focus:ring-maroon/30 disabled:opacity-60"
+        >
+          Accepting All Events with Joy
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onDeclineAll}
+          className="min-h-12 flex-1 rounded-2xl border border-maroon/25 bg-white/90 px-4 py-3 text-sm font-medium text-maroon/75 transition hover:border-maroon/40 hover:bg-maroon/5 focus:outline-none focus:ring-2 focus:ring-maroon/10 disabled:opacity-60"
+        >
+          Sadly Declining All Events
+        </button>
+      </div>
+    </motion.section>
   )
 }
 
@@ -214,18 +346,22 @@ function EventRsvpCard({
   event,
   guest,
   index,
-  justSubmitted,
+  busy,
+  pulse,
   onRsvp,
 }: {
   event: (typeof EVENTS)[number]
   guest: Guest
   index: number
-  justSubmitted: boolean
+  busy: boolean
+  pulse: boolean
   onRsvp: (choice: RsvpChoice) => void
 }) {
   const status = guest.rsvp[event.id]
-  const showConfirmation =
-    justSubmitted || status === "confirmed" || status === "declined"
+  const lastUpdated = formatLastUpdated(guest.rsvpUpdatedAt?.[event.id])
+  const withdrawn = status === "cancelled"
+  const confirmed = status === "confirmed"
+  const declined = status === "declined"
 
   return (
     <motion.article
@@ -264,71 +400,123 @@ function EventRsvpCard({
       </div>
 
       <div className="border-t border-gold/15 bg-ivory/50 px-5 py-4">
-        {status === "cancelled" ? (
+        {withdrawn ? (
           <p className="text-center text-sm text-slate-500">
             This invitation has been withdrawn by the hosts.
           </p>
-        ) : showConfirmation ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
-          >
-            {status === "confirmed" ? (
-              <>
-                <p className="font-display text-lg font-semibold text-emerald-800">
-                  Shukriya — we can&apos;t wait to celebrate with you!
-                </p>
-                <p className="mt-1 text-sm text-maroon/60">
-                  Thank you for letting us know. See you at {event.name}!
-                </p>
-              </>
-            ) : status === "declined" ? (
-              <>
-                <p className="font-display text-lg font-semibold text-maroon-dark">
-                  Thank you for letting us know
-                </p>
-                <p className="mt-1 text-sm text-maroon/60">
-                  We&apos;ll miss you, but we appreciate your response.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-maroon/60">Awaiting your response...</p>
-            )}
-            {(status === "confirmed" || status === "declined") && (
-              <button
-                type="button"
-                onClick={() => onRsvp(status === "confirmed" ? "declined" : "confirmed")}
-                className="mt-3 inline-flex min-h-[44px] items-center text-xs text-maroon/40 underline hover:text-maroon/60"
-              >
-                Change my response
-              </button>
-            )}
-          </motion.div>
         ) : (
-          <div className="space-y-2">
-            <p className="text-center text-sm font-medium text-maroon/70">Will you be joining us?</p>
+          <div className="space-y-3">
+            <p className="text-center text-sm font-medium text-maroon/70">
+              Will you be joining us?
+            </p>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
+              <RsvpChoiceButton
+                selected={confirmed}
+                pulse={pulse && confirmed}
+                disabled={busy}
+                variant="accept"
+                label="Accepting with Joy"
+                ariaLabel={`Accept invitation to ${event.name}`}
                 onClick={() => onRsvp("confirmed")}
-                className="min-h-11 flex-1 rounded-xl bg-maroon px-4 py-3 text-sm font-semibold text-ivory transition-colors hover:bg-maroon-dark focus:outline-none focus:ring-2 focus:ring-maroon/30"
-                aria-label={`Accept invitation to ${event.name}`}
-              >
-                Accepting with Joy
-              </button>
-              <button
-                type="button"
+              />
+              <RsvpChoiceButton
+                selected={declined}
+                pulse={pulse && declined}
+                disabled={busy}
+                variant="decline"
+                label="Sadly Declining"
+                ariaLabel={`Decline invitation to ${event.name}`}
                 onClick={() => onRsvp("declined")}
-                className="min-h-11 flex-1 rounded-xl border border-maroon/20 bg-white px-4 py-3 text-sm font-medium text-maroon/70 transition-colors hover:border-maroon/30 hover:bg-maroon/5 focus:outline-none focus:ring-2 focus:ring-maroon/10"
-                aria-label={`Decline invitation to ${event.name}`}
-              >
-                Sadly Declining
-              </button>
+              />
             </div>
+
+            {(confirmed || declined) && (
+              <motion.p
+                key={`${event.id}-${status}`}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center text-sm text-maroon/60"
+              >
+                {confirmed
+                  ? `Shukriya — see you at ${event.name}!`
+                  : "We'll miss you, but we appreciate your response."}
+              </motion.p>
+            )}
+
+            {lastUpdated ? (
+              <p className="text-center text-[11px] text-maroon/40">
+                Last updated {lastUpdated}
+              </p>
+            ) : null}
           </div>
         )}
       </div>
     </motion.article>
+  )
+}
+
+function RsvpChoiceButton({
+  selected,
+  pulse,
+  disabled,
+  variant,
+  label,
+  ariaLabel,
+  onClick,
+}: {
+  selected: boolean
+  pulse: boolean
+  disabled: boolean
+  variant: "accept" | "decline"
+  label: string
+  ariaLabel: string
+  onClick: () => void
+}) {
+  const acceptSelected =
+    "bg-maroon text-ivory ring-2 ring-gold/50 ring-offset-2 ring-offset-ivory shadow-md"
+  const acceptIdle =
+    "bg-maroon/90 text-ivory hover:bg-maroon-dark"
+  const declineSelected =
+    "border-2 border-maroon/40 bg-maroon/10 text-maroon-dark ring-2 ring-maroon/20 ring-offset-2 ring-offset-ivory"
+  const declineIdle =
+    "border border-maroon/20 bg-white text-maroon/70 hover:border-maroon/30 hover:bg-maroon/5"
+
+  return (
+    <motion.button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={ariaLabel}
+      aria-pressed={selected}
+      animate={pulse ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      className={`relative min-h-11 flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-maroon/30 disabled:opacity-60 ${
+        variant === "accept"
+          ? selected
+            ? acceptSelected
+            : acceptIdle
+          : selected
+            ? declineSelected
+            : declineIdle
+      }`}
+    >
+      <span className="inline-flex items-center justify-center gap-1.5">
+        {selected ? (
+          <motion.svg
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </motion.svg>
+        ) : null}
+        {label}
+      </span>
+    </motion.button>
   )
 }

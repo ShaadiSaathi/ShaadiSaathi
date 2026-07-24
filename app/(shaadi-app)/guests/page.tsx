@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Avatar from "@/components/shaadi-saathi/app/Avatar"
 import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
@@ -36,7 +36,7 @@ interface PendingOverride {
 }
 
 export default function GuestsPage() {
-  const { guests, addGuest, updateRsvpByOrganiser } = useGuests()
+  const { guests, addGuest, updateRsvpByOrganiser, clearRsvpOrganiserAlerts } = useGuests()
   const { isFamilyPremium } = usePremium()
   const [tab, setTab] = useState<Tab>("all")
   const [search, setSearch] = useState("")
@@ -49,6 +49,23 @@ export default function GuestsPage() {
   const [inviteGuest, setInviteGuest] = useState<Guest | null>(null)
   const [pendingOverride, setPendingOverride] = useState<PendingOverride | null>(null)
   const [showGuestLimit, setShowGuestLimit] = useState(false)
+
+  // Keep latest guests for unmount cleanup without re-binding every render
+  const guestsRef = useRef(guests)
+  guestsRef.current = guests
+
+  // Show "Updated" while organiser is on this screen; clear when they leave
+  // so the cue persists until viewed.
+  useEffect(() => {
+    return () => {
+      for (const guest of guestsRef.current) {
+        const alerted = guest.events.filter((e) => guest.rsvpOrganiserAlert?.[e])
+        if (alerted.length > 0) {
+          void clearRsvpOrganiserAlerts(guest.id, alerted)
+        }
+      }
+    }
+  }, [clearRsvpOrganiserAlerts])
 
   const filteredGuests = useMemo(() => {
     return guests.filter((guest) => {
@@ -403,6 +420,7 @@ function GuestRow({
                 onChange={(newStatus) => onStatusChange(guest, e, newStatus)}
               />
               <RsvpSourceIndicator source={guest.rsvpSource[e]} />
+              {guest.rsvpOrganiserAlert?.[e] ? <UpdatedBadge /> : null}
             </div>
           )
         })}
@@ -531,10 +549,22 @@ function RsvpOverview({
                 onChange={(newStatus) => onStatusChange(guest, rsvpEvent, newStatus)}
               />
               <RsvpSourceIndicator source={guest.rsvpSource[rsvpEvent]} />
+              {guest.rsvpOrganiserAlert?.[rsvpEvent] ? <UpdatedBadge /> : null}
             </div>
           </li>
         ))}
       </ul>
     </div>
+  )
+}
+
+function UpdatedBadge() {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800"
+      title="Guest changed their RSVP after responding"
+    >
+      Updated
+    </span>
   )
 }
