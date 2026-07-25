@@ -1,11 +1,52 @@
 import type { EventId, RsvpSource, RsvpStatus } from "@/lib/mockData"
 import type { InviteThemeId } from "@/lib/premium"
 import type { BookingStatus, VendorCategoryId } from "@/lib/mockVendors"
-import type { DisputeCategory } from "@/lib/mockPayments"
-import type { PaymentPath } from "@/lib/mockPayments"
-import type { FirestoreBookingPayment } from "@/lib/payments/types"
+import type {
+  BalanceStatus,
+  DepositStatus,
+  DisputeCategory,
+  InPersonMethod,
+  PaymentPath,
+} from "@/lib/mockPayments"
 
 export type UserRole = "family" | "vendor"
+
+export type SafepayPayoutStatus =
+  | "P_INITIATED"
+  | "P_RECEIVED"
+  | "P_FAILED"
+  | "P_REJECTED"
+  | "P_SETTLED"
+
+/**
+ * Persisted payment snapshot on Firestore bookings. Defined here (rather than
+ * imported from lib/payments) so the core Firestore types never depend on the
+ * optional payments subsystem — that module is not always present/enabled and
+ * a stray import breaks the production build with module_not_found.
+ */
+export type FirestoreBookingPayment = {
+  totalPrice: number
+  depositAmount: number
+  depositPercent: number
+  balanceAmount: number
+  paymentPath: PaymentPath
+  inPersonMethod?: InPersonMethod
+  depositStatus: DepositStatus
+  balanceStatus: BalanceStatus
+  depositPaidAt?: number
+  checkInAt?: number
+  balanceMarkedPaidAt?: number
+  balanceChargedAt?: number
+  refundAmount?: number
+  refundConfirmedAt?: number
+  currency: string
+  stripeDepositPaymentIntentId?: string
+  stripeBalancePaymentIntentId?: string
+  safepayPayoutToken?: string
+  safepayPayoutStatus?: SafepayPayoutStatus
+  safepayPayoutRequestId?: string
+  updatedAt: number
+}
 
 export interface FirestoreUser {
   uid: string
