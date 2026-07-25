@@ -272,7 +272,7 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
             </button>
           </form>
 
-          <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               disabled={busy}
@@ -283,7 +283,7 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
                 }
                 void continueToRsvp("confirmed")
               }}
-              className="min-h-11 flex-1 rounded-2xl bg-maroon/90 px-4 py-3 text-sm font-semibold text-ivory transition hover:bg-maroon-dark disabled:opacity-60"
+              className="min-h-14 flex-1 rounded-2xl bg-maroon/90 px-4 py-3.5 text-base font-semibold text-ivory transition hover:bg-maroon-dark disabled:opacity-60 sm:min-h-11 sm:text-sm sm:py-3"
             >
               Accepting All Events with Joy
             </button>
@@ -297,7 +297,7 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
                 }
                 void continueToRsvp("declined")
               }}
-              className="min-h-11 flex-1 rounded-2xl border border-maroon/25 bg-white/90 px-4 py-3 text-sm font-medium text-maroon/75 transition hover:bg-maroon/5 disabled:opacity-60"
+              className="min-h-14 flex-1 rounded-2xl border border-maroon/25 bg-white/90 px-4 py-3.5 text-base font-medium text-maroon/75 transition hover:bg-maroon/5 disabled:opacity-60 sm:min-h-11 sm:text-sm sm:py-3"
             >
               Sadly Declining All Events
             </button>
@@ -330,7 +330,7 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
                 <p className="mb-3 text-center text-sm font-medium text-maroon/70">
                   Will you be joining us?
                 </p>
-                <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <button
                     type="button"
                     disabled={busy}
@@ -341,7 +341,7 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
                       }
                       void continueToRsvp("confirmed")
                     }}
-                    className="min-h-11 flex-1 rounded-xl bg-maroon/90 px-4 py-3 text-sm font-semibold text-ivory hover:bg-maroon-dark disabled:opacity-60"
+                    className="min-h-12 flex-1 rounded-xl bg-maroon/90 px-4 py-3.5 text-base font-semibold text-ivory hover:bg-maroon-dark disabled:opacity-60 sm:min-h-11 sm:text-sm sm:py-3"
                   >
                     Accepting with Joy
                   </button>
@@ -355,7 +355,7 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
                       }
                       void continueToRsvp("declined")
                     }}
-                    className="min-h-11 flex-1 rounded-xl border border-maroon/20 bg-white px-4 py-3 text-sm font-semibold text-maroon/70 hover:bg-maroon/5 disabled:opacity-60"
+                    className="min-h-12 flex-1 rounded-xl border border-maroon/20 bg-white px-4 py-3.5 text-base font-semibold text-maroon/70 hover:bg-maroon/5 disabled:opacity-60 sm:min-h-11 sm:text-sm sm:py-3"
                   >
                     Sadly Declining
                   </button>

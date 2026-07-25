@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { use } from "react"
+import { use, useState } from "react"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import EventBudgetSnapshot from "@/components/shaadi-saathi/events/EventBudgetSnapshot"
@@ -24,11 +24,22 @@ interface EventDetailPageProps {
   params: Promise<{ id: string }>
 }
 
+type MobileSection = "map" | "vendors" | "timeline" | "notes" | "budget"
+
+const MOBILE_SECTIONS: { id: MobileSection; label: string }[] = [
+  { id: "map", label: "Map" },
+  { id: "vendors", label: "Vendors" },
+  { id: "timeline", label: "Timeline" },
+  { id: "notes", label: "Notes" },
+  { id: "budget", label: "Budget" },
+]
+
 export default function EventDetailPage({ params }: EventDetailPageProps) {
   const { id } = use(params)
   const event = getEventById(id)
   const { guests } = useGuests()
   const { bookings } = useVendorBookings()
+  const [mobileSection, setMobileSection] = useState<MobileSection>("map")
 
   if (!event) {
     notFound()
@@ -79,7 +90,65 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
         </dl>
       </header>
 
-      <div className="space-y-6">
+      {/* Mobile: tabbed sections */}
+      <div className="md:hidden">
+        <div
+          className="sticky top-0 z-20 -mx-4 mb-4 border-b border-gold/15 bg-ivory/95 px-4 backdrop-blur sm:-mx-6 sm:px-6"
+          role="tablist"
+          aria-label="Event sections"
+        >
+          <div className="flex gap-1 overflow-x-auto pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {MOBILE_SECTIONS.map((section) => {
+              const selected = mobileSection === section.id
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  id={`event-tab-${section.id}`}
+                  aria-controls={`event-panel-${section.id}`}
+                  onClick={() => setMobileSection(section.id)}
+                  className={`inline-flex min-h-11 shrink-0 items-center justify-center rounded-t-lg px-4 text-sm font-medium transition-colors ${
+                    selected
+                      ? "border-b-2 border-maroon text-maroon-dark"
+                      : "text-maroon/55 hover:text-maroon"
+                  }`}
+                >
+                  {section.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div
+          id={`event-panel-${mobileSection}`}
+          role="tabpanel"
+          aria-labelledby={`event-tab-${mobileSection}`}
+          className="space-y-4"
+        >
+          {mobileSection === "map" && (
+            <VenueMap event={event} confirmedGuestCount={summary.confirmed} />
+          )}
+          {mobileSection === "vendors" && (
+            <EventVendorsList eventId={eventId} eventName={event.name} bookings={bookings} />
+          )}
+          {mobileSection === "timeline" && (
+            <>
+              <EventTimeline eventId={eventId} />
+              <EventTaskSummary eventId={eventId} eventName={event.name} />
+            </>
+          )}
+          {mobileSection === "notes" && <EventNotes eventId={eventId} />}
+          {mobileSection === "budget" && (
+            <EventBudgetSnapshot event={event} bookings={bookings} />
+          )}
+        </div>
+      </div>
+
+      {/* Desktop: full stacked layout */}
+      <div className="hidden space-y-6 md:block">
         {/* 2. Venue + map */}
         <VenueMap event={event} confirmedGuestCount={summary.confirmed} />
 

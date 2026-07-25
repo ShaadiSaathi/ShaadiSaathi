@@ -80,7 +80,7 @@ export default function OtpVerification({
       </p>
 
       <div
-        className="flex justify-center gap-2 sm:gap-3"
+        className="flex justify-center gap-2.5 sm:gap-3"
         role="group"
         aria-label="6-digit verification code"
         onPaste={handlePaste}
@@ -98,7 +98,7 @@ export default function OtpVerification({
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
             aria-label={`Digit ${i + 1} of 6`}
-            className="h-14 w-full min-w-0 max-w-[3.25rem] flex-1 basis-0 rounded-xl border border-gold/25 bg-ivory text-center text-xl font-semibold text-maroon-dark focus:border-maroon focus:outline-none focus:ring-2 focus:ring-maroon/15 sm:h-16"
+            className="h-14 w-full min-w-0 max-w-[3.5rem] flex-1 basis-0 rounded-xl border border-gold/25 bg-ivory text-center text-xl font-semibold text-maroon-dark focus:border-maroon focus:outline-none focus:ring-2 focus:ring-maroon/15 sm:h-16"
           />
         ))}
       </div>

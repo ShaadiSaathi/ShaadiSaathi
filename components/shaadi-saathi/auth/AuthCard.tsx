@@ -24,7 +24,7 @@ export default function AuthCard({
   const isVendor = variant === "vendor"
 
   return (
-    <div className="shaadi-saathi relative min-h-screen bg-ivory">
+    <div className="shaadi-saathi relative min-h-screen bg-ivory safe-top safe-bottom">
       <MehndiPattern opacity={0.035} />
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col lg:flex-row">
@@ -59,28 +59,28 @@ export default function AuthCard({
         </div>
 
         {/* Form side */}
-        <div className="flex flex-1 flex-col justify-center px-5 py-10 sm:px-8 lg:px-12 xl:px-16">
+        <div className="flex flex-1 flex-col justify-center px-4 py-8 sm:px-8 sm:py-10 lg:px-12 xl:px-16">
           <Link
             href="/"
-            className="mb-8 block text-center font-display text-xl font-bold text-maroon-dark lg:text-left"
+            className="mb-6 block text-center font-display text-xl font-bold text-maroon-dark sm:mb-8 lg:text-left"
           >
             Shaadi Saathi
           </Link>
 
-          <div className="mx-auto w-full max-w-md rounded-2xl border border-gold/20 bg-white/90 p-7 shadow-sm shadow-maroon/5 backdrop-blur-sm sm:p-8">
+          <div className="mx-auto w-full max-w-md rounded-2xl border border-gold/20 bg-white/90 p-6 shadow-sm shadow-maroon/5 backdrop-blur-sm sm:p-8">
             {badge && (
               <p className="text-center text-xs font-semibold uppercase tracking-wider text-gold-dark lg:text-left">
                 {badge}
               </p>
             )}
-            <h1 className="mt-1 text-center font-display text-2xl font-bold text-maroon-dark lg:text-left">
+            <h1 className="mt-1 text-center font-display text-[1.65rem] font-bold leading-tight text-maroon-dark sm:text-2xl lg:text-left">
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-2 text-center text-sm text-maroon/60 lg:text-left">{subtitle}</p>
+              <p className="mt-2 text-center text-sm leading-relaxed text-maroon/60 lg:text-left">{subtitle}</p>
             )}
 
-            <div className="mt-7">{children}</div>
+            <div className="mt-6 sm:mt-7">{children}</div>
 
             {footer && <div className="mt-6 border-t border-gold/10 pt-6">{footer}</div>}
           </div>

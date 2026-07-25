@@ -62,42 +62,42 @@ export default function SchedulePage() {
         </p>
       </header>
 
-      <div className="relative">
+      <div className="relative overflow-x-hidden">
         {/* Vertical timeline line */}
         <div
-          className="absolute left-4 top-0 bottom-0 w-px bg-gradient-to-b from-gold/40 via-gold/20 to-transparent sm:left-6"
+          className="absolute bottom-0 left-3 top-0 w-px bg-gradient-to-b from-gold/40 via-gold/20 to-transparent md:left-6"
           aria-hidden="true"
         />
 
         {Object.entries(grouped).map(([month, monthItems]) => (
-          <section key={month} className="mb-10" aria-labelledby={`month-${month}`}>
+          <section key={month} className="mb-8 md:mb-10" aria-labelledby={`month-${month}`}>
             <h2
               id={`month-${month}`}
-              className="mb-5 pl-10 font-display text-sm font-semibold uppercase tracking-wider text-maroon/50 sm:pl-14"
+              className="mb-4 pl-9 font-display text-sm font-semibold uppercase tracking-wider text-maroon/50 md:mb-5 md:pl-14"
             >
               {month}
             </h2>
 
-            <ul className="space-y-4">
+            <ul className="space-y-3 md:space-y-4">
               {monthItems.map((item) => (
-                <li key={item.id} className="relative pl-10 sm:pl-14">
+                <li key={item.id} className="relative min-w-0 pl-9 md:pl-14">
                   {/* Timeline dot */}
                   <span
-                    className={`absolute left-2.5 top-5 h-3 w-3 rounded-full border-2 border-white shadow-sm sm:left-4.5 ${
+                    className={`absolute left-1.5 top-4 h-3 w-3 rounded-full border-2 border-white shadow-sm md:left-4.5 md:top-5 ${
                       item.type === "event" ? "bg-gold" : "bg-maroon/40"
                     }`}
                     aria-hidden="true"
                   />
 
                   <article
-                    className={`rounded-2xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md ${
+                    className={`rounded-2xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md md:p-5 ${
                       item.type === "event"
                         ? "border-gold/30"
                         : "border-gold/15 border-dashed"
                     }`}
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
+                    <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-2">
+                      <div className="min-w-0">
                         <span
                           className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wider ${
                             item.type === "event"
@@ -107,12 +107,12 @@ export default function SchedulePage() {
                         >
                           {item.type === "event" ? "Event" : "Deadline"}
                         </span>
-                        <h3 className="mt-2 font-display text-lg font-semibold text-maroon-dark">
+                        <h3 className="mt-2 break-words font-display text-base font-semibold text-maroon-dark md:text-lg">
                           {item.title}
                         </h3>
-                        <p className="mt-0.5 text-sm text-maroon/60">{item.subtitle}</p>
+                        <p className="mt-0.5 break-words text-sm text-maroon/60">{item.subtitle}</p>
                       </div>
-                      <div className="text-right">
+                      <div className="shrink-0 md:text-right">
                         <p className="text-sm font-medium text-maroon-dark">
                           {formatEventDate(item.date)}
                         </p>

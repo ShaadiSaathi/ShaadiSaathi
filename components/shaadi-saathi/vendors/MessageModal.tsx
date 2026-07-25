@@ -21,12 +21,12 @@ export default function MessageModal({ vendor, onClose }: MessageModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
       role="dialog"
       aria-labelledby="message-modal-title"
       aria-modal="true"
     >
-      <div className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl">
+      <div className="safe-bottom relative flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl md:max-h-[90vh] md:max-w-md md:rounded-2xl md:pb-0">
         <button
           type="button"
           onClick={onClose}
@@ -37,10 +37,10 @@ export default function MessageModal({ vendor, onClose }: MessageModalProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+        <div className="flex shrink-0 justify-center pt-2.5 pb-1 md:hidden" aria-hidden="true">
           <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
         {sent ? (
           <div className="text-center">
             <h2 id="message-modal-title" className="font-display text-xl font-semibold text-maroon-dark">

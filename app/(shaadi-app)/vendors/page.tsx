@@ -109,7 +109,7 @@ function VendorsBrowseContent() {
           className="min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
         />
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 md:flex-row">
           <select
             aria-label="Filter by city"
             value={city}
@@ -167,7 +167,7 @@ function VendorsBrowseContent() {
             description="Try adjusting your filters or search — our directory has caterers, photographers, mehndi artists, and more."
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filtered.map((vendor) => (
               <VendorCard key={vendor.id} vendor={vendor} />
             ))}

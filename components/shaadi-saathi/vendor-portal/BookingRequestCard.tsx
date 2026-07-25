@@ -189,18 +189,23 @@ export default function BookingRequestCard({
         </div>
       )}
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <GoldButton onClick={onAccept} disabled={declining}>
+      <div className="mt-5 flex flex-col gap-2 md:flex-row md:flex-wrap md:gap-3">
+        <GoldButton onClick={onAccept} disabled={declining} className="min-h-[44px] w-full md:w-auto">
           Accept
         </GoldButton>
-        <GoldButton variant="ghost" onClick={onDecline} disabled={declining}>
+        <GoldButton
+          variant="ghost"
+          onClick={onDecline}
+          disabled={declining}
+          className="min-h-[44px] w-full md:w-auto"
+        >
           Decline
         </GoldButton>
         {onProposeChanges && (request.negotiationRound ?? 0) < 1 && (
           <button
             type="button"
             onClick={() => setShowPropose(!showPropose)}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-maroon/70 hover:bg-maroon/5"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-maroon/70 hover:bg-maroon/5 md:w-auto"
           >
             Propose changes
           </button>
@@ -209,7 +214,7 @@ export default function BookingRequestCard({
           <button
             type="button"
             onClick={onMessage}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-maroon/70 hover:bg-maroon/5"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-maroon/70 hover:bg-maroon/5 md:w-auto"
           >
             Message Family
           </button>

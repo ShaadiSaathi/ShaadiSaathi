@@ -166,15 +166,15 @@ export default function VendorDashboard() {
               <li key={job.id}>
                 <Link
                   href={`/vendor/jobs/${job.id}`}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold/20 bg-white p-5 transition-shadow hover:shadow-md"
+                  className="flex min-h-[44px] flex-col gap-3 rounded-2xl border border-gold/20 bg-white p-4 transition-shadow hover:shadow-md md:flex-row md:flex-wrap md:items-center md:justify-between md:p-5"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold text-maroon-dark">{job.familyName}</p>
                     <p className="text-sm text-maroon/60">
                       {job.eventName} · {formatEventDate(job.eventDate)} · {job.eventTime}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2 md:justify-end">
                     <JobStatusBadge status={job.jobStatus} />
                     <span className="text-sm font-semibold text-maroon-dark">
                       {formatPrice(job.price)}

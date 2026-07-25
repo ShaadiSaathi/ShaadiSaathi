@@ -369,12 +369,12 @@ function BulkRsvpBanner({
       <p className="mt-1 text-center text-xs text-maroon/55">
         You can still adjust individual events below anytime.
       </p>
-      <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
           disabled={disabled}
           onClick={onAcceptAll}
-          className="min-h-12 flex-1 rounded-2xl bg-maroon px-4 py-3 text-sm font-semibold text-ivory shadow-sm transition hover:bg-maroon-dark focus:outline-none focus:ring-2 focus:ring-maroon/30 disabled:opacity-60"
+          className="min-h-14 flex-1 rounded-2xl bg-maroon px-4 py-3.5 text-base font-semibold text-ivory shadow-sm transition hover:bg-maroon-dark focus:outline-none focus:ring-2 focus:ring-maroon/30 disabled:opacity-60 sm:min-h-12 sm:text-sm sm:py-3"
         >
           Accepting All Events with Joy
         </button>
@@ -382,7 +382,7 @@ function BulkRsvpBanner({
           type="button"
           disabled={disabled}
           onClick={onDeclineAll}
-          className="min-h-12 flex-1 rounded-2xl border border-maroon/25 bg-white/90 px-4 py-3 text-sm font-medium text-maroon/75 transition hover:border-maroon/40 hover:bg-maroon/5 focus:outline-none focus:ring-2 focus:ring-maroon/10 disabled:opacity-60"
+          className="min-h-14 flex-1 rounded-2xl border border-maroon/25 bg-white/90 px-4 py-3.5 text-base font-medium text-maroon/75 transition hover:border-maroon/40 hover:bg-maroon/5 focus:outline-none focus:ring-2 focus:ring-maroon/10 disabled:opacity-60 sm:min-h-12 sm:text-sm sm:py-3"
         >
           Sadly Declining All Events
         </button>
@@ -548,7 +548,7 @@ function RsvpChoiceButton({
       aria-pressed={selected}
       animate={pulse ? { scale: [1, 1.03, 1] } : { scale: 1 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
-      className={`relative min-h-11 flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-maroon/30 disabled:opacity-60 ${
+      className={`relative min-h-12 flex-1 rounded-xl px-4 py-3.5 text-base font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-maroon/30 disabled:opacity-60 sm:min-h-11 sm:text-sm sm:py-3 ${
         variant === "accept"
           ? selected
             ? acceptSelected

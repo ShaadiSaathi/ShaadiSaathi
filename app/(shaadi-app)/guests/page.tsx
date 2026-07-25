@@ -210,44 +210,46 @@ export default function GuestsPage() {
         />
       ) : (
         <>
-          {/* Filters */}
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-            <label className="sr-only" htmlFor="guest-search">
-              Search guests
-            </label>
-            <input
-              id="guest-search"
-              type="search"
-              placeholder="Search by name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
-            />
-            <select
-              aria-label="Filter by event"
-              value={eventFilter}
-              onChange={(e) => setEventFilter(e.target.value as EventId | "all")}
-              className="min-h-[44px] rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none"
-            >
-              <option value="all">All events</option>
-              {EVENTS.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.name}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Filter by RSVP status"
-              value={rsvpFilter}
-              onChange={(e) => setRsvpFilter(e.target.value as RsvpStatus | "all")}
-              className="min-h-[44px] rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none"
-            >
-              <option value="all">All RSVPs</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="pending">Pending</option>
-              <option value="declined">Declined</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+          {/* Filters — sticky on mobile */}
+          <div className="sticky top-0 z-20 -mx-4 mb-5 space-y-3 bg-ivory/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:static md:mx-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
+            <div className="flex flex-col gap-3 md:flex-row">
+              <label className="sr-only" htmlFor="guest-search">
+                Search guests
+              </label>
+              <input
+                id="guest-search"
+                type="search"
+                placeholder="Search by name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="min-h-11 flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10 md:min-h-[44px]"
+              />
+              <select
+                aria-label="Filter by event"
+                value={eventFilter}
+                onChange={(e) => setEventFilter(e.target.value as EventId | "all")}
+                className="min-h-11 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none md:min-h-[44px]"
+              >
+                <option value="all">All events</option>
+                {EVENTS.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Filter by RSVP status"
+                value={rsvpFilter}
+                onChange={(e) => setRsvpFilter(e.target.value as RsvpStatus | "all")}
+                className="min-h-11 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none md:min-h-[44px]"
+              >
+                <option value="all">All RSVPs</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="pending">Pending</option>
+                <option value="declined">Declined</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
           </div>
 
           {filteredGuests.length === 0 ? (
@@ -274,7 +276,7 @@ export default function GuestsPage() {
               }
             />
           ) : (
-            <ul className="space-y-2" role="list">
+            <ul className="w-full space-y-3 md:space-y-2" role="list">
               {filteredGuests.map((guest) => (
                 <GuestRow
                   key={guest.id}
@@ -307,15 +309,18 @@ export default function GuestsPage() {
         />
       )}
 
-      {/* Add guest modal */}
+      {/* Add guest modal — full sheet on mobile, centered on md+ */}
       {showAddForm && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
           role="dialog"
           aria-labelledby="add-guest-title"
           aria-modal="true"
         >
-          <div className="w-full max-w-md rounded-2xl border border-gold/25 bg-ivory p-6 shadow-xl">
+          <div className="safe-bottom flex max-h-[96dvh] w-full max-w-md flex-col overflow-y-auto rounded-t-2xl border border-gold/25 bg-ivory p-6 shadow-xl md:max-h-[90vh] md:rounded-2xl">
+            <div className="mb-2 flex shrink-0 justify-center md:hidden" aria-hidden="true">
+              <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
+            </div>
             <h2 id="add-guest-title" className="font-display text-xl font-semibold text-maroon-dark">
               Add Guest
             </h2>
@@ -330,7 +335,7 @@ export default function GuestsPage() {
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                  className="mt-1 min-h-11 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10 md:min-h-[44px]"
                   placeholder="e.g. Fatima Khan"
                 />
               </div>
@@ -342,7 +347,7 @@ export default function GuestsPage() {
                       key={ev.id}
                       type="button"
                       onClick={() => toggleNewEvent(ev.id)}
-                      className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-sm font-medium transition-colors ${
+                      className={`inline-flex min-h-11 items-center rounded-full px-4 py-1 text-sm font-medium transition-colors md:min-h-[44px] ${
                         newEvents.includes(ev.id)
                           ? "bg-maroon text-ivory"
                           : "border border-gold/30 text-maroon/60 hover:border-gold/50"
@@ -390,7 +395,7 @@ function GuestRow({
     .slice(0, 2)
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-gold/15 bg-white p-5 sm:flex-row sm:items-center">
+    <li className="flex w-full flex-col gap-4 rounded-xl border border-gold/15 bg-white p-5 md:flex-row md:items-center md:gap-3">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar initials={initials} size="md" />
         <div className="min-w-0">
@@ -399,20 +404,20 @@ function GuestRow({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 sm:justify-center">
+      <div className="flex flex-wrap gap-2 md:gap-1.5 md:justify-center">
         {guest.events.map((e) => (
           <EventChip key={e} eventId={e} />
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+      <div className="flex flex-wrap items-center gap-2.5 md:justify-end md:gap-2">
         {guest.events.map((e) => {
           const status = guest.rsvp[e]
           if (!status) return null
           const eventName = EVENTS.find((ev) => ev.id === e)?.name ?? e
           return (
-            <div key={e} className="flex items-center gap-1 text-xs text-maroon/50">
-              <span className="hidden sm:inline">{eventName}:</span>
+            <div key={e} className="flex items-center gap-1.5 text-xs text-maroon/50">
+              <span className="hidden md:inline">{eventName}:</span>
               <EditableStatusPill
                 status={status}
                 eventLabel={eventName}
@@ -427,7 +432,7 @@ function GuestRow({
         <button
           type="button"
           onClick={onSendInvite}
-          className="ml-1 inline-flex min-h-[44px] items-center gap-1 rounded-lg border border-gold/25 px-3 py-1 text-xs font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5"
+          className="ml-0 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-gold/25 px-4 py-2 text-sm font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5 md:ml-1 md:w-auto md:min-h-[44px] md:px-3 md:py-1 md:text-xs"
           aria-label={`Send invite link to ${guest.name}`}
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -524,11 +529,11 @@ function RsvpOverview({
         </div>
       </div>
 
-      <ul className="space-y-2" role="list">
+      <ul className="w-full space-y-3 md:space-y-2" role="list">
         {guests.map((guest) => (
           <li
             key={guest.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-gold/10 bg-white p-4"
+            className="flex w-full items-center justify-between gap-3 rounded-xl border border-gold/10 bg-white p-4 md:p-4"
           >
             <div className="flex min-w-0 items-center gap-3">
               <Avatar

@@ -141,3 +141,25 @@ input:focus, select:focus, textarea:focus {
   background: var(--border);
   border-radius: 3px;
 }
+
+/* Mobile safe-area helpers (notched / home-indicator phones) */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom,
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Hide scrollbars on horizontal mobile strips while keeping scroll */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

@@ -98,30 +98,30 @@ export default function EventsPage() {
         </div>
       )}
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
         {EVENTS.map((event) => {
           const guestCount = guests.filter((g) => g.events.includes(event.id)).length
           return (
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group relative overflow-hidden rounded-2xl border border-gold/25 bg-white shadow-sm transition-all hover:border-gold/40 hover:shadow-md"
+              className="group relative block w-full min-h-[7.5rem] overflow-hidden rounded-2xl border border-gold/25 bg-white shadow-sm transition-all active:scale-[0.99] hover:border-gold/40 hover:shadow-md md:min-h-0 md:active:scale-100"
             >
               <div className="h-1 bg-gradient-to-r from-gold/40 via-gold to-gold/40" aria-hidden="true" />
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h2 className="font-display text-xl font-semibold text-maroon-dark group-hover:text-maroon">
                       {event.name}
                     </h2>
-                    <p className="mt-1 text-sm text-maroon/60">{formatEventDate(event.date)}</p>
+                    <p className="mt-1.5 text-sm text-maroon/60 md:mt-1">{formatEventDate(event.date)}</p>
                     <p className="text-sm text-maroon/50">{event.time}</p>
                   </div>
-                  <span className="rounded-full px-2.5 py-1 text-xs font-semibold text-maroon/70 bg-gold/10">
+                  <span className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-gold/10 px-3 py-2 text-xs font-semibold text-maroon/70 md:min-h-0 md:px-2.5 md:py-1">
                     {guestCount} guests
                   </span>
                 </div>
-                <div className="mt-4 border-t border-gold/10 pt-4">
+                <div className="mt-5 border-t border-gold/10 pt-4 md:mt-4">
                   <p className="text-sm font-medium text-maroon-dark">{event.venue}</p>
                   <p className="mt-0.5 text-xs text-maroon/50">{event.address}</p>
                 </div>
@@ -133,7 +133,7 @@ export default function EventsPage() {
         {extraEvents.map((event) => (
           <div
             key={event.id}
-            className="relative overflow-hidden rounded-2xl border border-dashed border-gold/30 bg-ivory/50 p-5"
+            className="relative w-full overflow-hidden rounded-2xl border border-dashed border-gold/30 bg-ivory/50 p-5"
           >
             <span className="inline-flex rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold uppercase text-gold-dark">
               Custom

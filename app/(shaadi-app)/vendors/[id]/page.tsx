@@ -53,10 +53,33 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
       </Link>
 
       {/* Photo gallery — PLACEHOLDER gradients until real photos */}
-      <section aria-label="Vendor gallery" className="mb-6 overflow-hidden rounded-2xl border border-gold/20">
-        <div
-          className={`relative h-48 bg-gradient-to-br sm:h-64 ${images[galleryIndex]}`}
-        >
+      {/* Mobile: horizontal snap carousel */}
+      <section aria-label="Vendor gallery" className="mb-6 md:hidden">
+        <div className="-mx-4 flex snap-x snap-mandatory overflow-x-auto scrollbar-none">
+          {images.map((gradient, i) => (
+            <div
+              key={i}
+              className={`h-52 min-w-full shrink-0 snap-center bg-gradient-to-br ${gradient}`}
+              role="img"
+              aria-label={`${vendor.name} photo ${i + 1} of ${images.length}`}
+            />
+          ))}
+        </div>
+        {images.length > 1 && (
+          <div className="mt-2 flex justify-center gap-1.5" aria-hidden="true">
+            {images.map((_, i) => (
+              <span key={i} className="h-1.5 w-1.5 rounded-full bg-maroon/25" />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Desktop: indexed gallery */}
+      <section
+        aria-label="Vendor gallery"
+        className="mb-6 hidden overflow-hidden rounded-2xl border border-gold/20 md:block"
+      >
+        <div className={`relative h-64 bg-gradient-to-br ${images[galleryIndex]}`}>
           {images.length > 1 && (
             <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1">
               {images.map((_, i) => (
@@ -150,7 +173,7 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
           <h2 id="packages-heading" className="mb-3 font-display text-lg font-semibold text-maroon-dark">
             Packages
           </h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {vendor.packages.map((pkg) => (
               <div
                 key={pkg.name}
@@ -199,8 +222,8 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
 
       <FamilyConsultThread vendor={vendor} onProceed={() => setShowBooking(true)} />
 
-      {/* CTAs */}
-      <div className="sticky bottom-20 flex gap-3 border-t border-gold/15 bg-ivory/95 py-4 backdrop-blur-sm lg:bottom-0 lg:static lg:border-0 lg:bg-transparent lg:py-0">
+      {/* CTAs — sticky above bottom tab bar on mobile */}
+      <div className="sticky bottom-24 z-10 -mx-4 flex gap-3 border-t border-gold/15 bg-ivory/95 px-4 py-3 backdrop-blur-sm md:static md:z-auto md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0">
         <GoldButton onClick={() => setShowBooking(true)} className="min-h-[44px] flex-1">
           Request Booking
         </GoldButton>

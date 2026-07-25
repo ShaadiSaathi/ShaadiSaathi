@@ -8,13 +8,17 @@ interface CategoryGridProps {
 
 export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label="Vendor categories">
+    <div
+      className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 scrollbar-none md:mx-0 md:flex-wrap md:snap-none md:overflow-visible md:px-0 md:scrollbar-auto"
+      role="tablist"
+      aria-label="Vendor categories"
+    >
       <button
         type="button"
         role="tab"
         aria-selected={selected === "all"}
         onClick={() => onSelect("all")}
-        className={`flex min-h-[44px] min-w-[44px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border px-4 py-3 transition-colors ${
+        className={`flex min-h-[44px] w-[4.5rem] shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-3 transition-colors md:w-auto md:px-4 ${
           selected === "all"
             ? "border-maroon bg-maroon text-ivory"
             : "border-gold/20 bg-white text-maroon/70 hover:border-gold/40"
@@ -33,7 +37,7 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
           role="tab"
           aria-selected={selected === cat.id}
           onClick={() => onSelect(cat.id)}
-          className={`flex min-h-[44px] min-w-[44px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-3 transition-colors ${
+          className={`flex min-h-[44px] w-[4.5rem] shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-3 transition-colors md:w-auto md:px-3 ${
             selected === cat.id
               ? "border-maroon bg-maroon text-ivory"
               : "border-gold/20 bg-white text-maroon/70 hover:border-gold/40"
@@ -43,7 +47,9 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
             categoryId={cat.id}
             className={`h-5 w-5 ${selected === cat.id ? "text-gold" : "text-gold-dark/70"}`}
           />
-          <span className="max-w-[72px] truncate text-[10px] font-medium">{cat.shortLabel}</span>
+          <span className="max-w-[4rem] truncate text-[10px] font-medium md:max-w-[72px]">
+            {cat.shortLabel}
+          </span>
         </button>
       ))}
     </div>

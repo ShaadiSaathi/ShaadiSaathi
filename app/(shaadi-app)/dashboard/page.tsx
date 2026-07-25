@@ -47,16 +47,38 @@ export default function DashboardPage() {
   return (
     <PageTransition>
       {/* Welcome header */}
-      <header className="mb-8">
+      <header className="mb-6 md:mb-8">
         <p className="text-sm font-medium text-maroon/60">Good morning</p>
-        <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+        <h1 className="font-display text-[1.65rem] font-bold leading-tight text-maroon-dark sm:text-3xl">
           Welcome back, {familyUser?.name || "there"}
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-maroon/70 sm:text-base">
           {weddingName}
           {isFamilyPremium && <PremiumBadge />}
         </p>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
+
+        {/* Mobile: condensed countdown card */}
+        {nextEvent && (
+          <div className="mt-4 rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/15 to-ivory p-4 md:hidden">
+            <p className="text-xs font-medium uppercase tracking-wide text-maroon/50">Next event</p>
+            <div className="mt-1 flex items-end justify-between gap-3">
+              <div>
+                <p className="font-display text-xl font-semibold text-maroon-dark">{nextEvent.name}</p>
+                <p className="text-sm text-maroon/60">{formatEventDate(nextEvent.date)}</p>
+              </div>
+              <p className="shrink-0 text-right">
+                <span className="block font-display text-3xl font-bold leading-none text-maroon">{daysUntil}</span>
+                <span className="text-xs font-medium text-maroon/55">days left</span>
+              </p>
+            </div>
+            <div className="mt-3">
+              <WeddingInviteLinkButton variant="link" />
+            </div>
+          </div>
+        )}
+
+        {/* Desktop: original inline countdown + invite */}
+        <div className="mt-3 hidden flex-wrap items-center gap-3 md:flex">
           {nextEvent && (
             <p className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-1.5 text-sm font-medium text-maroon-dark">
               <span className="h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
@@ -65,14 +87,19 @@ export default function DashboardPage() {
           )}
           <WeddingInviteLinkButton variant="link" />
         </div>
+        {!nextEvent && (
+          <div className="mt-3 md:hidden">
+            <WeddingInviteLinkButton variant="link" />
+          </div>
+        )}
       </header>
 
-      {/* Overview cards */}
-      <section aria-labelledby="overview-heading" className="mb-8">
+      {/* Overview cards — stacked on mobile, original grids from sm+ */}
+      <section aria-labelledby="overview-heading" className="mb-6 md:mb-8">
         <h2 id="overview-heading" className="sr-only">
           Overview
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
           <StatCard
             label="Total guests"
             value={guests.length}
@@ -110,7 +137,7 @@ export default function DashboardPage() {
               subtext="Essential categories covered"
               icon={
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
                 </svg>
               }
             />
@@ -128,9 +155,9 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Timeline strip */}
+      {/* Timeline strip — snap-scroll on mobile */}
       <section aria-labelledby="timeline-heading">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between md:mb-4">
           <h2 id="timeline-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
             Your events
           </h2>
@@ -139,12 +166,12 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 scrollbar-none md:mx-0 md:snap-none md:px-0 md:scrollbar-auto">
           {EVENTS.map((event, i) => (
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group min-w-[220px] flex-1 rounded-2xl border border-gold/20 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+              className="group w-[78vw] max-w-[280px] shrink-0 snap-start rounded-2xl border border-gold/20 bg-white p-5 shadow-sm transition-shadow hover:shadow-md md:min-w-[220px] md:w-auto md:max-w-none md:flex-1"
             >
               <div className="flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${EVENT_DOT[event.id] ?? "bg-gold"}`} />
@@ -163,28 +190,28 @@ export default function DashboardPage() {
       </section>
 
       {/* Quick links */}
-      <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-6 grid gap-2 sm:mt-8 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
         <Link
           href="/guests"
-          className="flex min-h-[44px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="flex min-h-[48px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
         >
           Review RSVPs →
         </Link>
         <Link
           href="/vendors"
-          className="flex min-h-[44px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="flex min-h-[48px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
         >
           Browse vendors →
         </Link>
         <Link
           href="/tasks"
-          className="flex min-h-[44px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="flex min-h-[48px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
         >
           Check tasks →
         </Link>
         <Link
           href="/schedule"
-          className="flex min-h-[44px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="flex min-h-[48px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
         >
           View schedule →
         </Link>

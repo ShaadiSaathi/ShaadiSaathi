@@ -190,87 +190,92 @@ function TasksPageContent() {
 
       {showAddForm && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
           role="dialog"
           aria-labelledby="add-task-title"
           aria-modal="true"
         >
-          <div className="w-full max-w-md rounded-2xl border border-gold/25 bg-ivory p-6 shadow-xl">
-            <h2 id="add-task-title" className="font-display text-xl font-semibold text-maroon-dark">
-              Add Task
-            </h2>
-            <form onSubmit={handleAddTask} className="mt-4 space-y-4">
-              <div>
-                <label htmlFor="task-title" className="block text-sm font-medium text-maroon/70">
-                  Task
-                </label>
-                <input
-                  id="task-title"
-                  type="text"
-                  required
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
-                  placeholder="e.g. Confirm florist"
-                />
-              </div>
-              <div>
-                <label htmlFor="task-assignee" className="block text-sm font-medium text-maroon/70">
-                  Assign to
-                </label>
-                <input
-                  id="task-assignee"
-                  type="text"
-                  value={newAssignee}
-                  onChange={(e) => setNewAssignee(e.target.value)}
-                  placeholder={familyUser?.name ? `e.g. ${familyUser.name}` : "e.g. Sana"}
-                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
-                />
-              </div>
-              <div>
-                <label htmlFor="task-due" className="block text-sm font-medium text-maroon/70">
-                  Due date
-                </label>
-                <input
-                  id="task-due"
-                  type="date"
-                  value={newDueDate}
-                  onChange={(e) => setNewDueDate(e.target.value)}
-                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label htmlFor="task-event" className="block text-sm font-medium text-maroon/70">
-                  Event (optional)
-                </label>
-                <select
-                  id="task-event"
-                  value={newEvent}
-                  onChange={(e) => setNewEvent(e.target.value as EventId | "")}
-                  className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
-                >
-                  <option value="">No specific event</option>
-                  {EVENTS.map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <GoldButton type="submit" className="flex-1">
-                  Add Task
-                </GoldButton>
-                <GoldButton
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setShowAddForm(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </GoldButton>
-              </div>
-            </form>
+          <div className="safe-bottom flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl md:max-h-[90vh] md:max-w-md md:rounded-2xl">
+            <div className="flex shrink-0 justify-center pt-2.5 pb-1 md:hidden" aria-hidden="true">
+              <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
+              <h2 id="add-task-title" className="font-display text-xl font-semibold text-maroon-dark">
+                Add Task
+              </h2>
+              <form onSubmit={handleAddTask} className="mt-4 space-y-4">
+                <div>
+                  <label htmlFor="task-title" className="block text-sm font-medium text-maroon/70">
+                    Task
+                  </label>
+                  <input
+                    id="task-title"
+                    type="text"
+                    required
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                    placeholder="e.g. Confirm florist"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="task-assignee" className="block text-sm font-medium text-maroon/70">
+                    Assign to
+                  </label>
+                  <input
+                    id="task-assignee"
+                    type="text"
+                    value={newAssignee}
+                    onChange={(e) => setNewAssignee(e.target.value)}
+                    placeholder={familyUser?.name ? `e.g. ${familyUser.name}` : "e.g. Sana"}
+                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="task-due" className="block text-sm font-medium text-maroon/70">
+                    Due date
+                  </label>
+                  <input
+                    id="task-due"
+                    type="date"
+                    value={newDueDate}
+                    onChange={(e) => setNewDueDate(e.target.value)}
+                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="task-event" className="block text-sm font-medium text-maroon/70">
+                    Event (optional)
+                  </label>
+                  <select
+                    id="task-event"
+                    value={newEvent}
+                    onChange={(e) => setNewEvent(e.target.value as EventId | "")}
+                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                  >
+                    <option value="">No specific event</option>
+                    {EVENTS.map((ev) => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <GoldButton type="submit" className="min-h-[44px] flex-1">
+                    Add Task
+                  </GoldButton>
+                  <GoldButton
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowAddForm(false)}
+                    className="min-h-[44px] flex-1"
+                  >
+                    Cancel
+                  </GoldButton>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -303,31 +308,35 @@ function TaskCard({ task, onToggle }: { task: AppTask; onToggle: () => void }) {
             opacity: isDone ? 0.65 : 1,
           }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-          className="flex items-start gap-3 px-4 py-4"
+          className="flex items-center gap-2 px-3 py-3 md:items-start md:gap-3 md:px-4 md:py-4"
         >
           <button
             type="button"
             onClick={onToggle}
             aria-label={isDone ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
-            className={`relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors after:absolute after:-inset-3 after:content-[''] ${
-              isDone
-                ? "border-emerald-500 bg-emerald-500 text-white"
-                : "border-maroon/30 hover:border-maroon"
-            }`}
+            className="flex h-11 w-11 shrink-0 items-center justify-center md:mt-0.5 md:h-5 md:w-5"
           >
-            {isDone && (
-              <motion.svg
-                initial={prefersReducedMotion ? false : { scale: 0 }}
-                animate={{ scale: 1 }}
-                className="h-3 w-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={3}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </motion.svg>
-            )}
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors md:h-5 md:w-5 ${
+                isDone
+                  ? "border-emerald-500 bg-emerald-500 text-white"
+                  : "border-maroon/30 hover:border-maroon"
+              }`}
+            >
+              {isDone && (
+                <motion.svg
+                  initial={prefersReducedMotion ? false : { scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="h-3.5 w-3.5 md:h-3 md:w-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </motion.svg>
+              )}
+            </span>
           </button>
 
           <div className="min-w-0 flex-1">
@@ -337,19 +346,23 @@ function TaskCard({ task, onToggle }: { task: AppTask; onToggle: () => void }) {
                 color: isDone ? "rgba(74, 18, 53, 0.45)" : "rgba(74, 18, 53, 1)",
               }}
               transition={{ duration: prefersReducedMotion ? 0 : 0.35 }}
-              className="font-medium text-maroon-dark"
+              className="text-sm font-medium leading-snug text-maroon-dark md:text-base"
             >
               {task.title}
             </motion.p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-maroon/50">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-maroon/50">
               {task.assignee && (
-                <span className="flex items-center gap-1">
-                  <Avatar initials={initialsOf(task.assignee)} size="sm" className="!h-5 !w-5 !text-[10px]" />
-                  {task.assignee}
+                <span className="flex max-w-[42%] items-center gap-1 truncate md:max-w-none">
+                  <Avatar
+                    initials={initialsOf(task.assignee)}
+                    size="sm"
+                    className="!h-4 !w-4 !text-[9px] md:!h-5 md:!w-5 md:!text-[10px]"
+                  />
+                  <span className="truncate">{task.assignee}</span>
                 </span>
               )}
-              <span>·</span>
-              <span>
+              <span aria-hidden="true">·</span>
+              <span className="shrink-0">
                 Due{" "}
                 {new Date(task.dueDate).toLocaleDateString("en-US", {
                   month: "short",
@@ -358,8 +371,12 @@ function TaskCard({ task, onToggle }: { task: AppTask; onToggle: () => void }) {
               </span>
               {task.eventId && (
                 <>
-                  <span>·</span>
-                  <EventChip eventId={task.eventId} />
+                  <span className="hidden md:inline" aria-hidden="true">
+                    ·
+                  </span>
+                  <span className="basis-full md:basis-auto">
+                    <EventChip eventId={task.eventId} />
+                  </span>
                 </>
               )}
             </div>

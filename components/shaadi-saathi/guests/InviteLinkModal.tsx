@@ -47,16 +47,19 @@ export default function InviteLinkModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
       role="dialog"
       aria-labelledby="invite-link-title"
       aria-modal="true"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-gold/25 bg-ivory p-6 shadow-xl"
+        className="safe-bottom w-full max-w-md rounded-t-2xl border border-gold/25 bg-ivory p-6 pb-8 shadow-xl md:rounded-2xl md:pb-6"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="mb-3 flex justify-center md:hidden" aria-hidden="true">
+          <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
+        </div>
         <h2 id="invite-link-title" className="font-display text-xl font-semibold text-maroon-dark">
           Send invite to {guestName}
         </h2>

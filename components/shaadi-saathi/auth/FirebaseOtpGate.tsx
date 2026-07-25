@@ -92,7 +92,7 @@ export default function FirebaseOtpGate({
         className={
           sent
             ? "h-0 overflow-hidden"
-            : "flex min-h-[78px] items-center justify-center py-2"
+            : "flex min-h-[88px] items-center justify-center py-3"
         }
         aria-hidden={sent}
       >
