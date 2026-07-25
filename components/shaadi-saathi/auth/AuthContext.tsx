@@ -26,8 +26,10 @@ import { logVerificationSuccess } from "@/lib/firebase/verification-success"
 import {
   createWeddingForUser,
   ensureDemoVendorSeeded,
+  ensureFamilyWedding as ensureFamilyWeddingRecord,
   getWeddingForUser,
 } from "@/lib/firebase/seed"
+import { WEDDING } from "@/lib/mockData"
 
 /** How long to wait for a code-send request before offering a retry button. */
 const OTP_SEND_TIMEOUT_MS = 45_000
@@ -91,9 +93,11 @@ interface AuthContextValue {
   resetOtp: () => void
   verifyOtp: (code: string) => boolean
   confirmOtp: (code: string) => Promise<void>
-  completeFamilyOnboarding: (weddingName: string, firstEventDate: string) => void
+  completeFamilyOnboarding: (weddingName: string, firstEventDate: string) => Promise<string>
   completeVendorOnboarding: (bio: string, coverPhotoPreview?: string) => void
   completePasswordReset: (password: string) => void
+  /** Create/relink a wedding when invite link is missing, then return its id. */
+  ensureFamilyWedding: () => Promise<string>
   logoutFamily: () => void
   logoutVendor: () => void
   clearPending: () => void
@@ -149,16 +153,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const profile = await getUserProfile(getFirestoreDb(), user.uid)
         if (profile?.role === "family") {
+          // Only expose a weddingId that actually resolves — stale ids would
+          // produce invite URLs that 404 on the public wedding page.
+          const id = await getWeddingForUser(user.uid)
           let weddingName = ""
           let firstEventDate = ""
-          if (profile.weddingId) {
-            const wedding = await getWedding(profile.weddingId)
+          if (id) {
+            const wedding = await getWedding(id)
             if (wedding) {
               weddingName = wedding.name
               firstEventDate = wedding.firstEventDate
             }
           }
-          setWeddingId(profile.weddingId ?? null)
+          setWeddingId(id)
           setVendorId(null)
           setVendorUser(null)
           setFamilyUser({
@@ -357,11 +364,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const completeFamilyOnboarding = useCallback(
     async (weddingName: string, firstEventDate: string) => {
-      if (!pending?.familyName) return
+      if (!pending?.familyName) {
+        throw new Error("Signup session expired. Please start again.")
+      }
 
-      if (isFirebaseMode && firebaseUser) {
+      const authUser =
+        firebaseUser ?? (isFirebaseMode ? getFirebaseAuth().currentUser : null)
+
+      if (isFirebaseMode) {
+        if (!authUser) {
+          throw new Error("Sign-in expired. Please verify your phone again.")
+        }
         const id = await createWeddingForUser(
-          firebaseUser.uid,
+          authUser.uid,
           pending.familyName,
           pending.phone,
           weddingName.trim(),
@@ -373,20 +388,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: pending.phone,
           weddingName: weddingName.trim(),
           firstEventDate,
-          uid: firebaseUser.uid,
+          uid: authUser.uid,
         })
-      } else {
-        setFamilyUser({
-          name: pending.familyName,
-          phone: pending.phone,
-          weddingName: weddingName.trim(),
-          firstEventDate,
-        })
+        setPending(null)
+        return id
       }
+
+      setFamilyUser({
+        name: pending.familyName,
+        phone: pending.phone,
+        weddingName: weddingName.trim(),
+        firstEventDate,
+      })
+      setWeddingId(WEDDING.id)
       setPending(null)
+      return WEDDING.id
     },
     [pending, isFirebaseMode, firebaseUser]
   )
+
+  const ensureFamilyWedding = useCallback(async () => {
+    if (!isFirebaseMode) {
+      setWeddingId(WEDDING.id)
+      return WEDDING.id
+    }
+
+    const authUser = firebaseUser ?? getFirebaseAuth().currentUser
+    if (!authUser) {
+      throw new Error("Sign in to generate your wedding invite link.")
+    }
+
+    const profile = await getUserProfile(getFirestoreDb(), authUser.uid)
+    const name = familyUser?.name || profile?.name || "Family"
+    const phone = familyUser?.phone || profile?.phone || ""
+    if (!phone) {
+      throw new Error("Finish wedding setup to generate your invite link.")
+    }
+
+    const weddingName =
+      familyUser?.weddingName?.trim() || `${name}'s Wedding`
+    const firstEventDate =
+      familyUser?.firstEventDate?.trim() ||
+      new Date().toISOString().slice(0, 10)
+
+    const id = await ensureFamilyWeddingRecord(
+      authUser.uid,
+      name,
+      phone,
+      weddingName,
+      firstEventDate
+    )
+    setWeddingId(id)
+    setFamilyUser({
+      name,
+      phone,
+      weddingName,
+      firstEventDate,
+      uid: authUser.uid,
+    })
+    return id
+  }, [isFirebaseMode, firebaseUser, familyUser])
 
   const completeVendorOnboarding = useCallback(
     async (bio: string, coverPhotoPreview?: string) => {
@@ -472,6 +533,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       completeFamilyOnboarding,
       completeVendorOnboarding,
       completePasswordReset,
+      ensureFamilyWedding,
       logoutFamily,
       logoutVendor,
       clearPending,
@@ -500,6 +562,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       completeFamilyOnboarding,
       completeVendorOnboarding,
       completePasswordReset,
+      ensureFamilyWedding,
       logoutFamily,
       logoutVendor,
       clearPending,

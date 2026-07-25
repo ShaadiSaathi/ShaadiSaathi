@@ -1,7 +1,6 @@
 import { getFirestoreDb, isFirebaseConfigured } from "./config"
-import { getUserProfile } from "./users"
+import { createUserProfile, getUserProfile, upsertUserProfile } from "./users"
 import { createWedding, getWedding, newWeddingId } from "./weddings"
-import { createUserProfile } from "./users"
 import { WEDDING } from "@/lib/mockData"
 import type { FirestoreWedding } from "./types"
 
@@ -77,15 +76,55 @@ export async function createWeddingForUser(
   }
   await createWedding(wedding)
 
-  await createUserProfile(getFirestoreDb(), {
-    uid,
-    role: "family",
-    phone: organiserPhone,
-    name: organiserName,
-    weddingId,
-  })
+  // Prefer merge upsert so a stale/missing weddingId can be repaired without
+  // wiping other profile fields (and so create isn't blocked by a dead link).
+  if (existing) {
+    await upsertUserProfile(getFirestoreDb(), {
+      uid,
+      role: "family",
+      phone: organiserPhone,
+      name: organiserName,
+      weddingId,
+      createdAt: existing.createdAt,
+    })
+  } else {
+    await createUserProfile(getFirestoreDb(), {
+      uid,
+      role: "family",
+      phone: organiserPhone,
+      name: organiserName,
+      weddingId,
+    })
+  }
 
   return weddingId
+}
+
+/**
+ * Return the user's wedding id, creating + linking one when the profile is
+ * missing a wedding or points at a deleted doc. Used by invite-link copy and
+ * any other path that needs a guaranteed wedding scope.
+ */
+export async function ensureFamilyWedding(
+  uid: string,
+  organiserName: string,
+  organiserPhone: string,
+  weddingName?: string,
+  firstEventDate?: string
+): Promise<string> {
+  if (!isFirebaseConfigured()) return DEMO_WEDDING_ID
+
+  const existingId = await getWeddingForUser(uid)
+  if (existingId) return existingId
+
+  const name = organiserName.trim() || "Family"
+  return createWeddingForUser(
+    uid,
+    name,
+    organiserPhone.trim(),
+    weddingName?.trim() || `${name}'s Wedding`,
+    firstEventDate?.trim() || new Date().toISOString().slice(0, 10)
+  )
 }
 
 export async function ensureDemoVendorSeeded(

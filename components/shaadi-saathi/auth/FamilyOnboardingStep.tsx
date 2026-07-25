@@ -13,6 +13,7 @@ export default function FamilyOnboardingStep() {
   const [weddingName, setWeddingName] = useState("")
   const [firstEventDate, setFirstEventDate] = useState("")
   const [loading, setLoading] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [errors, setErrors] = useState<{ weddingName?: string; date?: string }>({})
 
   useEffect(() => {
@@ -33,12 +34,25 @@ export default function FamilyOnboardingStep() {
       weddingName: weddingErr ?? undefined,
       date: dateErr ?? undefined,
     })
+    setSubmitError(null)
     if (weddingErr || dateErr) return
 
     setLoading(true)
-    await mockAuthDelay()
-    completeFamilyOnboarding(weddingName, firstEventDate)
-    router.push("/dashboard")
+    try {
+      await mockAuthDelay()
+      // Must finish creating the wedding + writing users.weddingId before the
+      // dashboard mounts — otherwise the invite link stays "not ready".
+      await completeFamilyOnboarding(weddingName, firstEventDate)
+      router.push("/dashboard")
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Couldn’t finish setup. Please try again."
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   const inputClass =
@@ -90,6 +104,12 @@ export default function FamilyOnboardingStep() {
           </p>
         )}
       </div>
+
+      {submitError && (
+        <p className="text-sm text-rose-600" role="alert">
+          {submitError}
+        </p>
+      )}
 
       <AuthSubmitButton loading={loading}>Enter my dashboard</AuthSubmitButton>
     </form>
