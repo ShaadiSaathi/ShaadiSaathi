@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
-import { isFirebaseConfigured } from "@/lib/firebase/config"
 import { WEDDING, createWeddingInviteUrl } from "@/lib/mockData"
 
 interface WeddingInviteLinkButtonProps {
@@ -19,6 +18,7 @@ export default function WeddingInviteLinkButton({
     weddingId: authWeddingId,
     authLoading,
     isFamilyLoggedIn,
+    isFirebaseMode,
     ensureFamilyWedding,
   } = useAuth()
   const [copied, setCopied] = useState(false)
@@ -26,11 +26,11 @@ export default function WeddingInviteLinkButton({
   const [feedback, setFeedback] = useState<string | null>(null)
   const autoRepairAttempted = useRef(false)
 
-  // Prefer auth/context wedding id; mock mode falls back to the demo wedding.
+  // Prefer auth/context wedding id; mock/tester mode falls back to the demo wedding.
   const weddingId =
     ctxWeddingId ??
     authWeddingId ??
-    (isFirebaseConfigured() ? null : WEDDING.id)
+    (isFirebaseMode ? null : WEDDING.id)
 
   const preparing =
     authLoading || (isFamilyLoggedIn && weddingLoading && !weddingId)
@@ -51,7 +51,7 @@ export default function WeddingInviteLinkButton({
   // Soft repair: if the family session is live but weddingId never linked,
   // create/relink once so the copy button works without a manual refresh.
   useEffect(() => {
-    if (!isFirebaseConfigured()) return
+    if (!isFirebaseMode) return
     if (!isFamilyLoggedIn || authLoading || weddingId) return
     if (autoRepairAttempted.current) return
     autoRepairAttempted.current = true
@@ -67,7 +67,7 @@ export default function WeddingInviteLinkButton({
     return () => {
       cancelled = true
     }
-  }, [authLoading, ensureFamilyWedding, isFamilyLoggedIn, weddingId])
+  }, [authLoading, ensureFamilyWedding, isFamilyLoggedIn, isFirebaseMode, weddingId])
 
   const copyText = useCallback(async (text: string) => {
     try {

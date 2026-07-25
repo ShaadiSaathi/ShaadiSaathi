@@ -17,7 +17,6 @@ import {
   type RsvpSource,
   type RsvpStatus,
 } from "@/lib/mockData"
-import { isFirebaseConfigured } from "@/lib/firebase/config"
 import {
   addGuestToFirestore,
   clearGuestRsvpOrganiserAlerts,
@@ -87,10 +86,9 @@ function persistGuests(guests: Guest[]) {
 }
 
 export function GuestsProvider({ children }: { children: ReactNode }) {
-  const { weddingId: authWeddingId } = useAuth()
+  const { weddingId: authWeddingId, isFirebaseMode: firebaseMode } = useAuth()
   const weddingCtx = useContext(WeddingContext)
   const ctxWeddingId = weddingCtx?.weddingId ?? null
-  const firebaseMode = isFirebaseConfigured()
   // Scoped strictly to the signed-in session's wedding — never a shared/fallback id.
   const weddingId = authWeddingId ?? ctxWeddingId
   const useFirestore = firebaseMode && Boolean(weddingId)

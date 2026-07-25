@@ -18,7 +18,6 @@ import {
   FREE_LIMITS,
 } from "@/lib/premium"
 import type { VendorCategoryId } from "@/lib/mockVendors"
-import { isFirebaseConfigured } from "@/lib/firebase/config"
 import { updateWeddingInviteTheme, updateWeddingPremium } from "@/lib/firebase/weddings"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
@@ -84,7 +83,7 @@ function persist(state: StoredPremium) {
 }
 
 export function PremiumProvider({ children }: { children: ReactNode }) {
-  const { weddingId: authWeddingId } = useAuth()
+  const { weddingId: authWeddingId, isFirebaseMode } = useAuth()
   const { wedding, weddingId: ctxWeddingId } = useWedding()
   const weddingId = authWeddingId ?? ctxWeddingId
   const [hydrated, setHydrated] = useState(false)
@@ -137,30 +136,30 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   ])
 
   useEffect(() => {
-    if (!isFirebaseConfigured() || !hydrated || !wedding) return
+    if (!isFirebaseMode || !hydrated || !wedding) return
     setIsFamilyPremium(wedding.isPremium)
     setInviteThemeState(wedding.inviteTheme)
-  }, [wedding?.id, wedding?.isPremium, wedding?.inviteTheme, hydrated])
+  }, [wedding?.id, wedding?.isPremium, wedding?.inviteTheme, hydrated, isFirebaseMode])
 
   const setInviteTheme = useCallback(
     async (theme: InviteThemeId) => {
       if (theme !== "classic" && !isFamilyPremium) return
       setInviteThemeState(theme)
-      if (isFirebaseConfigured() && weddingId) {
+      if (isFirebaseMode && weddingId) {
         await updateWeddingInviteTheme(weddingId, theme)
       }
     },
-    [isFamilyPremium, weddingId]
+    [isFamilyPremium, weddingId, isFirebaseMode]
   )
 
   const purchaseFamilyPremium = useCallback(async () => {
     await mockPaymentDelay()
     setIsFamilyPremium(true)
-    if (isFirebaseConfigured() && weddingId) {
+    if (isFirebaseMode && weddingId) {
       await updateWeddingPremium(weddingId, true)
     }
     setShowPremiumConfirmation(true)
-  }, [weddingId])
+  }, [weddingId, isFirebaseMode])
 
   const subscribeVendorFeatured = useCallback(async () => {
     // TODO: real payment integration here (recurring subscription)

@@ -14,7 +14,6 @@ import {
   getFamilyMember,
   type EventId,
 } from "@/lib/mockData"
-import { isFirebaseConfigured } from "@/lib/firebase/config"
 import {
   addTaskToFirestore,
   subscribeTasksByWedding,
@@ -71,10 +70,9 @@ function loadMockTasks(): AppTask[] {
 }
 
 export function TasksProvider({ children }: { children: ReactNode }) {
-  const { weddingId: authWeddingId } = useAuth()
+  const { weddingId: authWeddingId, isFirebaseMode: firebaseMode } = useAuth()
   const weddingCtx = useContext(WeddingContext)
   const ctxWeddingId = weddingCtx?.weddingId ?? null
-  const firebaseMode = isFirebaseConfigured()
   const weddingId = authWeddingId ?? ctxWeddingId
   const useFirestore = firebaseMode && Boolean(weddingId)
 

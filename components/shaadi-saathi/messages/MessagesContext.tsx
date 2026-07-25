@@ -15,7 +15,7 @@ import {
   orderBy,
   query,
 } from "firebase/firestore"
-import { getFirestoreDb, isFirebaseConfigured } from "@/lib/firebase/config"
+import { getFirestoreDb } from "@/lib/firebase/config"
 import { subscribeBookingsByVendor, subscribeBookingsByWedding } from "@/lib/firebase/bookings"
 import type { FirestoreBooking } from "@/lib/firebase/types"
 import type { ChatMessage } from "@/lib/firebase/messages"
@@ -47,7 +47,13 @@ function countUnread(
 }
 
 export function MessagesProvider({ children }: { children: ReactNode }) {
-  const { isFamilyLoggedIn, isVendorLoggedIn, weddingId, vendorId } = useAuth()
+  const {
+    isFamilyLoggedIn,
+    isVendorLoggedIn,
+    weddingId,
+    vendorId,
+    isFirebaseMode,
+  } = useAuth()
   const { weddingId: ctxWeddingId } = useWedding()
   const [familyUnreadCount, setFamilyUnreadCount] = useState(0)
   const [vendorUnreadCount, setVendorUnreadCount] = useState(0)
@@ -56,7 +62,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   const effectiveWeddingId = weddingId ?? ctxWeddingId
 
   useEffect(() => {
-    if (!isFirebaseConfigured() || !isFamilyLoggedIn || !effectiveWeddingId) {
+    if (!isFirebaseMode || !isFamilyLoggedIn || !effectiveWeddingId) {
       setFamilyUnreadCount(0)
       return
     }
@@ -91,10 +97,10 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       unsubBookings()
       unsubMessages()
     }
-  }, [isFamilyLoggedIn, effectiveWeddingId, tick])
+  }, [isFirebaseMode, isFamilyLoggedIn, effectiveWeddingId, tick])
 
   useEffect(() => {
-    if (!isFirebaseConfigured() || !isVendorLoggedIn || !vendorId) {
+    if (!isFirebaseMode || !isVendorLoggedIn || !vendorId) {
       setVendorUnreadCount(0)
       return
     }
@@ -126,7 +132,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       unsubBookings()
       unsubMessages()
     }
-  }, [isVendorLoggedIn, vendorId, tick])
+  }, [isFirebaseMode, isVendorLoggedIn, vendorId, tick])
 
   const refreshUnread = useCallback(() => setTick((t) => t + 1), [])
 

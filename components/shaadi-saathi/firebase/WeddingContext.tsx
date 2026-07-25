@@ -8,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { isFirebaseConfigured } from "@/lib/firebase/config"
 import { subscribeWedding } from "@/lib/firebase/weddings"
 import type { FirestoreWedding } from "@/lib/firebase/types"
 import { WEDDING } from "@/lib/mockData"
@@ -24,8 +23,7 @@ interface WeddingContextValue {
 export const WeddingContext = createContext<WeddingContextValue | null>(null)
 
 export function WeddingProvider({ children }: { children: ReactNode }) {
-  const { weddingId: authWeddingId } = useAuth()
-  const isFirebaseMode = isFirebaseConfigured()
+  const { weddingId: authWeddingId, isFirebaseMode } = useAuth()
   const [wedding, setWedding] = useState<FirestoreWedding | null>(null)
   const [loading, setLoading] = useState(isFirebaseMode)
 

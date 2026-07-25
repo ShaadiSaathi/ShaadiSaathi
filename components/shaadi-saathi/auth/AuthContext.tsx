@@ -30,6 +30,10 @@ import {
   ensureFamilyWedding as ensureFamilyWeddingRecord,
   getWeddingForUser,
 } from "@/lib/firebase/seed"
+import {
+  readTesterModeFromStorage,
+  writeTesterModeToStorage,
+} from "@/lib/tester-mode"
 
 /**
  * How long to wait for a code-send request before offering a retry button.
@@ -85,12 +89,16 @@ interface AuthContextValue {
   weddingId: string | null
   vendorId: string | null
   firebaseUser: User | null
+  /** False in tester/demo mode so screens use mock data even if Firebase env is set. */
   isFirebaseMode: boolean
+  isTesterMode: boolean
   authLoading: boolean
   otpSent: boolean
   loginFamily: (phone: string) => void
   loginVendor: (phone: string) => void
   loginWithGoogle: (role: "family" | "vendor") => void
+  /** Staging-only: enter the demo family session without OTP. */
+  enterTesterMode: () => void
   startFamilySignup: (data: { name: string; phone: string; password: string }) => void
   startVendorSignup: (data: Omit<VendorAuthUser, "bio" | "coverPhotoPreview"> & { password: string }) => void
   startPasswordReset: (phone: string, role: "family" | "vendor") => void
@@ -126,7 +134,8 @@ const DEFAULT_VENDOR: VendorAuthUser = {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const isFirebaseMode = isFirebaseConfigured()
+  const firebaseConfigured = isFirebaseConfigured()
+  const [testerMode, setTesterMode] = useState(false)
   const [familyUser, setFamilyUser] = useState<FamilyUser | null>(null)
   const [vendorUser, setVendorUser] = useState<VendorAuthUser | null>(null)
   const [pending, setPending] = useState<PendingSignup | null>(null)
@@ -134,11 +143,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null)
   const [weddingId, setWeddingId] = useState<string | null>(null)
   const [vendorId, setVendorId] = useState<string | null>(null)
-  const [authLoading, setAuthLoading] = useState(isFirebaseMode)
+  const [authLoading, setAuthLoading] = useState(firebaseConfigured)
   const [otpSent, setOtpSent] = useState(false)
 
+  // When tester mode is on, treat the app like local mock mode (populated demo data).
+  const isFirebaseMode = firebaseConfigured && !testerMode
+
   useEffect(() => {
-    if (!isFirebaseMode) {
+    if (!readTesterModeFromStorage()) return
+    setTesterMode(true)
+    setFamilyUser(DEFAULT_FAMILY)
+    setWeddingId(DEMO_WEDDING_ID)
+    setVendorUser(null)
+    setVendorId(null)
+    setAuthLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (!firebaseConfigured || testerMode) {
       setAuthLoading(false)
       return
     }
@@ -200,7 +222,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     return unsub
-  }, [isFirebaseMode])
+  }, [firebaseConfigured, testerMode])
+
+  const enterTesterMode = useCallback(() => {
+    writeTesterModeToStorage(true)
+    setTesterMode(true)
+    setPending(null)
+    setOtpSent(false)
+    setFamilyUser(DEFAULT_FAMILY)
+    setWeddingId(DEMO_WEDDING_ID)
+    setVendorUser(null)
+    setVendorId(null)
+    setAuthLoading(false)
+  }, [])
 
   const loginFamily = useCallback((phone: string) => {
     // Always route through phone verification — never sign a family in directly.
@@ -493,22 +527,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logoutFamily = useCallback(async () => {
+    if (testerMode) {
+      writeTesterModeToStorage(false)
+      setTesterMode(false)
+      setFamilyUser(null)
+      setWeddingId(null)
+      return
+    }
     if (isFirebaseMode) {
       await signOut(getFirebaseAuth())
       clearPhoneAuthSession()
     }
     setFamilyUser(null)
     setWeddingId(null)
-  }, [isFirebaseMode])
+  }, [isFirebaseMode, testerMode])
 
   const logoutVendor = useCallback(async () => {
+    if (testerMode) {
+      writeTesterModeToStorage(false)
+      setTesterMode(false)
+      setVendorUser(null)
+      setVendorId(null)
+      return
+    }
     if (isFirebaseMode) {
       await signOut(getFirebaseAuth())
       clearPhoneAuthSession()
     }
     setVendorUser(null)
     setVendorId(null)
-  }, [isFirebaseMode])
+  }, [isFirebaseMode, testerMode])
 
   const value = useMemo(
     () => ({
@@ -523,11 +571,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       vendorId,
       firebaseUser,
       isFirebaseMode,
+      isTesterMode: testerMode,
       authLoading,
       otpSent,
       loginFamily,
       loginVendor,
       loginWithGoogle,
+      enterTesterMode,
       startFamilySignup,
       startVendorSignup,
       startPasswordReset,
@@ -552,11 +602,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       vendorId,
       firebaseUser,
       isFirebaseMode,
+      testerMode,
       authLoading,
       otpSent,
       loginFamily,
       loginVendor,
       loginWithGoogle,
+      enterTesterMode,
       startFamilySignup,
       startVendorSignup,
       startPasswordReset,
