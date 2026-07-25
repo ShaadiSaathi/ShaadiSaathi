@@ -27,7 +27,6 @@ import {
 import {
   createBookingInFirestore,
   subscribeBookingsByWedding,
-  updateBookingDispute,
 } from "@/lib/firebase/bookings"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
@@ -232,42 +231,28 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
     [useFirestore, weddingId, familyUser, wedding]
   )
 
-  const vendorCheckIn = useCallback(
-    (bookingId: string, photo: CheckInPhoto) => {
-      setBookings((prev) =>
-        prev.map((b) => {
-          if (b.id !== bookingId || !b.payment) return b
-          const checkInAt = MOCK_NOW.toISOString()
-          const updatedPayment = {
-            ...b.payment,
-            checkInAt,
-            checkInStatus: "confirmed" as const,
-            checkInPhoto: photo,
-            depositStatus: "released" as const,
-            balanceStatus:
-              b.payment.paymentPath === "online" &&
-              b.payment.balanceStatus === "pending_online"
-                ? ("charged_pending_release" as const)
-                : b.payment.balanceStatus,
-            balanceChargedAt:
-              b.payment.paymentPath === "online" ? checkInAt : b.payment.balanceChargedAt,
-          }
-          return { ...b, payment: updatedPayment }
-        })
-      )
-
-      // Capture Stripe deposit authorization when payments are configured (staging).
-      // Failures surface in the console; local UI still reflects check-in for UX.
-      if (useFirestore) {
-        void import("@/lib/payments/client")
-          .then(({ captureBookingDeposit }) => captureBookingDeposit(bookingId))
-          .catch((err) => {
-            console.error("[vendorCheckIn] Stripe capture failed:", err)
-          })
-      }
-    },
-    [useFirestore]
-  )
+  const vendorCheckIn = useCallback((bookingId: string, photo: CheckInPhoto) => {
+    setBookings((prev) =>
+      prev.map((b) => {
+        if (b.id !== bookingId || !b.payment) return b
+        const checkInAt = MOCK_NOW.toISOString()
+        const updatedPayment = {
+          ...b.payment,
+          checkInAt,
+          checkInStatus: "confirmed" as const,
+          checkInPhoto: photo,
+          depositStatus: "released" as const,
+          balanceStatus:
+            b.payment.paymentPath === "online" && b.payment.balanceStatus === "pending_online"
+              ? ("charged_pending_release" as const)
+              : b.payment.balanceStatus,
+          balanceChargedAt:
+            b.payment.paymentPath === "online" ? checkInAt : b.payment.balanceChargedAt,
+        }
+        return { ...b, payment: updatedPayment }
+      })
+    )
+  }, [])
 
   const reportQualityConcern = useCallback(
     (bookingId: string, data: { description: string; photoName?: string }) => {
@@ -304,13 +289,9 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
             ...b.payment,
             balanceStatus:
               b.payment.paymentPath === "online"
-                ? "charged_pending_release"
+                ? "released_online"
                 : "paid_in_person",
             balanceMarkedPaidAt: MOCK_NOW.toISOString(),
-            balanceChargedAt:
-              b.payment.paymentPath === "online"
-                ? MOCK_NOW.toISOString()
-                : b.payment.balanceChargedAt,
           },
         }
       })
@@ -322,22 +303,11 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
       bookingId: string,
       data: { category: DisputeCategory; description: string; evidenceFileName?: string }
     ) => {
-      const submittedAt = Date.now()
-      const dispute = {
-        status: "under_review" as const,
-        category: data.category,
-        description: data.description,
-        familyReason: data.description,
-        evidenceFileName: data.evidenceFileName,
-        submittedAt,
-      }
-
       setBookings((prev) =>
         prev.map((b) => {
           if (b.id !== bookingId || !b.payment) return b
           return {
             ...b,
-            status: "disputed" as const,
             payment: {
               ...b.payment,
               dispute: {
@@ -345,18 +315,14 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
                 category: data.category,
                 description: data.description,
                 evidenceFileName: data.evidenceFileName,
-                submittedAt: new Date(submittedAt).toISOString(),
+                submittedAt: MOCK_NOW.toISOString(),
               },
             },
           }
         })
       )
-
-      if (useFirestore) {
-        void updateBookingDispute(bookingId, dispute, "disputed")
-      }
     },
-    [useFirestore]
+    []
   )
 
   const acceptCounterOffer = useCallback((bookingId: string) => {
