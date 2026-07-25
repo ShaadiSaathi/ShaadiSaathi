@@ -5,7 +5,7 @@ import { clearRecaptcha } from "@/lib/firebase/phone-auth"
 import { useAuth } from "./AuthContext"
 import OtpVerification from "./OtpVerification"
 
-type SendState = "idle" | "sending" | "sent" | "error"
+type SendState = "idle" | "captcha" | "sending" | "sent" | "error"
 
 interface FirebaseOtpGateProps {
   phone: string
@@ -17,13 +17,10 @@ interface FirebaseOtpGateProps {
 
 /**
  * Drives the full, REAL phone-verification lifecycle:
- *  - renders the reCAPTCHA container and requests a genuine OTP on mount
- *  - surfaces a friendly error + Retry button if the send fails or times out
- *  - only reveals the 6-digit entry once Firebase has actually sent a code
- *
- * There is deliberately no mock/dev shortcut: if a code can't be genuinely
- * sent (e.g. Firebase misconfigured) the user sees an error and can never
- * reach a state where an unverified code is accepted.
+ *  - shows the reCAPTCHA checkbox and waits for the user to complete it
+ *  - only then requests a genuine OTP (send timeout no longer includes captcha)
+ *  - surfaces a friendly error + Retry button if the send fails
+ *  - only reveals the 6-digit entry once Firebase has accepted the send
  */
 export default function FirebaseOtpGate({
   phone,
@@ -36,14 +33,25 @@ export default function FirebaseOtpGate({
   const [sendState, setSendState] = useState<SendState>("idle")
   const [sendError, setSendError] = useState<string | null>(null)
   const startedRef = useRef(false)
+  const aliveRef = useRef(true)
+
+  useEffect(() => {
+    aliveRef.current = true
+    return () => {
+      aliveRef.current = false
+      clearRecaptcha()
+    }
+  }, [])
 
   const doSend = useCallback(async () => {
     setSendError(null)
-    setSendState("sending")
+    setSendState("captcha")
     try {
       await sendOtp()
+      if (!aliveRef.current) return
       setSendState("sent")
     } catch (err) {
+      if (!aliveRef.current) return
       setSendError(
         err instanceof Error
           ? err.message
@@ -59,32 +67,39 @@ export default function FirebaseOtpGate({
     void doSend()
   }, [doSend])
 
-  // Drop the reCAPTCHA widget when this gate leaves the screen so a later mount
-  // never inherits a verifier bound to a now-removed container node.
+  // Once sendOtp moves past captcha into the timed SMS request, flip UI copy.
   useEffect(() => {
-    return () => {
-      clearRecaptcha()
-    }
-  }, [])
+    if (sendState !== "captcha") return
+    const t = window.setInterval(() => {
+      const el = document.getElementById("recaptcha-container")
+      // Heuristic: after checkbox solve, Firebase often collapses/replaces the
+      // widget; show "Sending…" as soon as we detect the challenge completed
+      // via aria or by watching for the sending phase from a parent update.
+      if (el?.querySelector('[aria-checked="true"]')) {
+        setSendState((s) => (s === "captcha" ? "sending" : s))
+      }
+    }, 400)
+    return () => window.clearInterval(t)
+  }, [sendState])
 
   const handleRetry = useCallback(async () => {
     resetOtp()
+    clearRecaptcha()
+    startedRef.current = true
     await doSend()
   }, [resetOtp, doSend])
 
   const sent = sendState === "sent"
 
-  // IMPORTANT: the reCAPTCHA container is rendered exactly ONCE, in a single
-  // stable position, for every state. It must never be conditionally
-  // mounted/unmounted or moved between branches, or Firebase loses the DOM node
-  // its widget was rendered into ("reCAPTCHA client element has been removed").
   return (
     <div className="space-y-5">
       {!sent && (
         <p className="text-center text-sm leading-relaxed text-maroon/70">
           {sendState === "error"
             ? "We couldn't send your code."
-            : "Confirm you're not a robot, then we'll text your code."}
+            : sendState === "sending"
+              ? "Sending your code…"
+              : "Confirm you're not a robot below, then we'll text your code."}
         </p>
       )}
 
@@ -99,6 +114,12 @@ export default function FirebaseOtpGate({
         <div id="recaptcha-container" className="[&_iframe]:rounded-lg" />
       </div>
 
+      {sendState === "captcha" && (
+        <p className="text-center text-sm text-maroon/60" role="status">
+          Tick the reCAPTCHA checkbox to continue.
+        </p>
+      )}
+
       {sendState === "sending" && (
         <p className="text-center text-sm text-maroon/60" role="status">
           Sending your code…
@@ -110,9 +131,13 @@ export default function FirebaseOtpGate({
           <p className="text-center text-xs text-rose-600" role="alert">
             {sendError}
           </p>
+          <p className="text-center text-xs text-maroon/55">
+            If you already requested several codes, wait a few minutes before
+            retrying — carriers often delay or drop rapid SMS.
+          </p>
           <button
             type="button"
-            onClick={handleRetry}
+            onClick={() => void handleRetry()}
             className="mx-auto flex min-h-[44px] items-center justify-center rounded-full bg-maroon px-6 py-2.5 text-sm font-semibold text-ivory transition hover:bg-maroon-dark focus:outline-none focus:ring-2 focus:ring-maroon/30"
           >
             Retry
@@ -121,14 +146,20 @@ export default function FirebaseOtpGate({
       )}
 
       {sent && (
-        <OtpVerification
-          phone={phone}
-          onVerify={onVerify}
-          onResend={handleRetry}
-          loading={verifyLoading}
-          error={verifyError}
-          submitLabel={submitLabel}
-        />
+        <>
+          <OtpVerification
+            phone={phone}
+            onVerify={onVerify}
+            onResend={handleRetry}
+            loading={verifyLoading}
+            error={verifyError}
+            submitLabel={submitLabel}
+          />
+          <p className="text-center text-xs text-maroon/50">
+            Didn&apos;t get a text? Wait 2–3 minutes before resending — rapid
+            retries are the most common reason codes stop arriving.
+          </p>
+        </>
       )}
     </div>
   )

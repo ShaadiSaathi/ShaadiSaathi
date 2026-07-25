@@ -16,7 +16,7 @@ import {
 } from "firebase/auth"
 import type { VendorCategoryId } from "@/lib/mockVendors"
 import { isFirebaseConfigured, getFirebaseAuth } from "@/lib/firebase/config"
-import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp } from "@/lib/firebase/phone-auth"
+import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp, waitForRecaptcha } from "@/lib/firebase/phone-auth"
 import { getUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
 import { getWedding } from "@/lib/firebase/weddings"
@@ -24,12 +24,12 @@ import { friendlyAuthErrorMessage, rawAuthErrorInfo, withTimeout } from "@/lib/f
 import { logVerificationError } from "@/lib/firebase/verification-errors"
 import { logVerificationSuccess } from "@/lib/firebase/verification-success"
 import {
+  DEMO_WEDDING_ID,
   createWeddingForUser,
   ensureDemoVendorSeeded,
   ensureFamilyWedding as ensureFamilyWeddingRecord,
   getWeddingForUser,
 } from "@/lib/firebase/seed"
-import { WEDDING } from "@/lib/mockData"
 
 /** How long to wait for a code-send request before offering a retry button. */
 const OTP_SEND_TIMEOUT_MS = 45_000
@@ -264,6 +264,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sendOtp = useCallback(async () => {
     if (!pending?.phone) throw new Error("No phone number")
     try {
+      // Captcha wait is uncapped — only the SMS API call uses the timeout.
+      // Bundling both under 45s caused false "timeout" failures whenever the
+      // user was still ticking the checkbox (seen today as rawCode: timeout).
+      await waitForRecaptcha()
       const { verificationId } = await withTimeout(
         sendPhoneOtp(pending.phone),
         OTP_SEND_TIMEOUT_MS
@@ -400,17 +404,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         weddingName: weddingName.trim(),
         firstEventDate,
       })
-      setWeddingId(WEDDING.id)
+      setWeddingId(DEMO_WEDDING_ID)
       setPending(null)
-      return WEDDING.id
+      return DEMO_WEDDING_ID
     },
     [pending, isFirebaseMode, firebaseUser]
   )
 
   const ensureFamilyWedding = useCallback(async () => {
     if (!isFirebaseMode) {
-      setWeddingId(WEDDING.id)
-      return WEDDING.id
+      setWeddingId(DEMO_WEDDING_ID)
+      return DEMO_WEDDING_ID
     }
 
     const authUser = firebaseUser ?? getFirebaseAuth().currentUser
