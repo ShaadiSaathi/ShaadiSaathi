@@ -17,9 +17,11 @@ import { isFirebaseConfigured } from "@/lib/firebase/config"
 import {
   getGuestByInviteToken,
   subscribeGuestByToken,
-  updateGuestRsvpBulkByGuest,
-  updateGuestRsvpByGuest as updateGuestRsvpFirestore,
 } from "@/lib/firebase/guests"
+import {
+  updateGuestRsvpBulkByGuestViaApi,
+  updateGuestRsvpByGuestViaApi,
+} from "@/lib/firebase/guest-rsvp-client"
 import { getWedding, subscribeWedding } from "@/lib/firebase/weddings"
 
 interface GuestInvitePageProps {
@@ -57,6 +59,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   const [inviteTheme, setInviteTheme] = useState<InviteThemeId>("classic")
   const [isPremium, setIsPremium] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [errorToast, setErrorToast] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [pulseEvent, setPulseEvent] = useState<EventId | null>(null)
   const [pulseAll, setPulseAll] = useState(false)
@@ -73,6 +76,12 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
     const t = window.setTimeout(() => setToast(null), 2800)
     return () => window.clearTimeout(t)
   }, [toast])
+
+  useEffect(() => {
+    if (!errorToast) return
+    const t = window.setTimeout(() => setErrorToast(null), 4000)
+    return () => window.clearTimeout(t)
+  }, [errorToast])
 
   useEffect(() => {
     if (!pulseEvent && !pulseAll) return
@@ -171,20 +180,36 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   const invitedIds = invitedEvents.map((e) => e.id)
 
   function showUpdatedToast() {
+    setErrorToast(null)
     setToast("Got it, we've updated your response!")
+  }
+
+  function showErrorToast(message?: string) {
+    setToast(null)
+    setErrorToast(message || "Something went wrong, please try again")
   }
 
   async function handleRsvp(eventId: EventId, choice: RsvpChoice) {
     if (busy) return
     setBusy(true)
+    setErrorToast(null)
     try {
+      // Always write against the invite URL token (Firestore doc id).
+      const token = guestToken
+      console.info("[GuestInvitePage] individual RSVP tap", { token, eventId, choice })
       if (isFirebaseConfigured()) {
-        await updateGuestRsvpFirestore(guest!.inviteToken, eventId, choice)
+        await updateGuestRsvpByGuestViaApi(token, eventId, choice)
       } else {
         await updateRsvpByGuest(guest!.id, eventId, choice)
       }
+      console.info("[GuestInvitePage] individual RSVP saved", { token, eventId, choice })
       setPulseEvent(eventId)
       showUpdatedToast()
+    } catch (err) {
+      console.error("[GuestInvitePage] individual RSVP failed", err)
+      showErrorToast(
+        err instanceof Error ? err.message : "Something went wrong, please try again"
+      )
     } finally {
       setBusy(false)
     }
@@ -193,14 +218,23 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   async function handleBulkRsvp(choice: RsvpChoice) {
     if (busy || invitedIds.length === 0) return
     setBusy(true)
+    setErrorToast(null)
     try {
+      const token = guestToken
+      console.info("[GuestInvitePage] bulk RSVP tap", { token, choice, invitedIds })
       if (isFirebaseConfigured()) {
-        await updateGuestRsvpBulkByGuest(guest!.inviteToken, choice, invitedIds)
+        await updateGuestRsvpBulkByGuestViaApi(token, choice, invitedIds)
       } else {
         await updateRsvpBulkByGuest(guest!.id, choice, invitedIds)
       }
+      console.info("[GuestInvitePage] bulk RSVP saved", { token, choice })
       setPulseAll(true)
       showUpdatedToast()
+    } catch (err) {
+      console.error("[GuestInvitePage] bulk RSVP failed", err)
+      showErrorToast(
+        err instanceof Error ? err.message : "Something went wrong, please try again"
+      )
     } finally {
       setBusy(false)
     }
@@ -283,6 +317,23 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
           >
             <div className="rounded-full border border-gold/30 bg-maroon px-5 py-3 text-sm font-medium text-ivory shadow-lg">
               {toast}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {errorToast ? (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+            role="alert"
+            aria-live="assertive"
+          >
+            <div className="rounded-full border border-rose-300 bg-rose-800 px-5 py-3 text-sm font-medium text-white shadow-lg">
+              {errorToast}
             </div>
           </motion.div>
         ) : null}
@@ -482,7 +533,7 @@ function RsvpChoiceButton({
   const acceptSelected =
     "bg-maroon text-ivory ring-2 ring-gold/50 ring-offset-2 ring-offset-ivory shadow-md"
   const acceptIdle =
-    "bg-maroon/90 text-ivory hover:bg-maroon-dark"
+    "border border-maroon/25 bg-white text-maroon-dark hover:bg-maroon/5"
   const declineSelected =
     "border-2 border-maroon/40 bg-maroon/10 text-maroon-dark ring-2 ring-maroon/20 ring-offset-2 ring-offset-ivory"
   const declineIdle =

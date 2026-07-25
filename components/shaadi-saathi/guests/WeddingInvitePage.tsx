@@ -15,9 +15,7 @@ import {
 } from "@/lib/mockData"
 import { getInviteTheme, type InviteThemeId } from "@/lib/premium"
 import { isFirebaseConfigured } from "@/lib/firebase/config"
-import {
-  updateGuestRsvpBulkByGuest,
-} from "@/lib/firebase/guests"
+import { updateGuestRsvpBulkByGuestViaApi } from "@/lib/firebase/guest-rsvp-client"
 import { getWedding, subscribeWedding } from "@/lib/firebase/weddings"
 
 interface WeddingInvitePageProps {
@@ -142,7 +140,7 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
         isFirebaseConfigured() &&
         (choice === "confirmed" || choice === "declined")
       ) {
-        await updateGuestRsvpBulkByGuest(
+        await updateGuestRsvpBulkByGuestViaApi(
           inviteToken,
           choice,
           EVENTS.map((e) => e.id)

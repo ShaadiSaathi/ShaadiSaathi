@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
-import { WEDDING, createWeddingInviteUrl } from "@/lib/mockData"
+import { createWeddingInviteUrl } from "@/lib/mockData"
 
 interface WeddingInviteLinkButtonProps {
   variant?: "button" | "link"
@@ -15,13 +15,15 @@ export default function WeddingInviteLinkButton({
   const { weddingId } = useWedding()
   const [copied, setCopied] = useState(false)
 
-  const token = weddingId ?? WEDDING.id
   const inviteUrl =
-    typeof window !== "undefined"
-      ? createWeddingInviteUrl(window.location.origin, token)
-      : createWeddingInviteUrl("http://localhost:3000", token)
+    typeof window !== "undefined" && weddingId
+      ? createWeddingInviteUrl(window.location.origin, weddingId)
+      : weddingId
+        ? createWeddingInviteUrl("http://localhost:3000", weddingId)
+        : ""
 
   const handleCopy = useCallback(async () => {
+    if (!weddingId) return
     try {
       await navigator.clipboard.writeText(inviteUrl)
     } catch {
@@ -34,14 +36,15 @@ export default function WeddingInviteLinkButton({
     }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }, [inviteUrl])
+  }, [inviteUrl, weddingId])
 
   if (variant === "link") {
     return (
       <button
         type="button"
         onClick={handleCopy}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-maroon hover:text-maroon-dark"
+        disabled={!weddingId}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-maroon hover:text-maroon-dark disabled:opacity-50"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -52,7 +55,7 @@ export default function WeddingInviteLinkButton({
   }
 
   return (
-    <GoldButton type="button" variant="ghost" onClick={handleCopy}>
+    <GoldButton type="button" variant="ghost" onClick={handleCopy} disabled={!weddingId}>
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
       </svg>
