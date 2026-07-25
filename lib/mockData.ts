@@ -447,8 +447,12 @@ export function createGuestInviteUrl(token: string, origin = "http://localhost:3
   return `${origin}/invite/${token}`
 }
 
-export function createWeddingInviteUrl(origin = "http://localhost:3000"): string {
-  return `${origin}/invite/wedding/${WEDDING_PUBLIC_INVITE_TOKEN}`
+/** Public wedding invite — uses the wedding document id when available. */
+export function createWeddingInviteUrl(
+  origin = "http://localhost:3000",
+  weddingId: string = WEDDING_PUBLIC_INVITE_TOKEN
+): string {
+  return `${origin}/invite/wedding/${weddingId}`
 }
 
 /** Build a new guest record with defaults */

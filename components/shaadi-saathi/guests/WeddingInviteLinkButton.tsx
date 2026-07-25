@@ -2,7 +2,8 @@
 
 import { useCallback, useState } from "react"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
-import { createWeddingInviteUrl } from "@/lib/mockData"
+import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
+import { WEDDING, createWeddingInviteUrl } from "@/lib/mockData"
 
 interface WeddingInviteLinkButtonProps {
   variant?: "button" | "link"
@@ -11,12 +12,14 @@ interface WeddingInviteLinkButtonProps {
 export default function WeddingInviteLinkButton({
   variant = "button",
 }: WeddingInviteLinkButtonProps) {
+  const { weddingId } = useWedding()
   const [copied, setCopied] = useState(false)
 
+  const token = weddingId ?? WEDDING.id
   const inviteUrl =
     typeof window !== "undefined"
-      ? createWeddingInviteUrl(window.location.origin)
-      : createWeddingInviteUrl()
+      ? createWeddingInviteUrl(window.location.origin, token)
+      : createWeddingInviteUrl("http://localhost:3000", token)
 
   const handleCopy = useCallback(async () => {
     try {

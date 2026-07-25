@@ -34,7 +34,11 @@ const STORAGE_KEY = "shaadi-saathi-guests"
 interface GuestsContextValue {
   guests: Guest[]
   loading: boolean
-  addGuest: (input: { name: string; phone?: string; events: EventId[] }) => void
+  addGuest: (input: {
+    name: string
+    phone?: string
+    events: EventId[]
+  }) => Promise<Guest> | Guest
   updateRsvpByOrganiser: (
     guestId: string,
     eventId: EventId,
@@ -143,9 +147,10 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
           events: guest.events,
           inviteToken: guest.inviteToken,
         })
-        return
+        return guest
       }
       setGuests((prev) => [guest, ...prev])
+      return guest
     },
     [useFirestore, weddingId]
   )
