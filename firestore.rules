@@ -67,7 +67,9 @@ service cloud.firestore {
     }
 
     match /weddings/{weddingId} {
-      allow read: if isWeddingMember(weddingId) || isPlatformAdmin();
+      // Public guest invite pages need couple name + theme without auth.
+      allow get: if true;
+      allow list: if isWeddingMember(weddingId) || isPlatformAdmin();
       allow create: if isSignedIn();
       allow update, delete: if isWeddingMember(weddingId) || isPlatformAdmin();
     }

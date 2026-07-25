@@ -13,7 +13,7 @@ import type { EventId, Guest, RsvpSource, RsvpStatus } from "@/lib/mockData"
 import { getFirestoreDb } from "./config"
 import type { FirestoreGuest } from "./types"
 
-function toGuest(docId: string, data: FirestoreGuest): Guest {
+function toGuest(docId: string, data: FirestoreGuest): Guest & { weddingId?: string } {
   return {
     id: data.id || docId,
     name: data.name,
@@ -25,6 +25,7 @@ function toGuest(docId: string, data: FirestoreGuest): Guest {
     rsvpOrganiserAlert: data.rsvpOrganiserAlert,
     inviteToken: data.inviteToken || docId,
     notes: data.notes,
+    weddingId: data.weddingId,
   }
 }
 

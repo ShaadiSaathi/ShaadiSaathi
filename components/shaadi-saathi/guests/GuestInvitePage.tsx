@@ -59,6 +59,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   const [toast, setToast] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [pulseEvent, setPulseEvent] = useState<EventId | null>(null)
+  const [pulseAll, setPulseAll] = useState(false)
 
   const mockGuest = useMemo(
     () => getGuestByToken(guestToken) ?? guests.find((g) => g.inviteToken === guestToken),
@@ -74,10 +75,13 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   }, [toast])
 
   useEffect(() => {
-    if (!pulseEvent) return
-    const t = window.setTimeout(() => setPulseEvent(null), 700)
+    if (!pulseEvent && !pulseAll) return
+    const t = window.setTimeout(() => {
+      setPulseEvent(null)
+      setPulseAll(false)
+    }, 700)
     return () => window.clearTimeout(t)
-  }, [pulseEvent])
+  }, [pulseEvent, pulseAll])
 
   useEffect(() => {
     if (!isFirebaseConfigured()) return
@@ -102,23 +106,26 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
         const loaded = g ?? (await getGuestByInviteToken(guestToken))
         if (loaded) {
-          const wedding = await getWedding(
-            (loaded as Guest & { weddingId?: string }).weddingId ??
+          try {
+            const weddingId =
+              (loaded as Guest & { weddingId?: string }).weddingId ??
               (await getGuestDocWeddingId(guestToken))
-          )
-          if (wedding) {
-            setCoupleName(wedding.couple)
-            setInviteTheme(wedding.inviteTheme)
-            setIsPremium(wedding.isPremium)
-            weddingUnsub = subscribeWedding(wedding.id, (w) => {
-              if (w) {
-                setCoupleName(w.couple)
-                setInviteTheme(w.inviteTheme)
-                setIsPremium(w.isPremium)
-              }
-            })
-          } else {
-            setInvalid(true)
+            const wedding = await getWedding(weddingId)
+            if (wedding) {
+              setCoupleName(wedding.couple)
+              setInviteTheme(wedding.inviteTheme)
+              setIsPremium(wedding.isPremium)
+              weddingUnsub = subscribeWedding(wedding.id, (w) => {
+                if (w) {
+                  setCoupleName(w.couple)
+                  setInviteTheme(w.inviteTheme)
+                  setIsPremium(w.isPremium)
+                }
+              })
+            }
+            // Wedding read may fail under older rules; RSVP still works from the guest doc.
+          } catch {
+            // Keep default couple/theme; don't block the invite RSVP UI.
           }
         }
       },
@@ -192,7 +199,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
       } else {
         await updateRsvpBulkByGuest(guest!.id, choice, invitedIds)
       }
-      setPulseEvent(invitedIds[0] ?? null)
+      setPulseAll(true)
       showUpdatedToast()
     } finally {
       setBusy(false)
@@ -250,7 +257,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
               guest={guest}
               index={i}
               busy={busy}
-              pulse={pulseEvent === event.id}
+              pulse={pulseAll || pulseEvent === event.id}
               onRsvp={(choice) => void handleRsvp(event.id, choice)}
             />
           ))}
