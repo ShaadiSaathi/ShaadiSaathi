@@ -13,11 +13,8 @@ let recaptchaVerifier: RecaptchaVerifier | null = null
 // swap that node (e.g. when the OTP gate switches views), which leaves a stale
 // verifier pointing at a removed element and triggers Firebase's
 // "reCAPTCHA client element has been removed" error on the next render/verify.
+// Remembering the node lets us detect that and rebuild the verifier.
 let recaptchaContainerEl: HTMLElement | null = null
-let sendInFlight = false
-let captchaSolved: Promise<void> | null = null
-let resolveCaptchaSolved: (() => void) | null = null
-let recaptchaRendered = false
 
 /**
  * Ensure the number is E.164 before handing it to Firebase. The international
@@ -32,25 +29,8 @@ function toE164(phone: string): string {
   return `+92${digits.slice(-10)}`
 }
 
-function resetCaptchaGate(): void {
-  captchaSolved = new Promise<void>((resolve) => {
-    resolveCaptchaSolved = resolve
-  })
-}
-
-async function ensureRecaptchaRendered(
-  verifier: RecaptchaVerifier
-): Promise<void> {
-  if (recaptchaRendered) return
-  await verifier.render()
-  recaptchaRendered = true
-}
-
 /** Tear down only the reCAPTCHA widget/verifier (keeps any pending SMS session). */
 export function clearRecaptcha(): void {
-  // Never tear down mid-send — that produces "reCAPTCHA client element has
-  // been removed" and aborts a live identitytoolkit request.
-  if (sendInFlight) return
   if (recaptchaVerifier) {
     try {
       recaptchaVerifier.clear()
@@ -60,14 +40,10 @@ export function clearRecaptcha(): void {
     recaptchaVerifier = null
   }
   recaptchaContainerEl = null
-  captchaSolved = null
-  resolveCaptchaSolved = null
-  recaptchaRendered = false
 }
 
 export function clearPhoneAuthSession(): void {
   confirmationResult = null
-  sendInFlight = false
   clearRecaptcha()
 }
 
@@ -76,6 +52,10 @@ function getRecaptchaVerifier(containerId = "recaptcha-container"): RecaptchaVer
   const el =
     typeof document !== "undefined" ? document.getElementById(containerId) : null
 
+  // Reuse the existing verifier ONLY if it's still bound to the same, live DOM
+  // node. If React swapped or removed that node, the old verifier is stale and
+  // would throw "reCAPTCHA client element has been removed" — so rebuild it
+  // against the current node instead.
   if (
     recaptchaVerifier &&
     recaptchaContainerEl &&
@@ -99,44 +79,34 @@ function getRecaptchaVerifier(containerId = "recaptcha-container"): RecaptchaVer
     throw new Error("Verification isn't ready yet. Please tap Retry.")
   }
 
-  resetCaptchaGate()
-
-  // Visible checkbox — must stay in layout. Invisible + hidden containers fail
-  // silently when Google requires a challenge.
+  // Use a visible ("normal") reCAPTCHA checkbox. The container element must be
+  // visible in the layout so the user can actually complete the challenge —
+  // an invisible verifier inside a hidden container silently fails when Google
+  // decides a challenge is required, producing a 400 on sendVerificationCode.
   recaptchaVerifier = new RecaptchaVerifier(auth, el, {
     size: "normal",
-    callback: () => {
-      resolveCaptchaSolved?.()
-    },
-    "expired-callback": () => {
-      resetCaptchaGate()
-    },
+    callback: () => {},
+    "expired-callback": () => {},
   })
   recaptchaContainerEl = el
   return recaptchaVerifier
 }
 
-/**
- * Render the visible reCAPTCHA and wait until the user completes it.
- * Intentionally NOT wrapped in the OTP send timeout — users need time to
- * solve the challenge without getting a false "timeout" error.
- */
-export async function waitForRecaptcha(
-  containerId = "recaptcha-container"
-): Promise<void> {
+/** Render the visible reCAPTCHA widget so the user can solve it before we send the code. */
+export async function renderRecaptcha(containerId = "recaptcha-container"): Promise<void> {
   if (!isFirebaseConfigured()) return
   const verifier = getRecaptchaVerifier(containerId)
-  await ensureRecaptchaRendered(verifier)
-  if (!captchaSolved) resetCaptchaGate()
-  await captchaSolved
+  await verifier.render()
 }
 
 /**
- * Request a real Firebase phone OTP AFTER reCAPTCHA is solved.
- * Resolves ONLY after `signInWithPhoneNumber` returns a ConfirmationResult
- * with a non-empty verificationId. That means Firebase Auth accepted the
- * request — not that the carrier has delivered SMS (and Firebase test numbers
- * never send SMS at all).
+ * Request a real Firebase phone OTP. Resolves ONLY after
+ * `signInWithPhoneNumber` successfully returns a ConfirmationResult that
+ * includes a non-empty verificationId. A resolve here means Firebase Auth
+ * accepted the request — it does NOT by itself guarantee carrier SMS delivery
+ * (and Firebase test numbers never send SMS at all).
+ *
+ * @returns The verificationId from the ConfirmationResult (for success logging).
  */
 export async function sendPhoneOtp(
   phone: string,
@@ -146,29 +116,21 @@ export async function sendPhoneOtp(
     throw new Error("Firebase is not configured")
   }
   const auth = getFirebaseAuth()
-  // Ensure verifier exists (waitForRecaptcha normally ran first).
   const verifier = getRecaptchaVerifier(containerId)
-  await ensureRecaptchaRendered(verifier)
-  if (captchaSolved) {
-    await captchaSolved
+  await verifier.render()
+  const result = await signInWithPhoneNumber(auth, toE164(phone), verifier)
+  const verificationId =
+    typeof result?.verificationId === "string" ? result.verificationId.trim() : ""
+  if (!verificationId) {
+    // Defensive: Firebase should always return a verificationId on success.
+    // Treat a missing one as a hard failure so the UI never shows a false "sent".
+    confirmationResult = null
+    throw new Error(
+      "Firebase accepted the request but did not return a verification ID. Please try again."
+    )
   }
-
-  sendInFlight = true
-  try {
-    const result = await signInWithPhoneNumber(auth, toE164(phone), verifier)
-    const verificationId =
-      typeof result?.verificationId === "string" ? result.verificationId.trim() : ""
-    if (!verificationId) {
-      confirmationResult = null
-      throw new Error(
-        "Firebase accepted the request but did not return a verification ID. Please try again."
-      )
-    }
-    confirmationResult = result
-    return { verificationId }
-  } finally {
-    sendInFlight = false
-  }
+  confirmationResult = result
+  return { verificationId }
 }
 
 export async function confirmPhoneOtp(code: string): Promise<void> {

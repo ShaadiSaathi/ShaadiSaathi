@@ -13,20 +13,28 @@ interface VendorOnboardingStepProps {
 /** Short vendor profile setup after signup OTP */
 export default function VendorOnboardingStep({ onComplete }: VendorOnboardingStepProps) {
   const router = useRouter()
-  const { pending, completeVendorOnboarding } = useAuth()
+  const { pending, completeVendorOnboarding, isVendorLoggedIn } = useAuth()
   const [bio, setBio] = useState("")
   const [coverPreview, setCoverPreview] = useState<string | undefined>()
   const [loading, setLoading] = useState(false)
   const [bioError, setBioError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // See FamilyOnboardingStep: clearing `pending` on completion must not bounce
+  // the now-signed-in vendor back to /vendor/signup.
+  const completingRef = useRef(false)
 
   useEffect(() => {
+    if (completingRef.current || isVendorLoggedIn) return
     if (!pending || pending.flow !== "vendor-signup") {
       router.replace("/vendor/signup")
     }
-  }, [pending, router])
+  }, [pending, isVendorLoggedIn, router])
 
-  if (!pending || pending.flow !== "vendor-signup") {
+  if (
+    !completingRef.current &&
+    !isVendorLoggedIn &&
+    (!pending || pending.flow !== "vendor-signup")
+  ) {
     return null
   }
 
@@ -45,12 +53,21 @@ export default function VendorOnboardingStep({ onComplete }: VendorOnboardingSte
     if (err) return
 
     setLoading(true)
-    await mockAuthDelay()
-    if (onComplete) {
-      onComplete(bio, coverPreview)
-    } else {
-      completeVendorOnboarding(bio, coverPreview)
-      router.push("/vendor/dashboard")
+    completingRef.current = true
+    try {
+      await mockAuthDelay()
+      if (onComplete) {
+        onComplete(bio, coverPreview)
+      } else {
+        await completeVendorOnboarding(bio, coverPreview)
+        router.push("/vendor/dashboard")
+      }
+    } catch (err) {
+      completingRef.current = false
+      setBioError(
+        err instanceof Error ? err.message : "Couldn’t finish setup. Please try again."
+      )
+      setLoading(false)
     }
   }
 
@@ -61,7 +78,7 @@ export default function VendorOnboardingStep({ onComplete }: VendorOnboardingSte
     <form onSubmit={handleSubmit} className="space-y-5">
       <p className="text-sm text-maroon/60">
         Almost there! Tell families a bit about{" "}
-        <strong>{pending.vendor?.businessName}</strong>.
+        <strong>{pending?.vendor?.businessName}</strong>.
       </p>
 
       <div>

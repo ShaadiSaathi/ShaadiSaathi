@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import AuthSubmitButton from "./AuthSubmitButton"
 import { useAuth } from "./AuthContext"
@@ -9,20 +9,29 @@ import { mockAuthDelay, validateRequired } from "./authValidation"
 /** One-screen family wedding setup after signup OTP */
 export default function FamilyOnboardingStep() {
   const router = useRouter()
-  const { pending, completeFamilyOnboarding } = useAuth()
+  const { pending, completeFamilyOnboarding, isFamilyLoggedIn } = useAuth()
   const [weddingName, setWeddingName] = useState("")
   const [firstEventDate, setFirstEventDate] = useState("")
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [errors, setErrors] = useState<{ weddingName?: string; date?: string }>({})
+  // Once the user has submitted onboarding we are navigating to the dashboard.
+  // Completing onboarding clears `pending`, which must NOT be misread as "the
+  // signup session vanished" and bounce the now-signed-in user back to /signup.
+  const completingRef = useRef(false)
 
   useEffect(() => {
+    if (completingRef.current || isFamilyLoggedIn) return
     if (!pending || pending.flow !== "family-signup") {
       router.replace("/signup")
     }
-  }, [pending, router])
+  }, [pending, isFamilyLoggedIn, router])
 
-  if (!pending || pending.flow !== "family-signup") {
+  if (
+    !completingRef.current &&
+    !isFamilyLoggedIn &&
+    (!pending || pending.flow !== "family-signup")
+  ) {
     return null
   }
 
@@ -38,6 +47,10 @@ export default function FamilyOnboardingStep() {
     if (weddingErr || dateErr) return
 
     setLoading(true)
+    // Mark completing BEFORE awaiting so the guard effect that reacts to
+    // `pending` being cleared inside completeFamilyOnboarding can't redirect
+    // us back to /signup mid-flight.
+    completingRef.current = true
     try {
       await mockAuthDelay()
       // Must finish creating the wedding + writing users.weddingId before the
@@ -45,12 +58,12 @@ export default function FamilyOnboardingStep() {
       await completeFamilyOnboarding(weddingName, firstEventDate)
       router.push("/dashboard")
     } catch (err) {
+      completingRef.current = false
       setSubmitError(
         err instanceof Error
           ? err.message
           : "Couldn’t finish setup. Please try again."
       )
-    } finally {
       setLoading(false)
     }
   }
@@ -61,7 +74,7 @@ export default function FamilyOnboardingStep() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <p className="text-sm leading-relaxed text-maroon/60">
-        Welcome, <strong>{pending.familyName}</strong>! Let&apos;s set up your wedding space.
+        Welcome, <strong>{pending?.familyName}</strong>! Let&apos;s set up your wedding space.
       </p>
 
       <div>

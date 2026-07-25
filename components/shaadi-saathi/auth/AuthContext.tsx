@@ -16,7 +16,7 @@ import {
 } from "firebase/auth"
 import type { VendorCategoryId } from "@/lib/mockVendors"
 import { isFirebaseConfigured, getFirebaseAuth } from "@/lib/firebase/config"
-import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp, waitForRecaptcha } from "@/lib/firebase/phone-auth"
+import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp } from "@/lib/firebase/phone-auth"
 import { getUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
 import { getWedding } from "@/lib/firebase/weddings"
@@ -31,8 +31,13 @@ import {
   getWeddingForUser,
 } from "@/lib/firebase/seed"
 
-/** How long to wait for a code-send request before offering a retry button. */
-const OTP_SEND_TIMEOUT_MS = 45_000
+/**
+ * How long to wait for a code-send request before offering a retry button.
+ * This budget spans the user solving the visible reCAPTCHA AND Firebase
+ * accepting the send, so it must be generous — a tight 45s window produced
+ * false "timeout" failures while the checkbox was still being solved.
+ */
+const OTP_SEND_TIMEOUT_MS = 120_000
 
 export interface FamilyUser {
   name: string
@@ -264,10 +269,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sendOtp = useCallback(async () => {
     if (!pending?.phone) throw new Error("No phone number")
     try {
-      // Captcha wait is uncapped — only the SMS API call uses the timeout.
-      // Bundling both under 45s caused false "timeout" failures whenever the
-      // user was still ticking the checkbox (seen today as rawCode: timeout).
-      await waitForRecaptcha()
       const { verificationId } = await withTimeout(
         sendPhoneOtp(pending.phone),
         OTP_SEND_TIMEOUT_MS
