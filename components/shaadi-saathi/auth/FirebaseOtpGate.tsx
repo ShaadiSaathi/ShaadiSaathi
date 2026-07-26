@@ -1,11 +1,15 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { clearRecaptcha } from "@/lib/firebase/phone-auth"
+import {
+  clearRecaptcha,
+  setRecaptchaSolvedListener,
+  wasRecaptchaSolved,
+} from "@/lib/firebase/phone-auth"
 import { useAuth } from "./AuthContext"
 import OtpVerification from "./OtpVerification"
 
-type SendState = "idle" | "sending" | "sent" | "error"
+type SendState = "idle" | "awaiting_captcha" | "sending" | "sent" | "error"
 
 interface FirebaseOtpGateProps {
   phone: string
@@ -39,17 +43,26 @@ export default function FirebaseOtpGate({
 
   const doSend = useCallback(async () => {
     setSendError(null)
-    setSendState("sending")
+    setSendState("awaiting_captcha")
+    setRecaptchaSolvedListener(() => {
+      setSendState((prev) => (prev === "sent" || prev === "error" ? prev : "sending"))
+    })
     try {
       await sendOtp()
       setSendState("sent")
     } catch (err) {
-      setSendError(
+      const message =
         err instanceof Error
           ? err.message
           : "We couldn't send your code. Please try again."
-      )
+      const captchaHint =
+        !wasRecaptchaSolved() && /longer than expected|timed out|timeout/i.test(message)
+          ? " Please complete the “I'm not a robot” checkbox, then tap Retry."
+          : ""
+      setSendError(`${message}${captchaHint}`)
       setSendState("error")
+    } finally {
+      setRecaptchaSolvedListener(null)
     }
   }, [sendOtp])
 
@@ -63,12 +76,14 @@ export default function FirebaseOtpGate({
   // never inherits a verifier bound to a now-removed container node.
   useEffect(() => {
     return () => {
+      setRecaptchaSolvedListener(null)
       clearRecaptcha()
     }
   }, [])
 
   const handleRetry = useCallback(async () => {
     resetOtp()
+    startedRef.current = true
     await doSend()
   }, [resetOtp, doSend])
 
@@ -84,7 +99,9 @@ export default function FirebaseOtpGate({
         <p className="text-center text-sm leading-relaxed text-maroon/70">
           {sendState === "error"
             ? "We couldn't send your code."
-            : "Confirm you're not a robot, then we'll text your code."}
+            : sendState === "sending"
+              ? "Security check done — texting your code now…"
+              : "Tick the “I'm not a robot” box below, then we'll text your code."}
         </p>
       )}
 

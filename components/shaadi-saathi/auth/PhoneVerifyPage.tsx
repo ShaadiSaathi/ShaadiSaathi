@@ -1,0 +1,156 @@
+"use client"
+
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import AuthCard from "@/components/shaadi-saathi/auth/AuthCard"
+import FirebaseOtpGate from "@/components/shaadi-saathi/auth/FirebaseOtpGate"
+import { useAuth, type PendingFlow } from "@/components/shaadi-saathi/auth/AuthContext"
+
+type VerifyKind = "family-signup" | "family-login" | "vendor-signup" | "vendor-login"
+
+const CONFIG: Record<
+  VerifyKind,
+  {
+    flow: PendingFlow
+    backHref: string
+    successHref: string
+    variant: "family" | "vendor"
+    badge?: string
+    subtitle: string
+    backLabel: string
+  }
+> = {
+  "family-signup": {
+    flow: "family-signup",
+    backHref: "/signup",
+    successHref: "/signup/onboarding",
+    variant: "family",
+    subtitle: "Confirm the security check below — then we'll text a 6-digit code.",
+    backLabel: "Go back",
+  },
+  "family-login": {
+    flow: "family-login",
+    backHref: "/login",
+    successHref: "/dashboard",
+    variant: "family",
+    subtitle: "Confirm the security check below — then enter the code we text you.",
+    backLabel: "Back to login",
+  },
+  "vendor-signup": {
+    flow: "vendor-signup",
+    backHref: "/vendor/signup",
+    successHref: "/vendor/signup/onboarding",
+    variant: "vendor",
+    badge: "Vendor portal",
+    subtitle: "Confirm the security check below — then we'll text a 6-digit code.",
+    backLabel: "Go back",
+  },
+  "vendor-login": {
+    flow: "vendor-login",
+    backHref: "/vendor/login",
+    successHref: "/vendor/dashboard",
+    variant: "vendor",
+    badge: "Vendor portal",
+    subtitle: "Confirm the security check below — then enter the code we text you.",
+    backLabel: "Back to login",
+  },
+}
+
+interface PhoneVerifyPageProps {
+  kind: VerifyKind
+}
+
+/**
+ * Shared phone OTP verify screen for family + vendor login/signup.
+ * Keeps vendor and family on the same FirebaseOtpGate path so fixes can't drift.
+ */
+export default function PhoneVerifyPage({ kind }: PhoneVerifyPageProps) {
+  const router = useRouter()
+  const { pending, verifyOtp, confirmOtp } = useAuth()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const config = CONFIG[kind]
+
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setReady(true), 50)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    if (!ready) return
+    if (!pending || pending.flow !== config.flow) {
+      router.replace(config.backHref)
+    }
+  }, [ready, pending, router, config.flow, config.backHref])
+
+  if (!ready || !pending || pending.flow !== config.flow) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-maroon/50">
+        Preparing verification…
+      </div>
+    )
+  }
+
+  async function handleVerify(code: string) {
+    setError(null)
+    if (!verifyOtp(code)) {
+      setError("Please enter a valid 6-digit code")
+      return
+    }
+    setLoading(true)
+    try {
+      await confirmOtp(code)
+      router.push(config.successHref)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "That code isn't correct. Please try again."
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AuthCard
+      variant={config.variant}
+      badge={config.badge}
+      title="Verify your number"
+      subtitle={config.subtitle}
+      footer={
+        kind.endsWith("signup") ? (
+          <p className="text-center text-sm text-maroon/60">
+            Wrong number?{" "}
+            <Link
+              href={config.backHref}
+              className="font-semibold text-maroon hover:text-gold-dark"
+            >
+              {config.backLabel}
+            </Link>
+          </p>
+        ) : undefined
+      }
+    >
+      <FirebaseOtpGate
+        phone={pending.phone}
+        onVerify={handleVerify}
+        verifyLoading={loading}
+        verifyError={error}
+      />
+      {kind.endsWith("login") && (
+        <p className="mt-4 text-center text-sm text-maroon/60">
+          <Link
+            href={config.backHref}
+            className="font-semibold text-maroon hover:text-gold-dark"
+          >
+            {config.backLabel}
+          </Link>
+        </p>
+      )}
+    </AuthCard>
+  )
+}

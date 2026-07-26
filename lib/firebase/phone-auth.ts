@@ -15,6 +15,17 @@ let recaptchaVerifier: RecaptchaVerifier | null = null
 // "reCAPTCHA client element has been removed" error on the next render/verify.
 // Remembering the node lets us detect that and rebuild the verifier.
 let recaptchaContainerEl: HTMLElement | null = null
+/** True after the visible reCAPTCHA checkbox is solved for the current verifier. */
+let recaptchaSolved = false
+let onRecaptchaSolvedListener: (() => void) | null = null
+
+export function setRecaptchaSolvedListener(listener: (() => void) | null): void {
+  onRecaptchaSolvedListener = listener
+}
+
+export function wasRecaptchaSolved(): boolean {
+  return recaptchaSolved
+}
 
 /**
  * Ensure the number is E.164 before handing it to Firebase. The international
@@ -40,6 +51,7 @@ export function clearRecaptcha(): void {
     recaptchaVerifier = null
   }
   recaptchaContainerEl = null
+  recaptchaSolved = false
 }
 
 export function clearPhoneAuthSession(): void {
@@ -79,14 +91,20 @@ function getRecaptchaVerifier(containerId = "recaptcha-container"): RecaptchaVer
     throw new Error("Verification isn't ready yet. Please tap Retry.")
   }
 
+  recaptchaSolved = false
   // Use a visible ("normal") reCAPTCHA checkbox. The container element must be
   // visible in the layout so the user can actually complete the challenge —
   // an invisible verifier inside a hidden container silently fails when Google
   // decides a challenge is required, producing a 400 on sendVerificationCode.
   recaptchaVerifier = new RecaptchaVerifier(auth, el, {
     size: "normal",
-    callback: () => {},
-    "expired-callback": () => {},
+    callback: () => {
+      recaptchaSolved = true
+      onRecaptchaSolvedListener?.()
+    },
+    "expired-callback": () => {
+      recaptchaSolved = false
+    },
   })
   recaptchaContainerEl = el
   return recaptchaVerifier

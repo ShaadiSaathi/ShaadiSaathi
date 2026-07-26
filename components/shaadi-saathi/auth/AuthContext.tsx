@@ -31,6 +31,13 @@ import {
   getWeddingForUser,
 } from "@/lib/firebase/seed"
 import { createVendorForUser, getVendor, getVendorForUser } from "@/lib/firebase/vendors"
+import { clearExistingAuthSession } from "@/lib/firebase/clear-auth-session"
+import {
+  clearPersistedPending,
+  readPersistedPending,
+  writePersistedPending,
+  type PersistedPending,
+} from "@/lib/auth/pending-session"
 import {
   readTesterModeFromStorage,
   writeTesterModeToStorage,
@@ -134,18 +141,54 @@ const DEFAULT_VENDOR: VendorAuthUser = {
   bio: "Authentic Pakistani cuisine with live BBQ counters and elegant walima dinner service.",
 }
 
+function toPersistedPending(pending: PendingSignup): PersistedPending {
+  return {
+    flow: pending.flow as PersistedPending["flow"],
+    phone: pending.phone,
+    ...(pending.familyName ? { familyName: pending.familyName } : {}),
+    ...(pending.vendor
+      ? {
+          vendor: {
+            businessName: pending.vendor.businessName,
+            categoryId: pending.vendor.categoryId,
+            city: pending.vendor.city,
+            phone: pending.vendor.phone,
+          },
+        }
+      : {}),
+  }
+}
+
+function fromPersistedPending(stored: PersistedPending): PendingSignup {
+  return {
+    flow: stored.flow,
+    phone: stored.phone,
+    ...(stored.familyName ? { familyName: stored.familyName } : {}),
+    ...(stored.vendor ? { vendor: stored.vendor } : {}),
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const firebaseConfigured = isFirebaseConfigured()
   const [testerMode, setTesterMode] = useState(false)
   const [familyUser, setFamilyUser] = useState<FamilyUser | null>(null)
   const [vendorUser, setVendorUser] = useState<VendorAuthUser | null>(null)
-  const [pending, setPending] = useState<PendingSignup | null>(null)
+  const [pending, setPendingState] = useState<PendingSignup | null>(() => {
+    const stored = readPersistedPending()
+    return stored ? fromPersistedPending(stored) : null
+  })
   const [loginSuccessMessage, setLoginSuccessMessage] = useState<string | null>(null)
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null)
   const [weddingId, setWeddingId] = useState<string | null>(null)
   const [vendorId, setVendorId] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(firebaseConfigured)
   const [otpSent, setOtpSent] = useState(false)
+
+  const setPending = useCallback((next: PendingSignup | null) => {
+    setPendingState(next)
+    if (next) writePersistedPending(toPersistedPending(next))
+    else clearPersistedPending()
+  }, [])
 
   // When tester mode is on, treat the app like local mock mode (populated demo data).
   const isFirebaseMode = firebaseConfigured && !testerMode
@@ -307,6 +350,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sendOtp = useCallback(async () => {
     if (!pending?.phone) throw new Error("No phone number")
     try {
+      // Drop any existing family/vendor Firebase session so phone verify isn't
+      // stuck behind a prior sign-in when switching portals in the same browser.
+      await clearExistingAuthSession()
       const { verificationId } = await withTimeout(
         sendPhoneOtp(pending.phone),
         OTP_SEND_TIMEOUT_MS
@@ -397,7 +443,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!vendor) {
           throw new Error(
-            "No vendor profile found for this number. Please sign up as a vendor first."
+            "This number isn't registered as a vendor yet. Please list your business first, then log in."
           )
         }
 
