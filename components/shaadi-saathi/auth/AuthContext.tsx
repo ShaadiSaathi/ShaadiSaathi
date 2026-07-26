@@ -16,7 +16,7 @@ import {
 } from "firebase/auth"
 import type { VendorCategoryId } from "@/lib/mockVendors"
 import { isFirebaseConfigured, getFirebaseAuth } from "@/lib/firebase/config"
-import { clearPhoneAuthSession, confirmPhoneOtp, sendPhoneOtp } from "@/lib/firebase/phone-auth"
+import { clearPhoneAuthSession, confirmPhoneOtp, preparePhoneOtpCaptcha, sendPhoneOtp } from "@/lib/firebase/phone-auth"
 import { getUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
 import { getWedding } from "@/lib/firebase/weddings"
@@ -44,12 +44,11 @@ import {
 } from "@/lib/tester-mode"
 
 /**
- * How long to wait for a code-send request before offering a retry button.
- * This budget spans the user solving the visible reCAPTCHA AND Firebase
- * accepting the send, so it must be generous — a tight 45s window produced
- * false "timeout" failures while the checkbox was still being solved.
+ * How long to wait for Firebase to accept the SMS send *after* the user has
+ * already solved the visible reCAPTCHA. Captcha wait is intentionally uncapped
+ * (see preparePhoneOtpCaptcha) so ticking the checkbox can't false-timeout.
  */
-const OTP_SEND_TIMEOUT_MS = 120_000
+const OTP_SEND_TIMEOUT_MS = 60_000
 
 export interface FamilyUser {
   name: string
@@ -122,6 +121,8 @@ interface AuthContextValue {
   logoutFamily: () => void
   logoutVendor: () => void
   clearPending: () => void
+  /** Rehydrate pending from sessionStorage when soft-nav races clear React state. */
+  hydratePending: (flow: Exclude<PendingFlow, null>) => PendingSignup | null
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -189,6 +190,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (next) writePersistedPending(toPersistedPending(next))
     else clearPersistedPending()
   }, [])
+
+  const hydratePending = useCallback(
+    (flow: Exclude<PendingFlow, null>): PendingSignup | null => {
+      if (pending?.flow === flow && pending.phone) return pending
+      const stored = readPersistedPending()
+      if (!stored || stored.flow !== flow || !stored.phone) return null
+      const restored = fromPersistedPending(stored)
+      // Restore React state without rewriting storage (already correct).
+      setPendingState(restored)
+      return restored
+    },
+    [pending]
+  )
 
   // When tester mode is on, treat the app like local mock mode (populated demo data).
   const isFirebaseMode = firebaseConfigured && !testerMode
@@ -348,18 +362,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const sendOtp = useCallback(async () => {
-    if (!pending?.phone) throw new Error("No phone number")
+    // Soft-nav to /login/verify can render before React flushes setPending —
+    // fall back to sessionStorage so we never throw "No phone number".
+    const active =
+      pending?.phone
+        ? pending
+        : (() => {
+            const stored = readPersistedPending()
+            return stored ? fromPersistedPending(stored) : null
+          })()
+    if (!active?.phone) throw new Error("No phone number")
+    if (active !== pending) setPendingState(active)
+
     try {
       // Drop any existing family/vendor Firebase session so phone verify isn't
       // stuck behind a prior sign-in when switching portals in the same browser.
       await clearExistingAuthSession()
+      // Captcha wait is uncapped — timeout only applies to the SMS send itself.
+      await preparePhoneOtpCaptcha()
       const { verificationId } = await withTimeout(
-        sendPhoneOtp(pending.phone),
+        sendPhoneOtp(active.phone),
         OTP_SEND_TIMEOUT_MS
       )
       void logVerificationSuccess({
-        flow: pending.flow ?? "unknown",
-        phone: pending.phone,
+        flow: active.flow ?? "unknown",
+        phone: active.phone,
         verificationId,
         uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
       })
@@ -368,13 +395,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { code, message } = friendlyAuthErrorMessage(err)
       const { rawCode, rawMessage } = rawAuthErrorInfo(err)
       void logVerificationError({
-        flow: pending.flow ?? "unknown",
+        flow: active.flow ?? "unknown",
         stage: "send",
         code,
         message,
         rawCode,
         rawMessage,
-        phone: pending.phone,
+        phone: active.phone,
         uid: isFirebaseMode ? getFirebaseAuth().currentUser?.uid ?? "" : "",
       })
       throw new Error(message)
@@ -660,6 +687,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logoutFamily,
       logoutVendor,
       clearPending,
+      hydratePending,
     }),
     [
       familyUser,
@@ -691,6 +719,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logoutFamily,
       logoutVendor,
       clearPending,
+      hydratePending,
     ]
   )
 

@@ -73,7 +73,8 @@ export default function FirebaseOtpGate({
   }, [doSend])
 
   // Drop the reCAPTCHA widget when this gate leaves the screen so a later mount
-  // never inherits a verifier bound to a now-removed container node.
+  // never inherits a verifier bound to a now-removed container node. clearRecaptcha
+  // no-ops while a send is in flight, so Soft-nav remounts can't kill the widget mid-send.
   useEffect(() => {
     return () => {
       setRecaptchaSolvedListener(null)

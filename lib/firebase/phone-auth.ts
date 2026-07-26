@@ -18,6 +18,8 @@ let recaptchaContainerEl: HTMLElement | null = null
 /** True after the visible reCAPTCHA checkbox is solved for the current verifier. */
 let recaptchaSolved = false
 let onRecaptchaSolvedListener: (() => void) | null = null
+/** True while render/signInWithPhoneNumber is in progress — blocks teardown. */
+let sendInFlight = false
 
 export function setRecaptchaSolvedListener(listener: (() => void) | null): void {
   onRecaptchaSolvedListener = listener
@@ -25,6 +27,10 @@ export function setRecaptchaSolvedListener(listener: (() => void) | null): void 
 
 export function wasRecaptchaSolved(): boolean {
   return recaptchaSolved
+}
+
+export function isPhoneOtpSendInFlight(): boolean {
+  return sendInFlight
 }
 
 /**
@@ -41,7 +47,13 @@ function toE164(phone: string): string {
 }
 
 /** Tear down only the reCAPTCHA widget/verifier (keeps any pending SMS session). */
-export function clearRecaptcha(): void {
+export function clearRecaptcha(options?: { force?: boolean }): void {
+  // Never destroy the widget mid-send — Soft-nav remounts / Strict Mode cleanup
+  // used to clear the verifier while signInWithPhoneNumber was still waiting on
+  // the checkbox, which surfaced as "reCAPTCHA client element has been removed".
+  // Explicit Retry/reset passes force:true so a stuck attempt can start fresh.
+  if (sendInFlight && !options?.force) return
+  sendInFlight = false
   if (recaptchaVerifier) {
     try {
       recaptchaVerifier.clear()
@@ -54,9 +66,27 @@ export function clearRecaptcha(): void {
   recaptchaSolved = false
 }
 
+/**
+ * Resolve once the visible reCAPTCHA checkbox has been solved (or already is).
+ * No hard timeout — the UI stays on "awaiting captcha" until the user acts.
+ */
+export function waitForRecaptchaSolved(): Promise<void> {
+  if (recaptchaSolved) {
+    onRecaptchaSolvedListener?.()
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => {
+    const previous = onRecaptchaSolvedListener
+    onRecaptchaSolvedListener = () => {
+      previous?.()
+      resolve()
+    }
+  })
+}
+
 export function clearPhoneAuthSession(): void {
   confirmationResult = null
-  clearRecaptcha()
+  clearRecaptcha({ force: true })
 }
 
 function getRecaptchaVerifier(containerId = "recaptcha-container"): RecaptchaVerifier {
@@ -118,11 +148,35 @@ export async function renderRecaptcha(containerId = "recaptcha-container"): Prom
 }
 
 /**
+ * Show the visible reCAPTCHA and wait until the checkbox is solved.
+ * Call this *before* applying a send timeout so users aren't timed out
+ * while still ticking “I'm not a robot”.
+ */
+export async function preparePhoneOtpCaptcha(
+  containerId = "recaptcha-container"
+): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error("Firebase is not configured")
+  }
+  sendInFlight = true
+  try {
+    const verifier = getRecaptchaVerifier(containerId)
+    await verifier.render()
+    await waitForRecaptchaSolved()
+  } catch (err) {
+    sendInFlight = false
+    throw err
+  }
+}
+
+/**
  * Request a real Firebase phone OTP. Resolves ONLY after
  * `signInWithPhoneNumber` successfully returns a ConfirmationResult that
  * includes a non-empty verificationId. A resolve here means Firebase Auth
  * accepted the request — it does NOT by itself guarantee carrier SMS delivery
  * (and Firebase test numbers never send SMS at all).
+ *
+ * Prefer `preparePhoneOtpCaptcha()` first so any timeout only covers SMS send.
  *
  * @returns The verificationId from the ConfirmationResult (for success logging).
  */
@@ -133,22 +187,30 @@ export async function sendPhoneOtp(
   if (!isFirebaseConfigured()) {
     throw new Error("Firebase is not configured")
   }
-  const auth = getFirebaseAuth()
-  const verifier = getRecaptchaVerifier(containerId)
-  await verifier.render()
-  const result = await signInWithPhoneNumber(auth, toE164(phone), verifier)
-  const verificationId =
-    typeof result?.verificationId === "string" ? result.verificationId.trim() : ""
-  if (!verificationId) {
-    // Defensive: Firebase should always return a verificationId on success.
-    // Treat a missing one as a hard failure so the UI never shows a false "sent".
-    confirmationResult = null
-    throw new Error(
-      "Firebase accepted the request but did not return a verification ID. Please try again."
-    )
+  sendInFlight = true
+  try {
+    const auth = getFirebaseAuth()
+    const verifier = getRecaptchaVerifier(containerId)
+    await verifier.render()
+    if (!recaptchaSolved) {
+      await waitForRecaptchaSolved()
+    }
+    const result = await signInWithPhoneNumber(auth, toE164(phone), verifier)
+    const verificationId =
+      typeof result?.verificationId === "string" ? result.verificationId.trim() : ""
+    if (!verificationId) {
+      // Defensive: Firebase should always return a verificationId on success.
+      // Treat a missing one as a hard failure so the UI never shows a false "sent".
+      confirmationResult = null
+      throw new Error(
+        "Firebase accepted the request but did not return a verification ID. Please try again."
+      )
+    }
+    confirmationResult = result
+    return { verificationId }
+  } finally {
+    sendInFlight = false
   }
-  confirmationResult = result
-  return { verificationId }
 }
 
 export async function confirmPhoneOtp(code: string): Promise<void> {

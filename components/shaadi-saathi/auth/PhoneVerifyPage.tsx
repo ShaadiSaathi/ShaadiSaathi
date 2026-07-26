@@ -6,13 +6,17 @@ import { useEffect, useState } from "react"
 import AuthCard from "@/components/shaadi-saathi/auth/AuthCard"
 import FirebaseOtpGate from "@/components/shaadi-saathi/auth/FirebaseOtpGate"
 import { useAuth, type PendingFlow } from "@/components/shaadi-saathi/auth/AuthContext"
+import {
+  readPersistedPending,
+  type PersistedPending,
+} from "@/lib/auth/pending-session"
 
 type VerifyKind = "family-signup" | "family-login" | "vendor-signup" | "vendor-login"
 
 const CONFIG: Record<
   VerifyKind,
   {
-    flow: PendingFlow
+    flow: Exclude<PendingFlow, null>
     backHref: string
     successHref: string
     variant: "family" | "vendor"
@@ -61,32 +65,48 @@ interface PhoneVerifyPageProps {
   kind: VerifyKind
 }
 
+function peekStoredPending(flow: PersistedPending["flow"]) {
+  const stored = readPersistedPending()
+  if (!stored || stored.flow !== flow || !stored.phone) return null
+  return stored
+}
+
 /**
  * Shared phone OTP verify screen for family + vendor login/signup.
  * Keeps vendor and family on the same FirebaseOtpGate path so fixes can't drift.
  */
 export default function PhoneVerifyPage({ kind }: PhoneVerifyPageProps) {
   const router = useRouter()
-  const { pending, verifyOtp, confirmOtp } = useAuth()
+  const { pending, hydratePending, verifyOtp, confirmOtp } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const config = CONFIG[kind]
+  const flow = config.flow
 
-  const [ready, setReady] = useState(false)
+  // Sync read of sessionStorage (no setState) covers the soft-nav race where
+  // loginFamily wrote storage but React hasn't flushed context pending yet.
+  const stored = peekStoredPending(flow)
+  const activePhone =
+    pending?.flow === flow && pending.phone
+      ? pending.phone
+      : stored?.phone ?? null
 
   useEffect(() => {
-    const t = window.setTimeout(() => setReady(true), 50)
+    if (pending?.flow === flow && pending.phone) return
+    hydratePending(flow)
+  }, [pending, flow, hydratePending])
+
+  useEffect(() => {
+    if (activePhone) return
+    const t = window.setTimeout(() => {
+      if (!hydratePending(flow)?.phone && !peekStoredPending(flow)) {
+        router.replace(config.backHref)
+      }
+    }, 600)
     return () => window.clearTimeout(t)
-  }, [])
+  }, [activePhone, hydratePending, flow, router, config.backHref])
 
-  useEffect(() => {
-    if (!ready) return
-    if (!pending || pending.flow !== config.flow) {
-      router.replace(config.backHref)
-    }
-  }, [ready, pending, router, config.flow, config.backHref])
-
-  if (!ready || !pending || pending.flow !== config.flow) {
+  if (!activePhone) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center text-sm text-maroon/50">
         Preparing verification…
@@ -136,7 +156,7 @@ export default function PhoneVerifyPage({ kind }: PhoneVerifyPageProps) {
       }
     >
       <FirebaseOtpGate
-        phone={pending.phone}
+        phone={activePhone}
         onVerify={handleVerify}
         verifyLoading={loading}
         verifyError={error}
