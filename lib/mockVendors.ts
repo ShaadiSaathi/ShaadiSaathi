@@ -25,7 +25,13 @@ export type VendorCategoryId =
   | "dholki-sangeet"
   | "tent-marquee"
 
-export type BookingStatus = "requested" | "confirmed" | "declined" | "no_show"
+export type BookingStatus =
+  | "requested"
+  | "confirmed"
+  | "completed"
+  | "disputed"
+  | "declined"
+  | "no_show"
 
 export interface VendorCategory {
   id: VendorCategoryId
@@ -603,11 +609,14 @@ export function getEventAvailability(vendor: Vendor, eventId: EventId) {
   }
 }
 
-export function getBookingProgress(bookings: VendorBooking[]) {
+export function getBookingProgress(
+  bookings: VendorBooking[],
+  resolveVendor: (vendorId: string) => Vendor | undefined = getVendorById
+) {
   const bookedCategories = new Set<VendorCategoryId>()
   for (const booking of bookings) {
     if (booking.status === "declined" || booking.status === "no_show") continue
-    const vendor = getVendorById(booking.vendorId)
+    const vendor = resolveVendor(booking.vendorId)
     if (vendor) bookedCategories.add(vendor.categoryId)
   }
   const bookedEssential = ESSENTIAL_VENDOR_CATEGORIES.filter((c) =>
@@ -620,7 +629,22 @@ export function getBookingProgress(bookings: VendorBooking[]) {
   }
 }
 
-export const CITIES = [...new Set(VENDORS.map((v) => v.city))].sort()
+/** Static city list for signup/filters — not derived from mock catalog. */
+export const CITIES = [
+  "Lahore",
+  "Karachi",
+  "Islamabad",
+  "Rawalpindi",
+  "Faisalabad",
+  "Multan",
+  "Peshawar",
+  "Quetta",
+] as const
+
+export function formatStartingPriceLabel(amount: number | undefined | null): string {
+  if (amount == null || amount <= 0) return "Price on request"
+  return formatStartingPrice(amount)
+}
 
 export const PRICE_RANGES = [
   { label: "Any price", min: 0, max: Infinity },

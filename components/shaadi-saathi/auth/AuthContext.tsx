@@ -24,12 +24,13 @@ import { friendlyAuthErrorMessage, rawAuthErrorInfo, withTimeout } from "@/lib/f
 import { logVerificationError } from "@/lib/firebase/verification-errors"
 import { logVerificationSuccess } from "@/lib/firebase/verification-success"
 import {
+  DEMO_VENDOR_ID,
   DEMO_WEDDING_ID,
   createWeddingForUser,
-  ensureDemoVendorSeeded,
   ensureFamilyWedding as ensureFamilyWeddingRecord,
   getWeddingForUser,
 } from "@/lib/firebase/seed"
+import { createVendorForUser, getVendor, getVendorForUser } from "@/lib/firebase/vendors"
 import {
   readTesterModeFromStorage,
   writeTesterModeToStorage,
@@ -107,7 +108,7 @@ interface AuthContextValue {
   verifyOtp: (code: string) => boolean
   confirmOtp: (code: string) => Promise<void>
   completeFamilyOnboarding: (weddingName: string, firstEventDate: string) => Promise<string>
-  completeVendorOnboarding: (bio: string, coverPhotoPreview?: string) => void
+  completeVendorOnboarding: (bio: string, coverPhotoPreview?: string) => Promise<void>
   completePasswordReset: (password: string) => void
   /** Create/relink a wedding when invite link is missing, then return its id. */
   ensureFamilyWedding: () => Promise<string>
@@ -203,15 +204,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             uid: user.uid,
           })
         } else if (profile?.role === "vendor") {
-          setVendorId(profile.vendorId ?? null)
+          const vendor = profile.vendorId
+            ? await getVendor(profile.vendorId)
+            : await getVendorForUser(user.uid)
+          setVendorId(vendor?.id ?? profile.vendorId ?? null)
           setWeddingId(null)
           setFamilyUser(null)
           setVendorUser({
-            businessName: profile.name,
-            categoryId: DEFAULT_VENDOR.categoryId,
-            city: DEFAULT_VENDOR.city,
-            phone: profile.phone,
-            bio: DEFAULT_VENDOR.bio,
+            businessName: vendor?.businessName ?? profile.name,
+            categoryId: vendor?.categoryId ?? "catering",
+            city: vendor?.city ?? "",
+            phone: vendor?.phone ?? profile.phone,
+            bio: vendor?.bio ?? "",
             uid: user.uid,
           })
         }
@@ -386,15 +390,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         setPending(null)
       } else if (pending.flow === "vendor-login") {
-        const id = await ensureDemoVendorSeeded(user.uid, {
-          businessName: DEFAULT_VENDOR.businessName,
-          categoryId: DEFAULT_VENDOR.categoryId,
-          city: DEFAULT_VENDOR.city,
-          phone: pending.phone,
-          bio: DEFAULT_VENDOR.bio,
+        const profile = await getUserProfile(getFirestoreDb(), user.uid)
+        const vendor =
+          (profile?.vendorId ? await getVendor(profile.vendorId) : null) ??
+          (await getVendorForUser(user.uid))
+
+        if (!vendor) {
+          throw new Error(
+            "No vendor profile found for this number. Please sign up as a vendor first."
+          )
+        }
+
+        setVendorId(vendor.id)
+        setVendorUser({
+          businessName: vendor.businessName,
+          categoryId: vendor.categoryId,
+          city: vendor.city,
+          phone: vendor.phone || pending.phone,
+          bio: vendor.bio,
+          uid: user.uid,
         })
-        setVendorId(id)
-        setVendorUser({ ...DEFAULT_VENDOR, phone: pending.phone, uid: user.uid })
         setPending(null)
       }
     },
@@ -490,10 +505,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const completeVendorOnboarding = useCallback(
     async (bio: string, coverPhotoPreview?: string) => {
-      if (!pending?.vendor) return
+      if (!pending?.vendor) {
+        throw new Error("Signup session expired. Please start again.")
+      }
 
-      if (isFirebaseMode && firebaseUser) {
-        const id = await ensureDemoVendorSeeded(firebaseUser.uid, {
+      if (isFirebaseMode) {
+        const authUser = firebaseUser ?? getFirebaseAuth().currentUser
+        if (!authUser) {
+          throw new Error("Sign-in expired. Please verify your phone again.")
+        }
+        const id = await createVendorForUser(authUser.uid, {
           ...pending.vendor,
           bio: bio.trim(),
         })
@@ -502,7 +523,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...pending.vendor,
           bio: bio.trim(),
           coverPhotoPreview,
-          uid: firebaseUser.uid,
+          uid: authUser.uid,
         })
       } else {
         setVendorUser({
@@ -510,6 +531,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           bio: bio.trim(),
           coverPhotoPreview,
         })
+        setVendorId(DEMO_VENDOR_ID)
       }
       setPending(null)
     },

@@ -4,6 +4,7 @@ import { GuestsProvider } from "@/components/shaadi-saathi/guests/GuestsContext"
 import { MessagesProvider } from "@/components/shaadi-saathi/messages/MessagesContext"
 import { TasksProvider } from "@/components/shaadi-saathi/tasks/TasksContext"
 import { VendorBookingsProvider } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
+import { VendorsDirectoryProvider } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 
 export default function ShaadiAppLayout({
   children,
@@ -15,9 +16,11 @@ export default function ShaadiAppLayout({
       <GuestsProvider>
         <TasksProvider>
           <EventDetailProvider>
-            <VendorBookingsProvider>
-              <AppShell>{children}</AppShell>
-            </VendorBookingsProvider>
+            <VendorsDirectoryProvider>
+              <VendorBookingsProvider>
+                <AppShell>{children}</AppShell>
+              </VendorBookingsProvider>
+            </VendorsDirectoryProvider>
           </EventDetailProvider>
         </TasksProvider>
       </GuestsProvider>

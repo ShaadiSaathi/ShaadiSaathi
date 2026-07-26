@@ -7,7 +7,7 @@ import { useAuth } from "./AuthContext"
 import { mockAuthDelay, validateRequired } from "./authValidation"
 
 interface VendorOnboardingStepProps {
-  onComplete?: (bio: string, coverPhotoPreview?: string) => void
+  onComplete?: (bio: string, coverPhotoPreview?: string) => void | Promise<void>
 }
 
 /** Short vendor profile setup after signup OTP */
@@ -57,7 +57,7 @@ export default function VendorOnboardingStep({ onComplete }: VendorOnboardingSte
     try {
       await mockAuthDelay()
       if (onComplete) {
-        onComplete(bio, coverPreview)
+        await onComplete(bio, coverPreview)
       } else {
         await completeVendorOnboarding(bio, coverPreview)
         router.push("/vendor/dashboard")

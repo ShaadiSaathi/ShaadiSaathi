@@ -1,8 +1,9 @@
 import Link from "next/link"
 import type { VendorBooking } from "@/lib/mockVendors"
-import { formatPrice, getVendorById } from "@/lib/mockVendors"
+import { formatPrice } from "@/lib/mockVendors"
 import EmergencyBackupList from "./EmergencyBackupList"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 
 interface NoShowStateProps {
   booking: VendorBooking
@@ -10,6 +11,7 @@ interface NoShowStateProps {
 
 /** Calm, reassuring no-show UI — not a cold error state */
 export default function NoShowState({ booking }: NoShowStateProps) {
+  const { getVendorById } = useVendorsDirectory()
   const vendor = getVendorById(booking.vendorId)
   const refundAmount = booking.payment?.refundAmount ?? booking.payment?.depositAmount ?? 0
 

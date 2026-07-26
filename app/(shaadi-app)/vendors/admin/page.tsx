@@ -3,12 +3,13 @@
 import Link from "next/link"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
-import { getAllVendors, getCategoryById } from "@/lib/mockVendors"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
+import { getCategoryById } from "@/lib/mockVendors"
 
-/** Mock vendor admin view — PLACEHOLDER for full vendor portal */
+/** Vendor reliability admin view — uses live directory vendors */
 export default function VendorAdminPage() {
   const { vendorReliability } = useVendorBookings()
-  const vendors = getAllVendors()
+  const { vendors } = useVendorsDirectory()
 
   return (
     <PageTransition>

@@ -17,8 +17,8 @@ export default function VendorSignupOnboardingPage() {
       subtitle="Help families discover your business."
     >
       <VendorOnboardingStep
-        onComplete={(bio, cover) => {
-          completeVendorOnboarding(bio, cover)
+        onComplete={async (bio, cover) => {
+          await completeVendorOnboarding(bio, cover)
           router.push("/vendor/dashboard")
         }}
       />

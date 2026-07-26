@@ -9,15 +9,15 @@ import BookingModal from "@/components/shaadi-saathi/vendors/BookingModal"
 import CategoryIcon from "@/components/shaadi-saathi/vendors/CategoryIcon"
 import FamilyConsultThread from "@/components/shaadi-saathi/vendors/FamilyConsultThread"
 import MessageModal from "@/components/shaadi-saathi/vendors/MessageModal"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 import { NewVendorBadge } from "@/components/shaadi-saathi/shared/StatusBadge"
 import { isNewVendor } from "@/lib/mockVendorPortal"
 import { EVENTS } from "@/lib/mockData"
 import {
   formatPrice,
-  formatStartingPrice,
+  formatStartingPriceLabel,
   getCategoryById,
   getEventAvailability,
-  getVendorById,
 } from "@/lib/mockVendors"
 
 interface VendorDetailPageProps {
@@ -27,6 +27,7 @@ interface VendorDetailPageProps {
 export default function VendorDetailPage({ params }: VendorDetailPageProps) {
   const { id } = use(params)
   const searchParams = useSearchParams()
+  const { getVendorById, loading } = useVendorsDirectory()
   const vendor = getVendorById(id)
   const [galleryIndex, setGalleryIndex] = useState(0)
   const [showBooking, setShowBooking] = useState(false)
@@ -36,12 +37,21 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
     if (searchParams.get("rebook") === "1") setShowBooking(true)
   }, [searchParams])
 
+  if (loading && !vendor) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center text-maroon/50">
+        Loading vendor…
+      </div>
+    )
+  }
+
   if (!vendor) {
     notFound()
   }
 
   const category = getCategoryById(vendor.categoryId)
   const images = [vendor.coverGradient, ...vendor.galleryGradients]
+  const hasPackages = Boolean(vendor.packages && vendor.packages.length > 0)
 
   return (
     <PageTransition>
@@ -52,8 +62,6 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
         ← Back to vendors
       </Link>
 
-      {/* Photo gallery — PLACEHOLDER gradients until real photos */}
-      {/* Mobile: horizontal snap carousel */}
       <section aria-label="Vendor gallery" className="mb-6 md:hidden">
         <div className="-mx-4 flex snap-x snap-mandatory overflow-x-auto scrollbar-none">
           {images.map((gradient, i) => (
@@ -72,9 +80,11 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
             ))}
           </div>
         )}
+        <p className="mt-2 text-center text-xs text-maroon/45">
+          Photos coming soon — this vendor is still completing their gallery.
+        </p>
       </section>
 
-      {/* Desktop: indexed gallery */}
       <section
         aria-label="Vendor gallery"
         className="mb-6 hidden overflow-hidden rounded-2xl border border-gold/20 md:block"
@@ -100,6 +110,9 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
             </div>
           )}
         </div>
+        <p className="border-t border-gold/15 bg-white px-4 py-2 text-xs text-maroon/50">
+          Photos coming soon — ask the vendor for recent work when you message them.
+        </p>
       </section>
 
       <header className="mb-6">
@@ -132,13 +145,14 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
             )}
           </div>
         </div>
-        <p className="mt-4 leading-relaxed text-maroon/75">{vendor.bio}</p>
+        <p className="mt-4 leading-relaxed text-maroon/75">
+          {vendor.bio || "This vendor is still completing their profile bio."}
+        </p>
         <p className="mt-2 text-sm font-medium text-gold-dark">
-          {formatStartingPrice(vendor.startingPrice)}
+          {formatStartingPriceLabel(vendor.startingPrice)}
         </p>
       </header>
 
-      {/* Availability for wedding dates */}
       <section aria-labelledby="availability-heading" className="mb-6">
         <h2 id="availability-heading" className="mb-3 font-display text-lg font-semibold text-maroon-dark">
           Availability for your wedding
@@ -167,14 +181,13 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
         </ul>
       </section>
 
-      {/* Packages */}
-      {vendor.packages && vendor.packages.length > 0 && (
+      {hasPackages ? (
         <section aria-labelledby="packages-heading" className="mb-6">
           <h2 id="packages-heading" className="mb-3 font-display text-lg font-semibold text-maroon-dark">
             Packages
           </h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {vendor.packages.map((pkg) => (
+            {vendor.packages!.map((pkg) => (
               <div
                 key={pkg.name}
                 className="rounded-2xl border border-gold/20 bg-white p-5 shadow-sm"
@@ -188,9 +201,17 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
             ))}
           </div>
         </section>
+      ) : (
+        <section aria-labelledby="packages-heading" className="mb-6 rounded-2xl border border-dashed border-gold/30 bg-gold/5 px-5 py-4">
+          <h2 id="packages-heading" className="font-display text-lg font-semibold text-maroon-dark">
+            Packages
+          </h2>
+          <p className="mt-1 text-sm text-maroon/60">
+            Packages not listed yet — message this vendor for a custom quote.
+          </p>
+        </section>
       )}
 
-      {/* Reviews */}
       {vendor.reviews.length > 0 && (
         <section aria-labelledby="reviews-heading" className="mb-8">
           <h2 id="reviews-heading" className="mb-4 font-display text-lg font-semibold text-maroon-dark">
@@ -222,7 +243,6 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
 
       <FamilyConsultThread vendor={vendor} onProceed={() => setShowBooking(true)} />
 
-      {/* CTAs — sticky above bottom tab bar on mobile */}
       <div className="sticky bottom-24 z-10 -mx-4 flex gap-3 border-t border-gold/15 bg-ivory/95 px-4 py-3 backdrop-blur-sm md:static md:z-auto md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0">
         <GoldButton onClick={() => setShowBooking(true)} className="min-h-[44px] flex-1">
           Request Booking

@@ -13,13 +13,15 @@ import { EVENT_VENDOR_CATEGORIES } from "@/lib/mockData"
 import {
   formatPrice,
   getCategoryById,
-  getVendorById,
   type VendorBooking,
 } from "@/lib/mockVendors"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 
 const STATUS_STYLES = {
   requested: "bg-amber-50 text-amber-800 border-amber-200",
   confirmed: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  completed: "bg-sky-50 text-sky-800 border-sky-200",
+  disputed: "bg-orange-50 text-orange-800 border-orange-200",
   declined: "bg-rose-50 text-rose-800 border-rose-200",
   no_show: "bg-rose-50 text-rose-800 border-rose-200",
 } as const
@@ -27,6 +29,8 @@ const STATUS_STYLES = {
 const STATUS_LABELS = {
   requested: "Requested",
   confirmed: "Confirmed",
+  completed: "Completed",
+  disputed: "Disputed",
   declined: "Declined",
   no_show: "No-show",
 } as const
@@ -42,6 +46,7 @@ export default function EventVendorsList({
   eventName,
   bookings,
 }: EventVendorsListProps) {
+  const { getVendorById } = useVendorsDirectory()
   const eventBookings = bookings.filter((b) => b.eventId === eventId)
   const browseUrl = `/vendors?event=${eventId}`
 

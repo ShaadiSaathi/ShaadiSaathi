@@ -4,8 +4,8 @@ import { use } from "react"
 import BookingChat from "@/components/shaadi-saathi/chat/BookingChat"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { EVENTS } from "@/lib/mockData"
-import { getVendorById } from "@/lib/mockVendors"
 import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -15,6 +15,7 @@ export default function FamilyBookingMessagesPage({ params }: PageProps) {
   const { id } = use(params)
   const { familyUser, firebaseUser } = useAuth()
   const { bookings } = useVendorBookings()
+  const { getVendorById } = useVendorsDirectory()
   const booking = bookings.find((b) => b.id === id)
   const vendor = booking ? getVendorById(booking.vendorId) : null
   const event = booking ? EVENTS.find((e) => e.id === booking.eventId) : null

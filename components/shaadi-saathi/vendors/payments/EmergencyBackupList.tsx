@@ -3,8 +3,8 @@
 import Link from "next/link"
 import VendorCard from "@/components/shaadi-saathi/vendors/VendorCard"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 import type { VendorCategoryId } from "@/lib/mockVendors"
-import { getAllVendors } from "@/lib/mockVendors"
 import { sortEmergencyBackups } from "@/lib/premium"
 
 interface EmergencyBackupListProps {
@@ -22,9 +22,10 @@ export default function EmergencyBackupList({
   max = 3,
 }: EmergencyBackupListProps) {
   const { isFamilyPremium } = usePremium()
+  const { vendors } = useVendorsDirectory()
 
   const backups = sortEmergencyBackups(
-    getAllVendors().filter(
+    vendors.filter(
       (v) =>
         v.id !== excludeVendorId &&
         v.categoryId === categoryId &&

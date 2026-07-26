@@ -106,6 +106,13 @@ export interface FirestoreGuest {
   updatedAt: number
 }
 
+export interface FirestoreVendorPackage {
+  name: string
+  price: number
+  perHead?: boolean
+  description: string
+}
+
 export interface FirestoreVendor {
   id: string
   businessName: string
@@ -116,6 +123,23 @@ export interface FirestoreVendor {
   ownerUid: string
   subscriptionTier: "basic" | "featured"
   createdAt: number
+  /** Optional listing fields — filled later in vendor profile */
+  startingPrice?: number
+  coverGradient?: string
+  galleryGradients?: string[]
+  coverPhotoUrl?: string
+  photoUrls?: string[]
+  packages?: FirestoreVendorPackage[]
+  availableFor?: EventId[]
+  emergencyAvailable?: boolean
+  reliabilityScore?: number
+  noShowCount?: number
+  suspended?: boolean
+  acceptsCardInPerson?: boolean
+  completedJobsCount?: number
+  featuredBoost?: number
+  rating?: number
+  reviewCount?: number
 }
 
 export interface FirestoreBookingDispute {

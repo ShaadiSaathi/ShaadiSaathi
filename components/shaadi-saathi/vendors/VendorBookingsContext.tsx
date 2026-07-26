@@ -22,7 +22,7 @@ import {
   VENDORS,
   type VendorBooking,
   type BookingStatus,
-  getVendorById,
+  getVendorById as getMockVendorById,
 } from "@/lib/mockVendors"
 import {
   createBookingInFirestore,
@@ -30,6 +30,7 @@ import {
 } from "@/lib/firebase/bookings"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 
 interface CreateBookingInput {
   vendorId: string
@@ -75,24 +76,15 @@ interface VendorBookingsContextValue {
 
 const VendorBookingsContext = createContext<VendorBookingsContextValue | null>(null)
 
-function buildReliabilityMap(): Record<string, VendorReliability> {
+function buildReliabilityMap(
+  vendors: { id: string; reliabilityScore?: number; noShowCount?: number; suspended?: boolean }[]
+): Record<string, VendorReliability> {
   const map: Record<string, VendorReliability> = {}
-  for (const v of VENDORS) {
-    const normalized = getVendorById(v.id)
-    if (normalized) {
-      map[v.id] = {
-        reliabilityScore: normalized.reliabilityScore ?? 90,
-        noShowCount: normalized.noShowCount ?? 0,
-        suspended: normalized.suspended ?? false,
-      }
-    }
-  }
-  // Sync vendor-14 from demo no-show booking
-  if (map["vendor-14"]) {
-    map["vendor-14"] = {
-      reliabilityScore: 72,
-      noShowCount: 1,
-      suspended: false,
+  for (const v of vendors) {
+    map[v.id] = {
+      reliabilityScore: v.reliabilityScore ?? 90,
+      noShowCount: v.noShowCount ?? 0,
+      suspended: v.suspended ?? false,
     }
   }
   return map
@@ -101,6 +93,7 @@ function buildReliabilityMap(): Record<string, VendorReliability> {
 export function VendorBookingsProvider({ children }: { children: ReactNode }) {
   const { weddingId: authWeddingId, familyUser, isFirebaseMode: firebaseMode } = useAuth()
   const { weddingId: ctxWeddingId, wedding } = useWedding()
+  const { vendors, getVendorById } = useVendorsDirectory()
   const weddingId = authWeddingId ?? ctxWeddingId
   const useFirestore = firebaseMode && Boolean(weddingId)
 
@@ -109,7 +102,35 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
   const [bookings, setBookings] = useState<VendorBooking[]>(
     firebaseMode ? [] : INITIAL_BOOKINGS
   )
-  const [vendorReliability, setVendorReliability] = useState(buildReliabilityMap)
+  const [vendorReliability, setVendorReliability] = useState<
+    Record<string, VendorReliability>
+  >(() => buildReliabilityMap(firebaseMode ? [] : VENDORS))
+
+  useEffect(() => {
+    setVendorReliability((prev) => {
+      const next = buildReliabilityMap(vendors)
+      // Preserve runtime no-show adjustments for known ids
+      for (const [id, rel] of Object.entries(prev)) {
+        if (next[id]) {
+          next[id] = {
+            reliabilityScore: Math.min(next[id].reliabilityScore, rel.reliabilityScore),
+            noShowCount: Math.max(next[id].noShowCount, rel.noShowCount),
+            suspended: next[id].suspended || rel.suspended,
+          }
+        } else {
+          next[id] = rel
+        }
+      }
+      if (!firebaseMode && next["vendor-14"]) {
+        next["vendor-14"] = {
+          reliabilityScore: 72,
+          noShowCount: 1,
+          suspended: false,
+        }
+      }
+      return next
+    })
+  }, [vendors, firebaseMode])
 
   // Subscribe to this wedding's bookings. We reconcile by keeping any existing
   // in-memory booking (which may carry optimistic payment-lifecycle state) and
@@ -209,7 +230,7 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
       // Persist to Firestore, scoped to this wedding, so it survives reloads
       // and only ever belongs to the current account.
       if (useFirestore && weddingId) {
-        const vendor = getVendorById(input.vendorId)
+        const vendor = getVendorById(input.vendorId) ?? getMockVendorById(input.vendorId)
         void createBookingInFirestore({
           id,
           weddingId,
@@ -228,7 +249,7 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
       }
       return booking
     },
-    [useFirestore, weddingId, familyUser, wedding]
+    [useFirestore, weddingId, familyUser, wedding, getVendorById]
   )
 
   const vendorCheckIn = useCallback((bookingId: string, photo: CheckInPhoto) => {

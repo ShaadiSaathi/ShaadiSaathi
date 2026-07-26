@@ -10,6 +10,7 @@ import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
 import { useTasks } from "@/components/shaadi-saathi/tasks/TasksContext"
 import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import { getBookingProgress } from "@/lib/mockVendors"
 import {
@@ -28,6 +29,7 @@ const EVENT_DOT: Record<string, string> = {
 
 export default function DashboardPage() {
   const { bookings } = useVendorBookings()
+  const { getVendorById } = useVendorsDirectory()
   const { guests } = useGuests()
   const { tasks } = useTasks()
   const { familyUser } = useAuth()
@@ -40,7 +42,7 @@ export default function DashboardPage() {
     outstanding: tasks.filter((t) => t.status !== "done").length,
     total: tasks.length,
   }
-  const vendorProgress = getBookingProgress(bookings)
+  const vendorProgress = getBookingProgress(bookings, getVendorById)
   const daysUntil = nextEvent ? getDaysUntil(nextEvent.date) : 0
   const weddingName = familyUser?.weddingName || wedding?.name || "Your wedding"
 

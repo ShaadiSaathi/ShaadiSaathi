@@ -8,11 +8,11 @@ import VendorCard from "@/components/shaadi-saathi/vendors/VendorCard"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
+import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 import { EVENTS, type EventId } from "@/lib/mockData"
 import {
   CITIES,
   PRICE_RANGES,
-  VENDORS,
   type VendorCategoryId,
 } from "@/lib/mockVendors"
 import { sortVendorsForBrowse } from "@/lib/premium"
@@ -34,25 +34,38 @@ export default function VendorsBrowsePage() {
 function VendorsBrowseContent() {
   const searchParams = useSearchParams()
   const eventParam = searchParams.get("event")
+  const categoryParam = searchParams.get("category") as VendorCategoryId | null
   const eventContext = EVENTS.find((e) => e.id === eventParam)?.id as EventId | undefined
 
-  const [category, setCategory] = useState<VendorCategoryId | "all">("all")
+  const { vendors, loading } = useVendorsDirectory()
+  const [category, setCategory] = useState<VendorCategoryId | "all">(
+    categoryParam && categoryParam.length > 0 ? categoryParam : "all"
+  )
   const [search, setSearch] = useState("")
   const [city, setCity] = useState("all")
   const [priceRange, setPriceRange] = useState(0)
   const [minRating, setMinRating] = useState(0)
 
+  const cityOptions = useMemo(() => {
+    const fromVendors = vendors.map((v) => v.city).filter(Boolean)
+    return [...new Set([...CITIES, ...fromVendors])].sort()
+  }, [vendors])
+
   const filtered = useMemo(() => {
     const range = PRICE_RANGES[priceRange] ?? PRICE_RANGES[0]
-    const matches = VENDORS.filter((v) => {
+    const matches = vendors.filter((v) => {
       const matchesCategory = category === "all" || v.categoryId === category
       const matchesSearch =
         search === "" ||
         v.name.toLowerCase().includes(search.toLowerCase()) ||
         v.bio.toLowerCase().includes(search.toLowerCase())
       const matchesCity = city === "all" || v.city === city
-      const matchesPrice = v.startingPrice >= range.min && v.startingPrice <= range.max
-      const matchesRating = v.rating >= minRating
+      const price = v.startingPrice > 0 ? v.startingPrice : 0
+      const matchesPrice =
+        price === 0
+          ? range.min === 0
+          : price >= range.min && price <= range.max
+      const matchesRating = minRating === 0 || v.rating >= minRating
       const matchesEvent = !eventContext || v.availableFor.includes(eventContext)
       return (
         matchesCategory &&
@@ -64,7 +77,7 @@ function VendorsBrowseContent() {
       )
     })
     return sortVendorsForBrowse(matches)
-  }, [category, search, city, priceRange, minRating, eventContext])
+  }, [vendors, category, search, city, priceRange, minRating, eventContext])
 
   return (
     <PageTransition>
@@ -95,7 +108,6 @@ function VendorsBrowseContent() {
         </div>
       )}
 
-      {/* Search & filters */}
       <div className="mb-5 space-y-3">
         <label className="sr-only" htmlFor="vendor-search">
           Search vendors
@@ -117,7 +129,7 @@ function VendorsBrowseContent() {
             className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
           >
             <option value="all">All cities</option>
-            {CITIES.map((c) => (
+            {cityOptions.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -156,15 +168,23 @@ function VendorsBrowseContent() {
           Vendor listings
         </h2>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="flex min-h-[30vh] items-center justify-center text-maroon/50">
+            Loading vendors…
+          </div>
+        ) : filtered.length === 0 ? (
           <EmptyState
             icon={
               <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             }
-            title="No vendors match"
-            description="Try adjusting your filters or search — our directory has caterers, photographers, mehndi artists, and more."
+            title={vendors.length === 0 ? "No vendors listed yet" : "No vendors match"}
+            description={
+              vendors.length === 0
+                ? "When vendors sign up on Shaadi Saathi, they will appear here for families to discover."
+                : "Try adjusting your filters or search — our directory has caterers, photographers, mehndi artists, and more."
+            }
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
