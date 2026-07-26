@@ -104,6 +104,83 @@ export async function addGuestToFirestore(
   await setDoc(doc(getFirestoreDb(), "guests", input.inviteToken), guest)
 }
 
+const ALL_EVENTS: EventId[] = ["mehndi", "baraat", "walima"]
+
+function normalizeGuestName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ")
+}
+
+/** Stable public-claim token so we can getDoc without listing the guests collection. */
+export function makeWeddingClaimInviteToken(weddingId: string, name: string): string {
+  const normalized = normalizeGuestName(name)
+  const slug = normalized
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 20)
+  const key = `${weddingId}:${normalized}`
+  let hash = 2166136261
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  const suffix = (hash >>> 0).toString(36)
+  return `${slug || "guest"}-w${suffix}`
+}
+
+/**
+ * Public wedding-invite claim: find-or-create a guest by stable token.
+ * Uses client Firestore (Admin API is currently broken on Vercel).
+ */
+export async function claimGuestOnWeddingInvite(input: {
+  weddingId: string
+  name: string
+  phone?: string
+}): Promise<{ inviteToken: string; created: boolean; name: string }> {
+  const name = input.name.trim()
+  if (name.length < 2 || name.length > 80) {
+    throw new Error("Please enter your name (at least 2 characters).")
+  }
+
+  const inviteToken = makeWeddingClaimInviteToken(input.weddingId, name)
+  const existing = await getGuestByInviteToken(inviteToken)
+  if (existing) {
+    return { inviteToken, created: false, name: existing.name }
+  }
+
+  const id = `guest-${inviteToken}`
+  const now = Date.now()
+  const rsvp = Object.fromEntries(
+    ALL_EVENTS.map((e) => [e, "pending" as RsvpStatus])
+  ) as Record<EventId, RsvpStatus | null>
+  const rsvpSource = Object.fromEntries(
+    ALL_EVENTS.map((e) => [e, "organiser" as RsvpSource])
+  ) as Record<EventId, RsvpSource | null>
+  const rsvpUpdatedAt = Object.fromEntries(
+    ALL_EVENTS.map((e) => [e, null])
+  ) as Record<EventId, number | null>
+  const rsvpOrganiserAlert = Object.fromEntries(
+    ALL_EVENTS.map((e) => [e, false])
+  ) as Record<EventId, boolean>
+
+  const guest: FirestoreGuest = {
+    id,
+    weddingId: input.weddingId,
+    name,
+    phone: input.phone?.trim() || "+92 3XX ••• ••00",
+    events: ALL_EVENTS,
+    rsvp,
+    rsvpSource,
+    rsvpUpdatedAt,
+    rsvpOrganiserAlert,
+    inviteToken,
+    notes: "Joined via wedding invite link",
+    updatedAt: now,
+  }
+
+  await setDoc(doc(getFirestoreDb(), "guests", inviteToken), guest)
+  return { inviteToken, created: true, name }
+}
+
 export async function updateGuestRsvpByOrganiser(
   inviteToken: string,
   eventId: EventId,

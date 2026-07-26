@@ -34,6 +34,36 @@ service cloud.firestore {
       return changed.hasOnly(allowed);
     }
 
+    // Unauthenticated wedding-invite self-claim (create only). Doc id must
+    // equal inviteToken; wedding must exist; RSVP fields start as pending.
+    function isPublicWeddingGuestClaim() {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'id', 'weddingId', 'name', 'phone', 'events',
+          'rsvp', 'rsvpSource', 'rsvpUpdatedAt', 'rsvpOrganiserAlert',
+          'inviteToken', 'notes', 'updatedAt'
+        ])
+        && d.weddingId is string
+        && d.weddingId.size() > 0
+        && d.weddingId.size() <= 128
+        && exists(/databases/$(database)/documents/weddings/$(d.weddingId))
+        && d.name is string
+        && d.name.size() >= 2
+        && d.name.size() <= 80
+        && d.inviteToken is string
+        && d.inviteToken == request.resource.id
+        && d.id is string
+        && d.phone is string
+        && d.phone.size() <= 40
+        && d.events is list
+        && d.rsvp is map
+        && d.rsvpSource is map
+        && d.rsvpUpdatedAt is map
+        && d.rsvpOrganiserAlert is map
+        && d.updatedAt is number
+        && (!d.keys().hasAny(['notes']) || (d.notes is string && d.notes.size() <= 200));
+    }
+
     // Client-side OTP audit logs (written pre-auth). Shape/size limited;
     // readable by platform admin claim or Admin SDK only.
     function isValidVerificationError() {
@@ -78,8 +108,11 @@ service cloud.firestore {
       allow get: if true;
       allow list: if isPlatformAdmin()
         || (isSignedIn() && isWeddingMember(resource.data.weddingId));
-      allow create, delete: if isSignedIn()
-        && isWeddingMember(request.resource.data.weddingId);
+      allow create: if (isSignedIn()
+          && isWeddingMember(request.resource.data.weddingId))
+        || isPublicWeddingGuestClaim();
+      allow delete: if isSignedIn()
+        && isWeddingMember(resource.data.weddingId);
       allow update: if isWeddingMember(resource.data.weddingId)
         || guestRsvpOnlyUpdate();
     }

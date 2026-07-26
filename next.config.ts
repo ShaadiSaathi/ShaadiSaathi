@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
     "192.168.100.168",
     "192.168.100.71",
   ],
+  // Prevent Turbopack from bundling firebase-admin (fixes ERR_REQUIRE_ESM / jose on Vercel).
+  serverExternalPackages: ["firebase-admin"],
 };
 
 export default withSentryConfig(nextConfig, {

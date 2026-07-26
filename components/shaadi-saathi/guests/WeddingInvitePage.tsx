@@ -15,6 +15,7 @@ import {
 } from "@/lib/mockData"
 import { getInviteTheme, type InviteThemeId } from "@/lib/premium"
 import { isFirebaseConfigured } from "@/lib/firebase/config"
+import { claimGuestOnWeddingInvite } from "@/lib/firebase/guests"
 import { updateGuestRsvpBulkByGuestViaApi } from "@/lib/firebase/guest-rsvp-client"
 import { getWedding, subscribeWedding } from "@/lib/firebase/weddings"
 
@@ -111,20 +112,21 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
       return created.inviteToken
     }
 
-    const res = await fetch(`/api/invite/wedding/${encodeURIComponent(token)}/claim`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      const claimed = await claimGuestOnWeddingInvite({
+        weddingId: token,
         name: trimmed,
         phone: phone.trim() || undefined,
-      }),
-    })
-    const data = (await res.json()) as { inviteToken?: string; error?: string }
-    if (!res.ok || !data.inviteToken) {
-      setError(data.error ?? "Could not open your invitation. Please try again.")
+      })
+      return claimed.inviteToken
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not open your invitation. Please try again."
+      )
       return null
     }
-    return data.inviteToken
   }
 
   async function continueToRsvp(choiceOverride?: PendingChoice) {
@@ -140,11 +142,20 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
         isFirebaseConfigured() &&
         (choice === "confirmed" || choice === "declined")
       ) {
-        await updateGuestRsvpBulkByGuestViaApi(
-          inviteToken,
-          choice,
-          EVENTS.map((e) => e.id)
-        )
+        try {
+          await updateGuestRsvpBulkByGuestViaApi(
+            inviteToken,
+            choice,
+            EVENTS.map((e) => e.id)
+          )
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Something went wrong saving your response. Please try again."
+          )
+          return
+        }
       }
 
       setResolvedToken(inviteToken)
