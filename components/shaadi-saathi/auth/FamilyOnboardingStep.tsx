@@ -9,7 +9,7 @@ import { mockAuthDelay, validateRequired } from "./authValidation"
 /** One-screen family wedding setup after signup OTP */
 export default function FamilyOnboardingStep() {
   const router = useRouter()
-  const { pending, completeFamilyOnboarding, isFamilyLoggedIn } = useAuth()
+  const { pending, completeFamilyOnboarding, isFamilyLoggedIn, pendingCollaboratorInvites } = useAuth()
   const [weddingName, setWeddingName] = useState("")
   const [firstEventDate, setFirstEventDate] = useState("")
   const [loading, setLoading] = useState(false)
@@ -24,8 +24,12 @@ export default function FamilyOnboardingStep() {
     if (completingRef.current || isFamilyLoggedIn) return
     if (!pending || pending.flow !== "family-signup") {
       router.replace("/signup")
+      return
     }
-  }, [pending, isFamilyLoggedIn, router])
+    if (pendingCollaboratorInvites.length > 0) {
+      router.replace("/signup/join")
+    }
+  }, [pending, isFamilyLoggedIn, router, pendingCollaboratorInvites.length])
 
   if (
     !completingRef.current &&

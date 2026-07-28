@@ -17,7 +17,7 @@ import {
 import type { VendorCategoryId } from "@/lib/mockVendors"
 import { isFirebaseConfigured, getFirebaseAuth } from "@/lib/firebase/config"
 import { clearPhoneAuthSession, confirmPhoneOtp, preparePhoneOtpCaptcha, sendPhoneOtp } from "@/lib/firebase/phone-auth"
-import { getUserProfile } from "@/lib/firebase/users"
+import { getUserProfile, createUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
 import { getWedding } from "@/lib/firebase/weddings"
 import { friendlyAuthErrorMessage, rawAuthErrorInfo, withTimeout } from "@/lib/firebase/auth-errors"
@@ -32,6 +32,9 @@ import {
 } from "@/lib/firebase/seed"
 import { createVendorForUser, getVendor, getVendorForUser } from "@/lib/firebase/vendors"
 import { clearExistingAuthSession } from "@/lib/firebase/clear-auth-session"
+import { getPendingInvitesForPhone } from "@/lib/firebase/collaborators"
+import { acceptCollaboratorInviteApi } from "@/lib/firebase/collaborators-client"
+import type { FirestoreCollaboratorInvite } from "@/lib/firebase/types"
 import {
   clearPersistedPending,
   readPersistedPending,
@@ -123,6 +126,13 @@ interface AuthContextValue {
   clearPending: () => void
   /** Rehydrate pending from sessionStorage when soft-nav races clear React state. */
   hydratePending: (flow: Exclude<PendingFlow, null>) => PendingSignup | null
+  pendingCollaboratorInvites: FirestoreCollaboratorInvite[]
+  refreshPendingCollaboratorInvites: () => Promise<void>
+  acceptCollaboratorInvite: (inviteId: string) => Promise<void>
+  /** After family OTP verify — route to join flow or normal onboarding/dashboard. */
+  resolveFamilyPostVerifyPath: (
+    kind: "family-signup" | "family-login"
+  ) => Promise<string>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -184,6 +194,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [vendorId, setVendorId] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(firebaseConfigured)
   const [otpSent, setOtpSent] = useState(false)
+  const [pendingCollaboratorInvites, setPendingCollaboratorInvites] = useState<
+    FirestoreCollaboratorInvite[]
+  >([])
 
   const setPending = useCallback((next: PendingSignup | null) => {
     setPendingState(next)
@@ -461,6 +474,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           firstEventDate,
           uid: user.uid,
         })
+        if (isFirebaseMode && !id) {
+          const invites = await getPendingInvitesForPhone(pending.phone)
+          setPendingCollaboratorInvites(invites)
+        }
         setPending(null)
       } else if (pending.flow === "vendor-login") {
         const profile = await getUserProfile(getFirestoreDb(), user.uid)
@@ -484,9 +501,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           uid: user.uid,
         })
         setPending(null)
+      } else if (pending.flow === "family-signup") {
+        const existing = await getUserProfile(getFirestoreDb(), user.uid)
+        if (!existing) {
+          await createUserProfile(getFirestoreDb(), {
+            uid: user.uid,
+            role: "family",
+            phone: pending.phone,
+            name: pending.familyName ?? "Family",
+          })
+        }
+        setFamilyUser({
+          name: pending.familyName ?? existing?.name ?? "",
+          phone: pending.phone,
+          weddingName: "",
+          firstEventDate: "",
+          uid: user.uid,
+        })
+        if (isFirebaseMode) {
+          const invites = await getPendingInvitesForPhone(pending.phone)
+          setPendingCollaboratorInvites(invites)
+        }
       }
     },
     [isFirebaseMode, pending]
+  )
+
+  const refreshPendingCollaboratorInvites = useCallback(async () => {
+    const phone = pending?.phone ?? familyUser?.phone
+    if (!isFirebaseMode || !phone) {
+      setPendingCollaboratorInvites([])
+      return
+    }
+    const invites = await getPendingInvitesForPhone(phone)
+    setPendingCollaboratorInvites(invites)
+  }, [isFirebaseMode, pending?.phone, familyUser?.phone])
+
+  const acceptCollaboratorInvite = useCallback(
+    async (inviteId: string) => {
+      const result = await acceptCollaboratorInviteApi(inviteId)
+      const authUser = firebaseUser ?? getFirebaseAuth().currentUser
+      if (!authUser) throw new Error("Sign in to accept this invite.")
+
+      const profile = await getUserProfile(getFirestoreDb(), authUser.uid)
+      const wedding = await getWedding(result.weddingId)
+      setWeddingId(result.weddingId)
+      setFamilyUser({
+        name: profile?.name ?? pending?.familyName ?? familyUser?.name ?? "Family",
+        phone: profile?.phone ?? pending?.phone ?? familyUser?.phone ?? "",
+        weddingName: result.weddingName ?? wedding?.name ?? "",
+        firstEventDate: result.firstEventDate ?? wedding?.firstEventDate ?? "",
+        uid: authUser.uid,
+      })
+      setPending(null)
+      setPendingCollaboratorInvites([])
+    },
+    [firebaseUser, pending, familyUser]
+  )
+
+  const resolveFamilyPostVerifyPath = useCallback(
+    async (kind: "family-signup" | "family-login") => {
+      const authUser = firebaseUser ?? getFirebaseAuth().currentUser
+      if (kind === "family-login" && authUser && isFirebaseMode) {
+        const id = await getWeddingForUser(authUser.uid)
+        if (id) return "/dashboard"
+      }
+
+      const phone = pending?.phone ?? familyUser?.phone ?? ""
+      if (isFirebaseMode && phone) {
+        const invites =
+          pendingCollaboratorInvites.length > 0
+            ? pendingCollaboratorInvites
+            : await getPendingInvitesForPhone(phone)
+        setPendingCollaboratorInvites(invites)
+        if (invites.length > 0) {
+          return kind === "family-signup" ? "/signup/join" : "/join/accept"
+        }
+      }
+
+      if (kind === "family-signup") return "/signup/onboarding"
+      return "/dashboard"
+    },
+    [pending?.phone, familyUser?.phone, isFirebaseMode, pendingCollaboratorInvites, firebaseUser]
   )
 
   const completeFamilyOnboarding = useCallback(
@@ -688,6 +784,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logoutVendor,
       clearPending,
       hydratePending,
+      pendingCollaboratorInvites,
+      refreshPendingCollaboratorInvites,
+      acceptCollaboratorInvite,
+      resolveFamilyPostVerifyPath,
     }),
     [
       familyUser,
@@ -720,6 +820,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logoutVendor,
       clearPending,
       hydratePending,
+      pendingCollaboratorInvites,
+      refreshPendingCollaboratorInvites,
+      acceptCollaboratorInvite,
+      resolveFamilyPostVerifyPath,
     ]
   )
 

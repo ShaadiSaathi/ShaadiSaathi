@@ -185,5 +185,44 @@ service cloud.firestore {
       allow read: if isPlatformAdmin();
       allow update, delete: if false;
     }
+
+    function isValidCollaboratorInviteCreate() {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'id', 'weddingId', 'phone', 'invitedByUid', 'invitedByName',
+          'weddingName', 'status', 'createdAt'
+        ])
+        && d.weddingId is string && d.weddingId.size() > 0 && d.weddingId.size() <= 128
+        && d.phone is string && d.phone.size() >= 8 && d.phone.size() <= 20
+        && d.invitedByUid is string && d.invitedByUid == request.auth.uid
+        && d.invitedByName is string && d.invitedByName.size() <= 80
+        && d.weddingName is string && d.weddingName.size() <= 120
+        && d.status == 'pending'
+        && d.createdAt is number
+        && isWeddingMember(d.weddingId);
+    }
+
+    function collaboratorInvitePhoneMatchesUser() {
+      return resource.data.phone == userDoc().data.phone;
+    }
+
+    match /wedding_collaborator_invites/{inviteId} {
+      allow read: if isPlatformAdmin()
+        || (isSignedIn() && isWeddingMember(resource.data.weddingId))
+        || (isSignedIn() && collaboratorInvitePhoneMatchesUser());
+      allow create: if isSignedIn() && isValidCollaboratorInviteCreate();
+      allow update: if isPlatformAdmin()
+        || (isSignedIn()
+          && isWeddingMember(resource.data.weddingId)
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'cancelled'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+        || (isSignedIn()
+          && collaboratorInvitePhoneMatchesUser()
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'declined'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
+      allow delete: if false;
+    }
   }
 }

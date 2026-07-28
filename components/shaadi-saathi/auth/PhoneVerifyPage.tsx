@@ -77,7 +77,7 @@ function peekStoredPending(flow: PersistedPending["flow"]) {
  */
 export default function PhoneVerifyPage({ kind }: PhoneVerifyPageProps) {
   const router = useRouter()
-  const { pending, hydratePending, verifyOtp, confirmOtp } = useAuth()
+  const { pending, hydratePending, verifyOtp, confirmOtp, resolveFamilyPostVerifyPath } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const config = CONFIG[kind]
@@ -123,7 +123,12 @@ export default function PhoneVerifyPage({ kind }: PhoneVerifyPageProps) {
     setLoading(true)
     try {
       await confirmOtp(code)
-      router.push(config.successHref)
+      if (kind === "family-signup" || kind === "family-login") {
+        const href = await resolveFamilyPostVerifyPath(kind)
+        router.push(href)
+      } else {
+        router.push(config.successHref)
+      }
     } catch (err) {
       setError(
         err instanceof Error

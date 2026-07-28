@@ -28,6 +28,7 @@ export type { AppTask }
 interface AddTaskInput {
   title: string
   assignee: string
+  assigneeUid?: string
   dueDate: string
   eventId?: EventId
   priority?: "low" | "medium" | "high"

@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "wedding_collaborator_invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "phone", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "wedding_collaborator_invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "weddingId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Playfair_Display, DM_Sans } from "next/font/google"
 import { AuthProvider } from "@/components/shaadi-saathi/auth/AuthContext"
+import { WeddingMembersProvider } from "@/components/shaadi-saathi/family/WeddingMembersContext"
 import { WeddingProvider } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import { PremiumProvider } from "@/components/shaadi-saathi/premium/PremiumContext"
 import "./globals.css"
@@ -42,7 +43,9 @@ export default function RootLayout({
       <body className="min-h-full font-sans">
         <AuthProvider>
           <WeddingProvider>
-            <PremiumProvider>{children}</PremiumProvider>
+            <WeddingMembersProvider>
+              <PremiumProvider>{children}</PremiumProvider>
+            </WeddingMembersProvider>
           </WeddingProvider>
         </AuthProvider>
       </body>

@@ -11,6 +11,7 @@ import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import { EVENTS, type EventId, type TaskStatus } from "@/lib/mockData"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
+import { useWeddingMembersOptional } from "@/components/shaadi-saathi/family/WeddingMembersContext"
 import { useTasks, type AppTask } from "@/components/shaadi-saathi/tasks/TasksContext"
 
 type GroupBy = "status" | "assignee"
@@ -43,27 +44,35 @@ function TasksPageContent() {
   const eventFilter = EVENTS.find((e) => e.id === eventParam)?.id as EventId | undefined
 
   const { tasks, addTask, toggleTaskDone } = useTasks()
-  const { familyUser } = useAuth()
+  const { familyUser, isFirebaseMode, firebaseUser } = useAuth()
+  const weddingMembers = useWeddingMembersOptional()
   const [groupBy, setGroupBy] = useState<GroupBy>("status")
   const [showAddForm, setShowAddForm] = useState(false)
   const [newTitle, setNewTitle] = useState("")
-  const [newAssignee, setNewAssignee] = useState("")
+  const [newAssigneeUid, setNewAssigneeUid] = useState("")
   const [newDueDate, setNewDueDate] = useState("")
   const [newEvent, setNewEvent] = useState<EventId | "">("")
+
+  const assignableMembers = weddingMembers?.members ?? []
+  const formatAssignee = weddingMembers?.formatAssigneeLabel ?? ((a: string) => a)
 
   function handleAddTask(e: React.FormEvent) {
     e.preventDefault()
     if (!newTitle.trim()) return
 
+    const selected = assignableMembers.find((m) => m.uid === newAssigneeUid)
+    const fallbackName = familyUser?.name ?? "Unassigned"
+
     addTask({
       title: newTitle.trim(),
-      assignee: newAssignee.trim() || familyUser?.name || "Unassigned",
+      assignee: selected?.name ?? fallbackName,
+      assigneeUid: selected?.uid,
       dueDate: newDueDate || new Date().toISOString().slice(0, 10),
       eventId: newEvent || undefined,
       priority: "medium",
     })
     setNewTitle("")
-    setNewAssignee("")
+    setNewAssigneeUid("")
     setNewDueDate("")
     setShowAddForm(false)
   }
@@ -75,10 +84,17 @@ function TasksPageContent() {
 
   const activeTasks = displayedTasks.filter((t) => t.status !== "done")
 
-  const assignees = useMemo(
-    () => Array.from(new Set(displayedTasks.map((t) => t.assignee))).sort(),
-    [displayedTasks]
-  )
+  const assigneeGroups = useMemo(() => {
+    const keys = new Map<string, string>()
+    for (const t of displayedTasks) {
+      const key = t.assigneeUid ?? t.assignee
+      const label = formatAssignee(t.assignee, t.assigneeUid)
+      keys.set(key, label)
+    }
+    return Array.from(keys.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [displayedTasks, formatAssignee])
 
   return (
     <PageTransition>
@@ -91,7 +107,17 @@ function TasksPageContent() {
             Assign, track, and celebrate what gets done.
           </p>
         </div>
-        <GoldButton onClick={() => setShowAddForm(true)}>
+        <GoldButton
+          onClick={() => {
+            setShowAddForm(true)
+            const selfUid =
+              firebaseUser?.uid ??
+              assignableMembers.find((m) => m.name === familyUser?.name)?.uid ??
+              assignableMembers[0]?.uid ??
+              ""
+            setNewAssigneeUid(selfUid)
+          }}
+        >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
@@ -150,7 +176,12 @@ function TasksPageContent() {
                 </h2>
                 <ul className="space-y-2">
                   {group.map((task) => (
-                    <TaskCard key={task.id} task={task} onToggle={() => toggleTaskDone(task.id)} />
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      assigneeLabel={formatAssignee(task.assignee, task.assigneeUid)}
+                      onToggle={() => toggleTaskDone(task.id)}
+                    />
                   ))}
                 </ul>
               </section>
@@ -159,21 +190,28 @@ function TasksPageContent() {
         </div>
       ) : (
         <div className="space-y-8">
-          {assignees.map((name) => {
-            const group = displayedTasks.filter((t) => t.assignee === name)
+          {assigneeGroups.map(({ key, label }) => {
+            const group = displayedTasks.filter(
+              (t) => (t.assigneeUid ?? t.assignee) === key
+            )
             if (group.length === 0) return null
             return (
-              <section key={name} aria-labelledby={`member-${name}`}>
-                <div id={`member-${name}`} className="mb-3 flex items-center gap-2">
-                  <Avatar initials={initialsOf(name)} size="sm" />
+              <section key={key} aria-labelledby={`member-${key}`}>
+                <div id={`member-${key}`} className="mb-3 flex items-center gap-2">
+                  <Avatar initials={initialsOf(label)} size="sm" />
                   <h2 className="font-display text-sm font-semibold text-maroon-dark">
-                    {name}
+                    {label}
                   </h2>
                   <span className="text-xs text-maroon/40">({group.length})</span>
                 </div>
                 <ul className="space-y-2">
                   {group.map((task) => (
-                    <TaskCard key={task.id} task={task} onToggle={() => toggleTaskDone(task.id)} />
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      assigneeLabel={formatAssignee(task.assignee, task.assigneeUid)}
+                      onToggle={() => toggleTaskDone(task.id)}
+                    />
                   ))}
                 </ul>
               </section>
@@ -222,14 +260,42 @@ function TasksPageContent() {
                   <label htmlFor="task-assignee" className="block text-sm font-medium text-maroon/70">
                     Assign to
                   </label>
-                  <input
-                    id="task-assignee"
-                    type="text"
-                    value={newAssignee}
-                    onChange={(e) => setNewAssignee(e.target.value)}
-                    placeholder={familyUser?.name ? `e.g. ${familyUser.name}` : "e.g. Sana"}
-                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
-                  />
+                  {isFirebaseMode && assignableMembers.length > 0 ? (
+                    <>
+                      <select
+                        id="task-assignee"
+                        value={newAssigneeUid}
+                        onChange={(e) => setNewAssigneeUid(e.target.value)}
+                        className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                      >
+                        <option value="">Select a family member</option>
+                        {assignableMembers.map((m) => (
+                          <option key={m.uid} value={m.uid}>
+                            {m.name}
+                            {m.role === "owner" ? " (you)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {assignableMembers.length <= 1 && (
+                        <p className="mt-2 text-xs text-maroon/50">
+                          Invite family members from{" "}
+                          <Link href="/settings" className="font-semibold text-maroon hover:text-gold-dark">
+                            Settings
+                          </Link>{" "}
+                          to assign tasks to them.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <select
+                      id="task-assignee"
+                      value={newAssigneeUid}
+                      onChange={(e) => setNewAssigneeUid(e.target.value)}
+                      className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm"
+                    >
+                      <option value="">{familyUser?.name ?? "Unassigned"}</option>
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="task-due" className="block text-sm font-medium text-maroon/70">
@@ -294,7 +360,15 @@ function initialsOf(name: string): string {
   )
 }
 
-function TaskCard({ task, onToggle }: { task: AppTask; onToggle: () => void }) {
+function TaskCard({
+  task,
+  assigneeLabel,
+  onToggle,
+}: {
+  task: AppTask
+  assigneeLabel: string
+  onToggle: () => void
+}) {
   const prefersReducedMotion = useReducedMotion()
   const isDone = task.status === "done"
 
@@ -351,14 +425,14 @@ function TaskCard({ task, onToggle }: { task: AppTask; onToggle: () => void }) {
               {task.title}
             </motion.p>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-maroon/50">
-              {task.assignee && (
+              {assigneeLabel && (
                 <span className="flex max-w-[42%] items-center gap-1 truncate md:max-w-none">
                   <Avatar
-                    initials={initialsOf(task.assignee)}
+                    initials={initialsOf(assigneeLabel.replace(/\s*\(unlinked\)$/i, ""))}
                     size="sm"
                     className="!h-4 !w-4 !text-[9px] md:!h-5 md:!w-5 md:!text-[10px]"
                   />
-                  <span className="truncate">{task.assignee}</span>
+                  <span className="truncate">{assigneeLabel}</span>
                 </span>
               )}
               <span aria-hidden="true">·</span>

@@ -17,6 +17,7 @@ export interface AppTask {
   id: string
   title: string
   assignee: string
+  assigneeUid?: string
   dueDate: string
   status: TaskStatusValue
   eventId?: EventId
@@ -28,6 +29,7 @@ function toAppTask(data: FirestoreTask): AppTask {
     id: data.id,
     title: data.title,
     assignee: data.assignee,
+    assigneeUid: data.assigneeUid,
     dueDate: data.dueDate,
     status: data.status,
     eventId: data.eventId,
@@ -57,6 +59,7 @@ export async function addTaskToFirestore(
   input: {
     title: string
     assignee: string
+    assigneeUid?: string
     dueDate: string
     eventId?: EventId
     priority?: "low" | "medium" | "high"
@@ -72,6 +75,7 @@ export async function addTaskToFirestore(
     status: "todo",
     priority: input.priority ?? "medium",
     createdAt: Date.now(),
+    ...(input.assigneeUid ? { assigneeUid: input.assigneeUid } : {}),
     ...(input.eventId ? { eventId: input.eventId } : {}),
   }
   await setDoc(ref, task)

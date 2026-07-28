@@ -76,12 +76,31 @@ export interface FirestoreWedding {
 
 export type TaskStatusValue = "todo" | "in_progress" | "done"
 
+export type CollaboratorInviteStatus = "pending" | "accepted" | "declined" | "cancelled"
+
+/** Phone invite for a real family collaborator (grants app access, not guest RSVP). */
+export interface FirestoreCollaboratorInvite {
+  id: string
+  weddingId: string
+  /** E.164 phone the invitee must sign up / log in with */
+  phone: string
+  invitedByUid: string
+  invitedByName: string
+  weddingName: string
+  status: CollaboratorInviteStatus
+  createdAt: number
+  acceptedAt?: number
+  acceptedByUid?: string
+}
+
 export interface FirestoreTask {
   id: string
   weddingId: string
   title: string
-  /** Free-text name of the person responsible */
+  /** Display name of the person responsible */
   assignee: string
+  /** Firebase Auth UID when assigned to a real wedding member */
+  assigneeUid?: string
   dueDate: string
   status: TaskStatusValue
   eventId?: EventId

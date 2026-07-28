@@ -2,37 +2,68 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { isValidPhoneNumber } from "react-phone-number-input"
 import Avatar from "@/components/shaadi-saathi/app/Avatar"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
+import PhoneInput from "@/components/shaadi-saathi/auth/PhoneInput"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
+import { useWeddingMembers } from "@/components/shaadi-saathi/family/WeddingMembersContext"
 import PremiumBadge from "@/components/shaadi-saathi/premium/PremiumBadge"
 import UpgradePromptBanner from "@/components/shaadi-saathi/premium/UpgradePromptBanner"
 import InviteThemePreview from "@/components/shaadi-saathi/premium/InviteThemePreview"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
-import { WEDDING } from "@/lib/mockData"
+import { createWeddingInviteUrl } from "@/lib/mockData"
 import { INVITE_THEMES } from "@/lib/premium"
+import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 
-const ROLE_LABELS = {
-  owner: "Owner",
-  planner: "Planner",
-  viewer: "Viewer",
-} as const
+function maskPhone(phone: string): string {
+  if (phone.length <= 6) return phone
+  return `${phone.slice(0, 4)}••••${phone.slice(-2)}`
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("")
+}
 
 export default function SettingsPage() {
   const [copied, setCopied] = useState(false)
-  const [inviteName, setInviteName] = useState("")
+  const [invitePhone, setInvitePhone] = useState("")
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const [inviteLoading, setInviteLoading] = useState(false)
   const [showCollaboratorLimit, setShowCollaboratorLimit] = useState(false)
+  const { weddingId, isFirebaseMode, firebaseUser } = useAuth()
+  const { wedding } = useWedding()
   const {
     isFamilyPremium,
     inviteTheme,
     setInviteTheme,
-    collaborators,
-    addCollaborator,
   } = usePremium()
+  const {
+    members,
+    pendingInvites,
+    loading: membersLoading,
+    memberLimit,
+    canInviteMore,
+    inviteByPhone,
+    cancelInvite,
+  } = useWeddingMembers()
 
-  async function copyLink() {
+  const guestInviteUrl =
+    typeof window !== "undefined" && weddingId
+      ? createWeddingInviteUrl(window.location.origin, weddingId)
+      : ""
+  const shareCode = wedding?.shareCode ?? (isFirebaseMode ? "…" : "DEMO-CODE")
+
+  async function copyGuestLink() {
+    if (!guestInviteUrl) return
     try {
-      await navigator.clipboard.writeText(WEDDING.shareLink)
+      await navigator.clipboard.writeText(guestInviteUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -40,15 +71,31 @@ export default function SettingsPage() {
     }
   }
 
-  function handleInviteMember() {
-    if (!inviteName.trim()) return
-    const added = addCollaborator(inviteName)
-    if (!added) {
+  async function handleInviteMember() {
+    setInviteError(null)
+    if (!isValidPhoneNumber(invitePhone)) {
+      setInviteError("Please enter a valid phone number with country code.")
+      return
+    }
+    if (!canInviteMore) {
       setShowCollaboratorLimit(true)
       return
     }
-    setInviteName("")
-    setShowCollaboratorLimit(false)
+    setInviteLoading(true)
+    try {
+      await inviteByPhone(invitePhone)
+      setInvitePhone("")
+      setShowCollaboratorLimit(false)
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not send invite. Please try again."
+      if (/premium|maximum|limit/i.test(message)) {
+        setShowCollaboratorLimit(true)
+      }
+      setInviteError(message)
+    } finally {
+      setInviteLoading(false)
+    }
   }
 
   return (
@@ -59,7 +106,7 @@ export default function SettingsPage() {
             Family & Settings
           </h1>
           <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
-            Invite family members to help coordinate your wedding.
+            Invite real family members by phone so they can help plan in the app.
           </p>
         </div>
         {isFamilyPremium ? (
@@ -80,16 +127,16 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Share invite */}
+      {/* Guest RSVP invite — separate from collaborator access */}
       <section
-        aria-labelledby="invite-heading"
+        aria-labelledby="guest-invite-heading"
         className="mb-8 rounded-2xl border border-gold/25 bg-white p-5 shadow-sm sm:p-6"
       >
-        <h2 id="invite-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
-          Invite your family
+        <h2 id="guest-invite-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
+          Guest RSVP link
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-maroon/60">
-          Share this link or code so siblings, parents, and cousins can join and help plan.
+          Share this with guests so they can RSVP — it does not grant app access.
         </p>
 
         <div className="mt-5 space-y-3">
@@ -98,27 +145,29 @@ export default function SettingsPage() {
               Share code
             </label>
             <p className="mt-1 font-display text-2xl font-bold tracking-widest text-maroon-dark">
-              {WEDDING.shareCode}
+              {shareCode}
             </p>
           </div>
 
-          <div>
-            <label htmlFor="share-link" className="text-xs font-medium uppercase tracking-wider text-maroon/50">
-              Share link
-            </label>
-            <div className="mt-1 flex gap-2">
-              <input
-                id="share-link"
-                type="text"
-                readOnly
-                value={WEDDING.shareLink}
-                className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm text-maroon/70"
-              />
-              <GoldButton onClick={copyLink}>
-                {copied ? "Copied!" : "Copy"}
-              </GoldButton>
+          {guestInviteUrl && (
+            <div>
+              <label htmlFor="guest-share-link" className="text-xs font-medium uppercase tracking-wider text-maroon/50">
+                Guest invite link
+              </label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  id="guest-share-link"
+                  type="text"
+                  readOnly
+                  value={guestInviteUrl}
+                  className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm text-maroon/70"
+                />
+                <GoldButton onClick={copyGuestLink}>
+                  {copied ? "Copied!" : "Copy"}
+                </GoldButton>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -137,32 +186,32 @@ export default function SettingsPage() {
 
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           <div className="grid gap-3 sm:grid-cols-2">
-          {INVITE_THEMES.map((t) => {
-            const locked = t.id !== "classic" && !isFamilyPremium
-            const selected = inviteTheme === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                disabled={locked}
-                onClick={() => setInviteTheme(t.id)}
-                className={`rounded-xl border p-4 text-left transition-all ${
-                  selected
-                    ? "border-maroon bg-maroon/5 ring-2 ring-maroon/20"
-                    : locked
-                      ? "cursor-not-allowed border-gold/10 bg-ivory/50 opacity-60"
-                      : "border-gold/20 hover:border-gold/40"
-                }`}
-              >
-                <div className={`mb-2 h-8 rounded-lg bg-gradient-to-r ${t.motif}`} aria-hidden="true" />
-                <p className="font-medium text-maroon-dark">{t.name}</p>
-                <p className="mt-0.5 text-xs text-maroon/50">{t.description}</p>
-                {locked && (
-                  <p className="mt-2 text-xs font-medium text-gold-dark">Premium only</p>
-                )}
-              </button>
-            )
-          })}
+            {INVITE_THEMES.map((t) => {
+              const locked = t.id !== "classic" && !isFamilyPremium
+              const selected = inviteTheme === t.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => setInviteTheme(t.id)}
+                  className={`rounded-xl border p-4 text-left transition-all ${
+                    selected
+                      ? "border-maroon bg-maroon/5 ring-2 ring-maroon/20"
+                      : locked
+                        ? "cursor-not-allowed border-gold/10 bg-ivory/50 opacity-60"
+                        : "border-gold/20 hover:border-gold/40"
+                  }`}
+                >
+                  <div className={`mb-2 h-8 rounded-lg bg-gradient-to-r ${t.motif}`} aria-hidden="true" />
+                  <p className="font-medium text-maroon-dark">{t.name}</p>
+                  <p className="mt-0.5 text-xs text-maroon/50">{t.description}</p>
+                  {locked && (
+                    <p className="mt-2 text-xs font-medium text-gold-dark">Premium only</p>
+                  )}
+                </button>
+              )
+            })}
           </div>
 
           <div className="flex flex-col justify-center">
@@ -170,67 +219,94 @@ export default function SettingsPage() {
               Live preview
             </p>
             <InviteThemePreview themeId={inviteTheme} />
-            <p className="mt-2 text-xs text-maroon/40">
-              This is how guests will see your invite page.
-            </p>
           </div>
         </div>
-
-        {!isFamilyPremium && (
-          <Link href="/upgrade" className="mt-4 inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline">
-            Unlock custom themes with Premium →
-          </Link>
-        )}
       </section>
 
-      {/* Family members list */}
+      {/* Real family collaborators */}
       <section aria-labelledby="family-heading">
         <h2 id="family-heading" className="mb-4 font-display text-lg font-semibold text-maroon-dark sm:text-xl">
           Who&apos;s helping
           <span className="ml-2 text-sm font-normal text-maroon/40">
-            ({collaborators.length}/{isFamilyPremium ? 8 : 2})
+            ({members.length + pendingInvites.length}/{memberLimit})
           </span>
         </h2>
 
-        <ul className="space-y-2">
-          {collaborators.map((member) => (
-            <li
-              key={member.id}
-              className="flex items-center justify-between rounded-xl border border-gold/15 bg-white p-4"
-            >
-              <div className="flex items-center gap-3">
-                <Avatar initials={member.initials} size="md" />
-                <div>
-                  <p className="font-medium text-maroon-dark">{member.name}</p>
-                  <p className="text-xs text-maroon/50">{ROLE_LABELS[member.role]}</p>
+        {membersLoading ? (
+          <p className="text-sm text-maroon/50">Loading members…</p>
+        ) : (
+          <ul className="space-y-2">
+            {members.map((member) => (
+              <li
+                key={member.uid}
+                className="flex items-center justify-between rounded-xl border border-gold/15 bg-white p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar initials={initials(member.name)} size="md" />
+                  <div>
+                    <p className="font-medium text-maroon-dark">{member.name}</p>
+                    <p className="text-xs text-maroon/50">
+                      {member.role === "owner" ? "Owner" : "Collaborator"}
+                      {member.phone ? ` · ${maskPhone(member.phone)}` : ""}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              {member.role === "owner" && (
-                <span className="inline-flex rounded-full bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold-dark">
-                  You
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+                {firebaseUser?.uid === member.uid && (
+                  <span className="inline-flex rounded-full bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold-dark">
+                    You
+                  </span>
+                )}
+              </li>
+            ))}
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label htmlFor="collab-name" className="text-xs font-medium text-maroon/50">
-              Name
-            </label>
-            <input
-              id="collab-name"
-              type="text"
-              value={inviteName}
-              onChange={(e) => setInviteName(e.target.value)}
-              placeholder="e.g. Fatima Ahmed"
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm"
-            />
+            {pendingInvites.map((invite) => (
+              <li
+                key={invite.id}
+                className="flex items-center justify-between rounded-xl border border-dashed border-gold/30 bg-ivory/40 p-4"
+              >
+                <div>
+                  <p className="font-medium text-maroon-dark">{maskPhone(invite.phone)}</p>
+                  <p className="text-xs text-amber-700">Invite pending — waiting for them to sign up</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void cancelInvite(invite.id)}
+                  className="text-xs font-medium text-maroon/50 hover:text-rose-600"
+                >
+                  Cancel
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-6 space-y-3">
+          <p className="text-sm text-maroon/60">
+            Enter their phone number. When they sign up or log in with that number, they&apos;ll see
+            your invite and can join this wedding.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <PhoneInput
+                id="collab-phone"
+                value={invitePhone}
+                onChange={setInvitePhone}
+                error={inviteError ?? undefined}
+              />
+            </div>
+            <GoldButton
+              type="button"
+              onClick={handleInviteMember}
+              disabled={inviteLoading || !isFirebaseMode}
+            >
+              {inviteLoading ? "Sending…" : "+ Invite by phone"}
+            </GoldButton>
           </div>
-          <GoldButton type="button" onClick={handleInviteMember}>
-            + Invite family member
-          </GoldButton>
+          {members.length <= 1 && pendingInvites.length === 0 && (
+            <p className="text-xs text-maroon/45">
+              Invite siblings, parents, or cousins — once they join, you can assign tasks to them.
+            </p>
+          )}
         </div>
       </section>
 
