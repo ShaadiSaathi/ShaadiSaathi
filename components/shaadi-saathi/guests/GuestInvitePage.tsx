@@ -9,6 +9,8 @@ import {
   EVENTS,
   WEDDING,
   formatEventDate,
+  guestPartySize,
+  isGuestGroup,
   type EventId,
   type Guest,
 } from "@/lib/mockData"
@@ -71,6 +73,11 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
   const guest = isFirebaseConfigured() ? firestoreGuest : mockGuest
   const guestDisplayName = guest?.name?.trim() ?? ""
+  const partySize = guest ? guestPartySize(guest) : 1
+  const groupInvite = guest ? isGuestGroup(guest) : false
+  const respondingAsLabel = groupInvite
+    ? `${guestDisplayName} (${partySize} guests)`
+    : guestDisplayName
   const inviteUnusable = invalid || !guest || !guestDisplayName
 
   useEffect(() => {
@@ -286,10 +293,12 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
             Responding as
           </p>
           <p className={`mt-2 font-display text-2xl font-bold sm:text-3xl ${theme.heading}`}>
-            {guestDisplayName}
+            {respondingAsLabel}
           </p>
           <p className="mt-2 text-sm text-maroon/55">
-            If this isn&apos;t you, please close this page and open your own invite link.
+            {groupInvite
+              ? "One response for the whole household. If this isn't your family, please close this page and open your own invite link."
+              : "If this isn't you, please close this page and open your own invite link."}
           </p>
         </section>
 
@@ -297,7 +306,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
           <BulkRsvpBanner
             disabled={busy}
             themeAccent={theme.accent}
-            guestName={guestDisplayName}
+            guestName={respondingAsLabel}
             onAcceptAll={() => void handleBulkRsvp("confirmed")}
             onDeclineAll={() => void handleBulkRsvp("declined")}
           />
@@ -309,7 +318,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
               key={event.id}
               event={event}
               guest={guest}
-              guestName={guestDisplayName}
+              guestName={respondingAsLabel}
               index={i}
               busy={busy}
               pulse={pulseAll || pulseEvent === event.id}

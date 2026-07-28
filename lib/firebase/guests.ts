@@ -26,6 +26,8 @@ function toGuest(docId: string, data: FirestoreGuest): Guest & { weddingId?: str
     inviteToken: data.inviteToken || docId,
     notes: data.notes,
     weddingId: data.weddingId,
+    ...(data.kind ? { kind: data.kind } : {}),
+    ...(typeof data.partySize === "number" ? { partySize: data.partySize } : {}),
   }
 }
 
@@ -72,7 +74,15 @@ export function subscribeGuestByToken(
 
 export async function addGuestToFirestore(
   weddingId: string,
-  input: { name: string; phone?: string; events: EventId[]; inviteToken: string; id: string }
+  input: {
+    name: string
+    phone?: string
+    events: EventId[]
+    inviteToken: string
+    id: string
+    kind?: "individual" | "group"
+    partySize?: number
+  }
 ): Promise<void> {
   const rsvp = Object.fromEntries(
     input.events.map((e) => [e, "pending" as RsvpStatus])
@@ -99,6 +109,12 @@ export async function addGuestToFirestore(
     rsvpOrganiserAlert,
     inviteToken: input.inviteToken,
     updatedAt: Date.now(),
+    ...(input.kind === "group"
+      ? {
+          kind: "group" as const,
+          partySize: Math.max(2, Math.floor(input.partySize ?? 2)),
+        }
+      : {}),
   }
 
   await setDoc(doc(getFirestoreDb(), "guests", input.inviteToken), guest)

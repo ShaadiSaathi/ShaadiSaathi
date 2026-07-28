@@ -21,10 +21,13 @@ import {
   type Guest,
   type RsvpStatus,
   getRsvpSummary,
+  guestPartySize,
+  isGuestGroup,
 } from "@/lib/mockData"
 import { FREE_LIMITS } from "@/lib/premium"
 
 type Tab = "all" | "rsvp"
+type AddMode = "individual" | "group"
 
 interface PendingOverride {
   guestId: string
@@ -44,7 +47,9 @@ export default function GuestsPage() {
   const [rsvpFilter, setRsvpFilter] = useState<RsvpStatus | "all">("all")
   const [rsvpEvent, setRsvpEvent] = useState<EventId>("mehndi")
   const [showAddForm, setShowAddForm] = useState(false)
+  const [addMode, setAddMode] = useState<AddMode>("individual")
   const [newName, setNewName] = useState("")
+  const [newPartySize, setNewPartySize] = useState(4)
   const [newEvents, setNewEvents] = useState<EventId[]>(["walima"])
   const [inviteGuest, setInviteGuest] = useState<Guest | null>(null)
   const [pendingOverride, setPendingOverride] = useState<PendingOverride | null>(null)
@@ -82,15 +87,39 @@ export default function GuestsPage() {
   const rsvpSummary = getRsvpSummary(rsvpEvent, guests)
   const rsvpGuests = guests.filter((g) => g.events.includes(rsvpEvent))
 
-  function handleAddGuest(e: React.FormEvent) {
-    e.preventDefault()
-    if (!newName.trim()) return
+  function openAddForm(mode: AddMode = "individual") {
     if (!isFamilyPremium && guests.length >= FREE_LIMITS.maxGuests) {
       setShowGuestLimit(true)
       return
     }
-    addGuest({ name: newName.trim(), events: newEvents })
+    setAddMode(mode)
     setNewName("")
+    setNewPartySize(4)
+    setNewEvents(["walima"])
+    setShowAddForm(true)
+    setShowGuestLimit(false)
+  }
+
+  function handleAddGuest(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newName.trim()) return
+    if (addMode === "group" && newPartySize < 2) return
+    if (!isFamilyPremium && guests.length >= FREE_LIMITS.maxGuests) {
+      setShowGuestLimit(true)
+      return
+    }
+    if (addMode === "group") {
+      addGuest({
+        name: newName.trim(),
+        events: newEvents,
+        kind: "group",
+        partySize: newPartySize,
+      })
+    } else {
+      addGuest({ name: newName.trim(), events: newEvents })
+    }
+    setNewName("")
+    setNewPartySize(4)
     setShowAddForm(false)
     setShowGuestLimit(false)
   }
@@ -157,15 +186,10 @@ export default function GuestsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <WeddingInviteLinkButton />
-          <GoldButton
-            onClick={() => {
-              if (!isFamilyPremium && guests.length >= FREE_LIMITS.maxGuests) {
-                setShowGuestLimit(true)
-                return
-              }
-              setShowAddForm(true)
-            }}
-          >
+          <GoldButton variant="ghost" onClick={() => openAddForm("group")}>
+            Add Group
+          </GoldButton>
+          <GoldButton onClick={() => openAddForm("individual")}>
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
@@ -262,15 +286,7 @@ export default function GuestsPage() {
               title="No guests found"
               description="Try adjusting your filters, or add your first guest to get started."
               action={
-                <GoldButton
-                  onClick={() => {
-                    if (!isFamilyPremium && guests.length >= FREE_LIMITS.maxGuests) {
-                      setShowGuestLimit(true)
-                      return
-                    }
-                    setShowAddForm(true)
-                  }}
-                >
+                <GoldButton onClick={() => openAddForm("individual")}>
                   Add Guest
                 </GoldButton>
               }
@@ -292,7 +308,11 @@ export default function GuestsPage() {
 
       {inviteGuest && (
         <InviteLinkModal
-          guestName={inviteGuest.name}
+          guestName={
+            isGuestGroup(inviteGuest)
+              ? `${inviteGuest.name} (${guestPartySize(inviteGuest)} guests)`
+              : inviteGuest.name
+          }
           inviteToken={inviteGuest.inviteToken}
           onClose={() => setInviteGuest(null)}
         />
@@ -309,7 +329,7 @@ export default function GuestsPage() {
         />
       )}
 
-      {/* Add guest modal — full sheet on mobile, centered on md+ */}
+      {/* Add guest / group modal — full sheet on mobile, centered on md+ */}
       {showAddForm && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
@@ -322,12 +342,43 @@ export default function GuestsPage() {
               <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
             </div>
             <h2 id="add-guest-title" className="font-display text-xl font-semibold text-maroon-dark">
-              Add Guest
+              {addMode === "group" ? "Add Guest Group" : "Add Guest"}
             </h2>
+            <p className="mt-1 text-sm text-maroon/55">
+              {addMode === "group"
+                ? "Invite a whole household with one link and one RSVP."
+                : "Add one person to your guest list."}
+            </p>
+
+            <div className="mt-4 flex rounded-xl border border-gold/20 bg-white p-1">
+              <button
+                type="button"
+                onClick={() => setAddMode("individual")}
+                className={`min-h-10 flex-1 rounded-lg text-sm font-medium transition-colors ${
+                  addMode === "individual"
+                    ? "bg-maroon text-ivory"
+                    : "text-maroon/60 hover:text-maroon"
+                }`}
+              >
+                Individual
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddMode("group")}
+                className={`min-h-10 flex-1 rounded-lg text-sm font-medium transition-colors ${
+                  addMode === "group"
+                    ? "bg-maroon text-ivory"
+                    : "text-maroon/60 hover:text-maroon"
+                }`}
+              >
+                Group
+              </button>
+            </div>
+
             <form onSubmit={handleAddGuest} className="mt-4 space-y-4">
               <div>
                 <label htmlFor="guest-name" className="block text-sm font-medium text-maroon/70">
-                  Full name
+                  {addMode === "group" ? "Group name" : "Full name"}
                 </label>
                 <input
                   id="guest-name"
@@ -336,9 +387,31 @@ export default function GuestsPage() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="mt-1 min-h-11 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10 md:min-h-[44px]"
-                  placeholder="e.g. Fatima Khan"
+                  placeholder={addMode === "group" ? "e.g. The Khan Family" : "e.g. Fatima Khan"}
                 />
               </div>
+
+              {addMode === "group" && (
+                <div>
+                  <label htmlFor="party-size" className="block text-sm font-medium text-maroon/70">
+                    Number of people
+                  </label>
+                  <input
+                    id="party-size"
+                    type="number"
+                    required
+                    min={2}
+                    max={50}
+                    value={newPartySize}
+                    onChange={(e) => setNewPartySize(Number(e.target.value) || 2)}
+                    className="mt-1 min-h-11 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10 md:min-h-[44px]"
+                  />
+                  <p className="mt-1 text-xs text-maroon/45">
+                    Counts toward your total guest headcount on the dashboard.
+                  </p>
+                </div>
+              )}
+
               <fieldset>
                 <legend className="text-sm font-medium text-maroon/70">Invite to events</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -359,8 +432,8 @@ export default function GuestsPage() {
                 </div>
               </fieldset>
               <div className="flex gap-3 pt-2">
-                <GoldButton type="submit" className="flex-1">
-                  Add Guest
+                <GoldButton type="submit" className="flex-1" disabled={newEvents.length === 0}>
+                  {addMode === "group" ? "Add Group" : "Add Guest"}
                 </GoldButton>
                 <GoldButton
                   type="button"
@@ -399,8 +472,20 @@ function GuestRow({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar initials={initials} size="md" />
         <div className="min-w-0">
-          <p className="truncate font-medium text-maroon-dark">{guest.name}</p>
-          <p className="text-sm text-maroon/50">{guest.phone}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate font-medium text-maroon-dark">{guest.name}</p>
+            {isGuestGroup(guest) && (
+              <span className="inline-flex shrink-0 items-center rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-maroon/70">
+                Group of {guestPartySize(guest)}
+              </span>
+            )}
+          </div>
+          {!isGuestGroup(guest) && (
+            <p className="text-sm text-maroon/50">{guest.phone}</p>
+          )}
+          {isGuestGroup(guest) && (
+            <p className="text-sm text-maroon/50">One invite link for the whole household</p>
+          )}
         </div>
       </div>
 
@@ -544,7 +629,14 @@ function RsvpOverview({
                   .slice(0, 2)}
                 size="sm"
               />
-              <span className="truncate font-medium text-maroon-dark">{guest.name}</span>
+              <div className="min-w-0">
+                <span className="truncate font-medium text-maroon-dark">{guest.name}</span>
+                {isGuestGroup(guest) && (
+                  <span className="ml-2 inline-flex items-center rounded-full border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-maroon/70">
+                    Group of {guestPartySize(guest)}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
               <EditableStatusPill

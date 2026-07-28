@@ -37,6 +37,8 @@ interface GuestsContextValue {
     name: string
     phone?: string
     events: EventId[]
+    kind?: "individual" | "group"
+    partySize?: number
   }) => Promise<Guest> | Guest
   updateRsvpByOrganiser: (
     guestId: string,
@@ -135,7 +137,13 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
   }, [guests, hydrated, firebaseMode])
 
   const addGuest = useCallback(
-    async (input: { name: string; phone?: string; events: EventId[] }) => {
+    async (input: {
+      name: string
+      phone?: string
+      events: EventId[]
+      kind?: "individual" | "group"
+      partySize?: number
+    }) => {
       const guest = createGuest(input)
       if (useFirestore && weddingId) {
         await addGuestToFirestore(weddingId, {
@@ -144,6 +152,8 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
           phone: guest.phone,
           events: guest.events,
           inviteToken: guest.inviteToken,
+          kind: guest.kind,
+          partySize: guest.partySize,
         })
         return guest
       }

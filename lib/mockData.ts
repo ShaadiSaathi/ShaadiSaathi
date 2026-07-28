@@ -70,6 +70,13 @@ export interface Guest {
   /** Unique token for shareable invite link — /invite/[inviteToken] */
   inviteToken: string
   notes?: string
+  /**
+   * Optional household/group invite. Absent or "individual" = single guest.
+   * Additive — existing docs without these fields keep working unchanged.
+   */
+  kind?: "individual" | "group"
+  /** Headcount for group invites (defaults to 1). */
+  partySize?: number
 }
 
 export interface Task {
@@ -425,17 +432,39 @@ export function getEventById(id: string): WeddingEvent | undefined {
 }
 
 export function getGuestCountForEvent(eventId: EventId): number {
-  return GUESTS.filter((g) => g.events.includes(eventId)).length
+  return GUESTS.filter((g) => g.events.includes(eventId)).reduce(
+    (sum, g) => sum + guestPartySize(g),
+    0
+  )
+}
+
+/** Heads represented by this invite (1 for individuals). */
+export function guestPartySize(guest: Guest): number {
+  const size = guest.partySize ?? 1
+  return Number.isFinite(size) && size > 0 ? Math.floor(size) : 1
+}
+
+export function isGuestGroup(guest: Guest): boolean {
+  return guest.kind === "group" || guestPartySize(guest) > 1
+}
+
+/** Total headcount across invite entries (groups count as partySize). */
+export function getTotalGuestHeadcount(guestList: Guest[] = GUESTS): number {
+  return guestList.reduce((sum, g) => sum + guestPartySize(g), 0)
 }
 
 export function getRsvpSummary(eventId: EventId, guestList: Guest[] = GUESTS) {
   const invited = guestList.filter((g) => g.events.includes(eventId))
+  const sumStatus = (status: RsvpStatus) =>
+    invited
+      .filter((g) => g.rsvp[eventId] === status)
+      .reduce((sum, g) => sum + guestPartySize(g), 0)
   return {
-    confirmed: invited.filter((g) => g.rsvp[eventId] === "confirmed").length,
-    pending: invited.filter((g) => g.rsvp[eventId] === "pending").length,
-    declined: invited.filter((g) => g.rsvp[eventId] === "declined").length,
-    cancelled: invited.filter((g) => g.rsvp[eventId] === "cancelled").length,
-    total: invited.length,
+    confirmed: sumStatus("confirmed"),
+    pending: sumStatus("pending"),
+    declined: sumStatus("declined"),
+    cancelled: sumStatus("cancelled"),
+    total: invited.reduce((sum, g) => sum + guestPartySize(g), 0),
   }
 }
 
@@ -460,9 +489,16 @@ export function createGuest(input: {
   name: string
   phone?: string
   events: EventId[]
+  kind?: "individual" | "group"
+  partySize?: number
 }): Guest {
   const id = `guest-${Date.now()}`
   const { rsvp, rsvpSource } = emptyRsvpFields(input.events)
+  const kind = input.kind ?? "individual"
+  const partySize =
+    kind === "group"
+      ? Math.max(2, Math.floor(input.partySize ?? 2))
+      : Math.max(1, Math.floor(input.partySize ?? 1))
   return {
     id,
     name: input.name.trim(),
@@ -471,6 +507,7 @@ export function createGuest(input: {
     rsvp,
     rsvpSource,
     inviteToken: makeInviteToken(id, input.name.trim()),
+    ...(kind === "group" ? { kind: "group" as const, partySize } : {}),
   }
 }
 
@@ -501,10 +538,11 @@ export function getTotalRsvpStats(guestList: Guest[] = GUESTS) {
   let confirmed = 0
   let pending = 0
   for (const guest of guestList) {
+    const heads = guestPartySize(guest)
     for (const eventId of guest.events) {
       const status = guest.rsvp[eventId]
-      if (status === "confirmed") confirmed++
-      if (status === "pending") pending++
+      if (status === "confirmed") confirmed += heads
+      if (status === "pending") pending += heads
     }
   }
   return { confirmed, pending, totalInvites: confirmed + pending + countDeclined(guestList) }
@@ -513,8 +551,9 @@ export function getTotalRsvpStats(guestList: Guest[] = GUESTS) {
 function countDeclined(guestList: Guest[] = GUESTS): number {
   let declined = 0
   for (const guest of guestList) {
+    const heads = guestPartySize(guest)
     for (const eventId of guest.events) {
-      if (guest.rsvp[eventId] === "declined") declined++
+      if (guest.rsvp[eventId] === "declined") declined += heads
     }
   }
   return declined

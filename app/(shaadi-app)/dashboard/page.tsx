@@ -18,6 +18,7 @@ import {
   formatEventDate,
   getDaysUntil,
   getNextUpcomingEvent,
+  getTotalGuestHeadcount,
   getTotalRsvpStats,
 } from "@/lib/mockData"
 
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const { isFamilyPremium } = usePremium()
   const nextEvent = getNextUpcomingEvent()
   const rsvpStats = getTotalRsvpStats(guests)
+  const totalGuestHeadcount = getTotalGuestHeadcount(guests)
   const taskStats = {
     done: tasks.filter((t) => t.status === "done").length,
     outstanding: tasks.filter((t) => t.status !== "done").length,
@@ -104,7 +106,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
           <StatCard
             label="Total guests"
-            value={guests.length}
+            value={totalGuestHeadcount}
             subtext="Across all events"
             icon={
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

@@ -142,6 +142,10 @@ export interface FirestoreGuest {
   inviteToken: string
   notes?: string
   updatedAt: number
+  /** Optional household invite — absent means individual */
+  kind?: "individual" | "group"
+  /** Headcount for group invites */
+  partySize?: number
 }
 
 export interface FirestoreVendorPackage {
