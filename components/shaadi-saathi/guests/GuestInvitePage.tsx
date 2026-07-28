@@ -70,6 +70,8 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   )
 
   const guest = isFirebaseConfigured() ? firestoreGuest : mockGuest
+  const guestDisplayName = guest?.name?.trim() ?? ""
+  const inviteUnusable = invalid || !guest || !guestDisplayName
 
   useEffect(() => {
     if (!toast) return
@@ -102,12 +104,16 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
       async (g) => {
         if (!g) {
           const oneShot = await getGuestByInviteToken(guestToken)
-          if (!oneShot) {
+          if (!oneShot || !oneShot.name?.trim()) {
             setInvalid(true)
             setGuestLoading(false)
             return
           }
           setFirestoreGuest(oneShot)
+        } else if (!g.name?.trim()) {
+          setInvalid(true)
+          setGuestLoading(false)
+          return
         } else {
           setFirestoreGuest(g)
         }
@@ -160,12 +166,12 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
     )
   }
 
-  if (!guest || invalid) {
+  if (inviteUnusable) {
     return (
       <div className="shaadi-saathi flex min-h-screen items-center justify-center bg-ivory px-5">
         <div className="max-w-md text-center">
           <h1 className="font-display text-2xl font-bold text-maroon-dark">
-            This invite is no longer valid
+            This invite link isn&apos;t valid
           </h1>
           <p className="mt-2 text-maroon/60">
             This invitation may have expired, been withdrawn, or the link is incorrect. Please
@@ -264,20 +270,34 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
         >
           request the pleasure of your company
         </motion.p>
-        <p className="mt-4 text-sm text-maroon/50">
-          Dear <span className="font-medium text-maroon-dark">{guest.name}</span>
-        </p>
       </div>
 
       <main className="relative mx-auto max-w-lg px-5 py-8">
-        <div className="mb-8">
+        <div className="mb-6">
           <JaaliDivider />
         </div>
+
+        {/* Identity confirmation — must be obvious before any RSVP action */}
+        <section
+          aria-label="Guest identity confirmation"
+          className={`mb-6 rounded-2xl border-2 ${theme.cardBorder} bg-white/90 px-5 py-5 text-center shadow-sm`}
+        >
+          <p className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${theme.accent}`}>
+            Responding as
+          </p>
+          <p className={`mt-2 font-display text-2xl font-bold sm:text-3xl ${theme.heading}`}>
+            {guestDisplayName}
+          </p>
+          <p className="mt-2 text-sm text-maroon/55">
+            If this isn&apos;t you, please close this page and open your own invite link.
+          </p>
+        </section>
 
         {invitedIds.length > 1 && (
           <BulkRsvpBanner
             disabled={busy}
             themeAccent={theme.accent}
+            guestName={guestDisplayName}
             onAcceptAll={() => void handleBulkRsvp("confirmed")}
             onDeclineAll={() => void handleBulkRsvp("declined")}
           />
@@ -289,6 +309,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
               key={event.id}
               event={event}
               guest={guest}
+              guestName={guestDisplayName}
               index={i}
               busy={busy}
               pulse={pulseAll || pulseEvent === event.id}
@@ -345,11 +366,13 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 function BulkRsvpBanner({
   disabled,
   themeAccent,
+  guestName,
   onAcceptAll,
   onDeclineAll,
 }: {
   disabled: boolean
   themeAccent: string
+  guestName: string
   onAcceptAll: () => void
   onDeclineAll: () => void
 }) {
@@ -367,7 +390,9 @@ function BulkRsvpBanner({
         One tap for every celebration
       </p>
       <p className="mt-1 text-center text-xs text-maroon/55">
-        You can still adjust individual events below anytime.
+        These responses will be saved for{" "}
+        <span className="font-semibold text-maroon-dark">{guestName}</span>. You can still adjust
+        individual events below anytime.
       </p>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <button
@@ -403,6 +428,7 @@ async function getGuestDocWeddingId(token: string): Promise<string> {
 function EventRsvpCard({
   event,
   guest,
+  guestName,
   index,
   busy,
   pulse,
@@ -410,6 +436,7 @@ function EventRsvpCard({
 }: {
   event: (typeof EVENTS)[number]
   guest: Guest
+  guestName: string
   index: number
   busy: boolean
   pulse: boolean
@@ -465,7 +492,8 @@ function EventRsvpCard({
         ) : (
           <div className="space-y-3">
             <p className="text-center text-sm font-medium text-maroon/70">
-              Will you be joining us?
+              Will you be joining us,{" "}
+              <span className="font-semibold text-maroon-dark">{guestName}</span>?
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <RsvpChoiceButton
@@ -474,7 +502,7 @@ function EventRsvpCard({
                 disabled={busy}
                 variant="accept"
                 label="Accepting with Joy"
-                ariaLabel={`Accept invitation to ${event.name}`}
+                ariaLabel={`Accept invitation to ${event.name} as ${guestName}`}
                 onClick={() => onRsvp("confirmed")}
               />
               <RsvpChoiceButton
@@ -483,7 +511,7 @@ function EventRsvpCard({
                 disabled={busy}
                 variant="decline"
                 label="Sadly Declining"
-                ariaLabel={`Decline invitation to ${event.name}`}
+                ariaLabel={`Decline invitation to ${event.name} as ${guestName}`}
                 onClick={() => onRsvp("declined")}
               />
             </div>

@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
     "192.168.100.168",
     "192.168.100.71",
   ],
+  // Parent Desktop/package-lock.json otherwise steals Turbopack's workspace root.
+  turbopack: {
+    root: process.cwd(),
+  },
   // Prevent Turbopack from bundling firebase-admin (fixes ERR_REQUIRE_ESM / jose on Vercel).
   serverExternalPackages: ["firebase-admin"],
 };
