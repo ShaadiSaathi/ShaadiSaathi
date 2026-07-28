@@ -64,7 +64,7 @@ export async function addTaskToFirestore(
     eventId?: EventId
     priority?: "low" | "medium" | "high"
   }
-): Promise<void> {
+): Promise<string> {
   const ref = doc(collection(getFirestoreDb(), "tasks"))
   const task: FirestoreTask = {
     id: ref.id,
@@ -79,6 +79,7 @@ export async function addTaskToFirestore(
     ...(input.eventId ? { eventId: input.eventId } : {}),
   }
   await setDoc(ref, task)
+  return ref.id
 }
 
 export async function updateTaskStatus(
@@ -86,6 +87,22 @@ export async function updateTaskStatus(
   status: TaskStatusValue
 ): Promise<void> {
   await updateDoc(doc(getFirestoreDb(), "tasks", taskId), { status })
+}
+
+/** Reassign a task to a wedding member (or clear assigneeUid). */
+export async function updateTaskAssignee(
+  taskId: string,
+  input: { assignee: string; assigneeUid?: string | null }
+): Promise<void> {
+  const payload: { assignee: string; assigneeUid?: string | null } = {
+    assignee: input.assignee.trim(),
+  }
+  if (input.assigneeUid) {
+    payload.assigneeUid = input.assigneeUid
+  } else {
+    payload.assigneeUid = null
+  }
+  await updateDoc(doc(getFirestoreDb(), "tasks", taskId), payload)
 }
 
 export async function deleteTaskFromFirestore(taskId: string): Promise<void> {

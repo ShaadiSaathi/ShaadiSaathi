@@ -10,16 +10,18 @@ import {
   type ReactNode,
 } from "react"
 import {
+  addTaskToFirestore,
+  subscribeTasksByWedding,
+  updateTaskAssignee,
+  updateTaskStatus,
+  type AppTask,
+} from "@/lib/firebase/tasks"
+import { notifyTaskAssigned } from "@/lib/firebase/notifications"
+import {
   TASKS as INITIAL_TASKS,
   getFamilyMember,
   type EventId,
 } from "@/lib/mockData"
-import {
-  addTaskToFirestore,
-  subscribeTasksByWedding,
-  updateTaskStatus,
-  type AppTask,
-} from "@/lib/firebase/tasks"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { WeddingContext } from "@/components/shaadi-saathi/firebase/WeddingContext"
 
@@ -38,6 +40,10 @@ interface TasksContextValue {
   tasks: AppTask[]
   loading: boolean
   addTask: (input: AddTaskInput) => void
+  reassignTask: (
+    taskId: string,
+    input: { assignee: string; assigneeUid?: string }
+  ) => Promise<void>
   toggleTaskDone: (taskId: string) => void
 }
 
@@ -71,7 +77,12 @@ function loadMockTasks(): AppTask[] {
 }
 
 export function TasksProvider({ children }: { children: ReactNode }) {
-  const { weddingId: authWeddingId, isFirebaseMode: firebaseMode } = useAuth()
+  const {
+    weddingId: authWeddingId,
+    isFirebaseMode: firebaseMode,
+    firebaseUser,
+    familyUser,
+  } = useAuth()
   const weddingCtx = useContext(WeddingContext)
   const ctxWeddingId = weddingCtx?.weddingId ?? null
   const weddingId = authWeddingId ?? ctxWeddingId
@@ -119,7 +130,23 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const addTask = useCallback(
     async (input: AddTaskInput) => {
       if (useFirestore && weddingId) {
-        await addTaskToFirestore(weddingId, input)
+        const taskId = await addTaskToFirestore(weddingId, input)
+        const actorUid = firebaseUser?.uid
+        if (input.assigneeUid && actorUid) {
+          try {
+            await notifyTaskAssigned({
+              recipientUid: input.assigneeUid,
+              weddingId,
+              taskId,
+              taskTitle: input.title,
+              dueDate: input.dueDate,
+              actorUid,
+              actorName: familyUser?.name?.trim() || "Someone",
+            })
+          } catch (err) {
+            console.error("Failed to create task assignment notification", err)
+          }
+        }
         return
       }
       setTasks((prev) => [
@@ -127,6 +154,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
           id: `task-${Date.now()}`,
           title: input.title.trim(),
           assignee: input.assignee.trim() || "Unassigned",
+          assigneeUid: input.assigneeUid,
           dueDate: input.dueDate,
           status: "todo",
           eventId: input.eventId,
@@ -135,7 +163,53 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         ...prev,
       ])
     },
-    [useFirestore, weddingId]
+    [useFirestore, weddingId, firebaseUser?.uid, familyUser?.name]
+  )
+
+  const reassignTask = useCallback(
+    async (taskId: string, input: { assignee: string; assigneeUid?: string }) => {
+      const task = tasks.find((t) => t.id === taskId)
+      if (!task) return
+      const prevUid = task.assigneeUid
+      const nextUid = input.assigneeUid
+
+      if (useFirestore && weddingId) {
+        await updateTaskAssignee(taskId, {
+          assignee: input.assignee,
+          assigneeUid: nextUid ?? null,
+        })
+        const actorUid = firebaseUser?.uid
+        if (nextUid && nextUid !== prevUid && actorUid) {
+          try {
+            await notifyTaskAssigned({
+              recipientUid: nextUid,
+              weddingId,
+              taskId,
+              taskTitle: task.title,
+              dueDate: task.dueDate,
+              actorUid,
+              actorName: familyUser?.name?.trim() || "Someone",
+            })
+          } catch (err) {
+            console.error("Failed to create task reassignment notification", err)
+          }
+        }
+        return
+      }
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                assignee: input.assignee.trim() || "Unassigned",
+                assigneeUid: nextUid,
+              }
+            : t
+        )
+      )
+    },
+    [tasks, useFirestore, weddingId, firebaseUser?.uid, familyUser?.name]
   )
 
   const toggleTaskDone = useCallback(
@@ -155,8 +229,8 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ tasks, loading, addTask, toggleTaskDone }),
-    [tasks, loading, addTask, toggleTaskDone]
+    () => ({ tasks, loading, addTask, reassignTask, toggleTaskDone }),
+    [tasks, loading, addTask, reassignTask, toggleTaskDone]
   )
 
   return <TasksContext.Provider value={value}>{children}</TasksContext.Provider>

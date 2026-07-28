@@ -224,5 +224,38 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
       allow delete: if false;
     }
+
+    // In-app notifications inbox. Recipients may only read/update their own
+    // docs; wedding members may create notifications for fellow members.
+    function isValidNotificationCreate() {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'id', 'recipientUid', 'weddingId', 'type', 'message',
+          'taskId', 'read', 'createdAt', 'actorUid', 'actorName'
+        ])
+        && d.id == request.resource.id
+        && d.recipientUid is string && d.recipientUid.size() > 0 && d.recipientUid.size() <= 128
+        && d.weddingId is string && d.weddingId.size() > 0 && d.weddingId.size() <= 128
+        && d.type in ['task_assigned', 'task_due_soon']
+        && d.message is string && d.message.size() > 0 && d.message.size() <= 500
+        && d.taskId is string && d.taskId.size() > 0 && d.taskId.size() <= 128
+        && d.read == false
+        && d.createdAt is number
+        && (!d.keys().hasAny(['actorUid']) || (d.actorUid is string && d.actorUid.size() <= 128))
+        && (!d.keys().hasAny(['actorName']) || (d.actorName is string && d.actorName.size() <= 80))
+        && isWeddingMember(d.weddingId)
+        && d.recipientUid in get(/databases/$(database)/documents/weddings/$(d.weddingId)).data.memberUids;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isPlatformAdmin()
+        || (isSignedIn() && resource.data.recipientUid == request.auth.uid);
+      allow create: if isSignedIn() && isValidNotificationCreate();
+      allow update: if isSignedIn()
+        && resource.data.recipientUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+      allow delete: if false;
+    }
   }
 }

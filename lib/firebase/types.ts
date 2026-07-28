@@ -108,6 +108,25 @@ export interface FirestoreTask {
   createdAt: number
 }
 
+export type NotificationType = "task_assigned" | "task_due_soon"
+
+/** In-app inbox item — recipient-scoped; not push/FCM. */
+export interface FirestoreNotification {
+  id: string
+  recipientUid: string
+  weddingId: string
+  type: NotificationType
+  message: string
+  /** Related task document id */
+  taskId: string
+  read: boolean
+  createdAt: number
+  /** Who triggered the notification (e.g. assigner) */
+  actorUid?: string
+  /** Denormalized display name so recipients need no users/{uid} read */
+  actorName?: string
+}
+
 export interface FirestoreGuest {
   id: string
   weddingId: string

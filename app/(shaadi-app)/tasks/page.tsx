@@ -43,7 +43,7 @@ function TasksPageContent() {
   const eventParam = searchParams.get("event")
   const eventFilter = EVENTS.find((e) => e.id === eventParam)?.id as EventId | undefined
 
-  const { tasks, addTask, toggleTaskDone } = useTasks()
+  const { tasks, addTask, reassignTask, toggleTaskDone } = useTasks()
   const { familyUser, isFirebaseMode, firebaseUser } = useAuth()
   const weddingMembers = useWeddingMembersOptional()
   const [groupBy, setGroupBy] = useState<GroupBy>("status")
@@ -180,6 +180,19 @@ function TasksPageContent() {
                       key={task.id}
                       task={task}
                       assigneeLabel={formatAssignee(task.assignee, task.assigneeUid)}
+                      assignableMembers={assignableMembers}
+                      onReassign={
+                        isFirebaseMode
+                          ? (uid) => {
+                              const member = assignableMembers.find((m) => m.uid === uid)
+                              if (!member) return
+                              void reassignTask(task.id, {
+                                assignee: member.name,
+                                assigneeUid: member.uid,
+                              })
+                            }
+                          : undefined
+                      }
                       onToggle={() => toggleTaskDone(task.id)}
                     />
                   ))}
@@ -210,6 +223,19 @@ function TasksPageContent() {
                       key={task.id}
                       task={task}
                       assigneeLabel={formatAssignee(task.assignee, task.assigneeUid)}
+                      assignableMembers={assignableMembers}
+                      onReassign={
+                        isFirebaseMode
+                          ? (uid) => {
+                              const member = assignableMembers.find((m) => m.uid === uid)
+                              if (!member) return
+                              void reassignTask(task.id, {
+                                assignee: member.name,
+                                assigneeUid: member.uid,
+                              })
+                            }
+                          : undefined
+                      }
                       onToggle={() => toggleTaskDone(task.id)}
                     />
                   ))}
@@ -363,17 +389,21 @@ function initialsOf(name: string): string {
 function TaskCard({
   task,
   assigneeLabel,
+  assignableMembers = [],
+  onReassign,
   onToggle,
 }: {
   task: AppTask
   assigneeLabel: string
+  assignableMembers?: Array<{ uid: string; name: string; role: string }>
+  onReassign?: (uid: string) => void
   onToggle: () => void
 }) {
   const prefersReducedMotion = useReducedMotion()
   const isDone = task.status === "done"
 
   return (
-    <li className="overflow-hidden rounded-xl border border-gold/15 bg-white">
+    <li id={`task-${task.id}`} className="scroll-mt-24 overflow-hidden rounded-xl border border-gold/15 bg-white">
       <AnimatePresence mode="wait">
         <motion.div
           layout
@@ -425,15 +455,42 @@ function TaskCard({
               {task.title}
             </motion.p>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-maroon/50">
-              {assigneeLabel && (
-                <span className="flex max-w-[42%] items-center gap-1 truncate md:max-w-none">
+              {onReassign && assignableMembers.length > 0 ? (
+                <label className="flex max-w-[55%] items-center gap-1 truncate md:max-w-none">
+                  <span className="sr-only">Reassign task</span>
                   <Avatar
                     initials={initialsOf(assigneeLabel.replace(/\s*\(unlinked\)$/i, ""))}
                     size="sm"
                     className="!h-4 !w-4 !text-[9px] md:!h-5 md:!w-5 md:!text-[10px]"
                   />
-                  <span className="truncate">{assigneeLabel}</span>
-                </span>
+                  <select
+                    value={task.assigneeUid ?? ""}
+                    onChange={(e) => {
+                      const uid = e.target.value
+                      if (uid && uid !== task.assigneeUid) onReassign(uid)
+                    }}
+                    className="max-w-[9rem] truncate rounded-md border-0 bg-transparent py-0.5 text-xs text-maroon/60 focus:outline-none focus:ring-1 focus:ring-maroon/20 md:max-w-[12rem]"
+                    aria-label={`Assignee for ${task.title}`}
+                  >
+                    {!task.assigneeUid && <option value="">{assigneeLabel}</option>}
+                    {assignableMembers.map((m) => (
+                      <option key={m.uid} value={m.uid}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                assigneeLabel && (
+                  <span className="flex max-w-[42%] items-center gap-1 truncate md:max-w-none">
+                    <Avatar
+                      initials={initialsOf(assigneeLabel.replace(/\s*\(unlinked\)$/i, ""))}
+                      size="sm"
+                      className="!h-4 !w-4 !text-[9px] md:!h-5 md:!w-5 md:!text-[10px]"
+                    />
+                    <span className="truncate">{assigneeLabel}</span>
+                  </span>
+                )
               )}
               <span aria-hidden="true">·</span>
               <span className="shrink-0">

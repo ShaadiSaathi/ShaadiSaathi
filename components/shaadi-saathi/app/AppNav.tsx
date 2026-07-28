@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import MehndiPattern from "@/components/shaadi-saathi/MehndiPattern"
 import SidebarNavItem from "@/components/shaadi-saathi/app/SidebarNavItem"
 import SidebarUpgradeCTA from "@/components/shaadi-saathi/app/SidebarUpgradeCTA"
+import NotificationBell from "@/components/shaadi-saathi/notifications/NotificationBell"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useMessages } from "@/components/shaadi-saathi/messages/MessagesContext"
 import { CURRENT_USER, WEDDING } from "@/lib/mockData"
@@ -158,11 +159,14 @@ export function Sidebar() {
     <aside className="relative hidden w-64 shrink-0 flex-col border-r border-gold/15 bg-white md:flex">
       <MehndiPattern opacity={0.03} />
 
-      <div className="relative border-b border-gold/15 px-5 py-5">
-        <Link href="/" className="font-display text-lg font-bold text-maroon-dark">
-          Shaadi Saathi
-        </Link>
-        <p className="mt-0.5 truncate text-xs text-maroon/50">{WEDDING.name}</p>
+      <div className="relative flex items-start justify-between gap-2 border-b border-gold/15 px-5 py-5">
+        <div className="min-w-0">
+          <Link href="/" className="font-display text-lg font-bold text-maroon-dark">
+            Shaadi Saathi
+          </Link>
+          <p className="mt-0.5 truncate text-xs text-maroon/50">{WEDDING.name}</p>
+        </div>
+        <NotificationBell align="right" className="-mr-1 -mt-1" />
       </div>
 
       <nav className="relative flex-1 space-y-1 px-3 py-4" aria-label="App navigation">
