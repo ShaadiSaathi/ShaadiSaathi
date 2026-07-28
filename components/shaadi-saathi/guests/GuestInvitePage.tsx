@@ -6,7 +6,6 @@ import MehndiPattern from "@/components/shaadi-saathi/MehndiPattern"
 import JaaliDivider from "@/components/shaadi-saathi/JaaliDivider"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
 import {
-  EVENTS,
   WEDDING,
   formatEventDate,
   guestPartySize,
@@ -14,6 +13,14 @@ import {
   type EventId,
   type Guest,
 } from "@/lib/mockData"
+import {
+  DEFAULT_WEDDING_TIMEZONE,
+  isEventRsvpLocked,
+  loadLocalEventOverrides,
+  resolveWeddingEvent,
+  type ResolvedWeddingEvent,
+  type WeddingEventOverrides,
+} from "@/lib/events/rsvp-lock"
 import { getInviteTheme, type InviteThemeId } from "@/lib/premium"
 import { isFirebaseConfigured } from "@/lib/firebase/config"
 import {
@@ -60,6 +67,8 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   const [coupleName, setCoupleName] = useState(WEDDING.couple)
   const [inviteTheme, setInviteTheme] = useState<InviteThemeId>("classic")
   const [isPremium, setIsPremium] = useState(false)
+  const [eventOverrides, setEventOverrides] = useState<WeddingEventOverrides>({})
+  const [weddingTimeZone, setWeddingTimeZone] = useState(DEFAULT_WEDDING_TIMEZONE)
   const [toast, setToast] = useState<string | null>(null)
   const [errorToast, setErrorToast] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -102,6 +111,11 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   }, [pulseEvent, pulseAll])
 
   useEffect(() => {
+    if (isFirebaseConfigured()) return
+    setEventOverrides(loadLocalEventOverrides())
+  }, [])
+
+  useEffect(() => {
     if (!isFirebaseConfigured()) return
 
     let weddingUnsub: (() => void) | undefined
@@ -137,11 +151,15 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
               setCoupleName(wedding.couple)
               setInviteTheme(wedding.inviteTheme)
               setIsPremium(wedding.isPremium)
+              setEventOverrides(wedding.eventOverrides ?? {})
+              setWeddingTimeZone(wedding.timezone ?? DEFAULT_WEDDING_TIMEZONE)
               weddingUnsub = subscribeWedding(wedding.id, (w) => {
                 if (w) {
                   setCoupleName(w.couple)
                   setInviteTheme(w.inviteTheme)
                   setIsPremium(w.isPremium)
+                  setEventOverrides(w.eventOverrides ?? {})
+                  setWeddingTimeZone(w.timezone ?? DEFAULT_WEDDING_TIMEZONE)
                 }
               })
             }
@@ -189,12 +207,21 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
     )
   }
 
-  const invitedEvents = EVENTS.filter((e) => guest.events.includes(e.id))
+  const invitedEvents = guest.events
+    .map((id) => resolveWeddingEvent(id, eventOverrides))
+    .filter((e): e is ResolvedWeddingEvent => Boolean(e))
   const invitedIds = invitedEvents.map((e) => e.id)
+  const openInvitedEvents = invitedEvents.filter(
+    (e) => !isEventRsvpLocked(e, { timeZone: weddingTimeZone })
+  )
+  const lockedInvitedEvents = invitedEvents.filter((e) =>
+    isEventRsvpLocked(e, { timeZone: weddingTimeZone })
+  )
+  const openInvitedIds = openInvitedEvents.map((e) => e.id)
 
-  function showUpdatedToast() {
+  function showUpdatedToast(detail?: string) {
     setErrorToast(null)
-    setToast("Got it, we've updated your response!")
+    setToast(detail || "Got it, we've updated your response!")
   }
 
   function showErrorToast(message?: string) {
@@ -204,6 +231,11 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
   async function handleRsvp(eventId: EventId, choice: RsvpChoice) {
     if (busy) return
+    const event = resolveWeddingEvent(eventId, eventOverrides)
+    if (event && isEventRsvpLocked(event, { timeZone: weddingTimeZone })) {
+      showErrorToast(`RSVPs for ${event.name} are now closed.`)
+      return
+    }
     setBusy(true)
     setErrorToast(null)
     try {
@@ -230,19 +262,39 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
   async function handleBulkRsvp(choice: RsvpChoice) {
     if (busy || invitedIds.length === 0) return
+    if (openInvitedIds.length === 0) {
+      showErrorToast(
+        lockedInvitedEvents.length === 1
+          ? `RSVPs for ${lockedInvitedEvents[0]!.name} are now closed.`
+          : "RSVPs for these events are now closed."
+      )
+      return
+    }
     setBusy(true)
     setErrorToast(null)
     try {
       const token = guestToken
-      console.info("[GuestInvitePage] bulk RSVP tap", { token, choice, invitedIds })
+      console.info("[GuestInvitePage] bulk RSVP tap", {
+        token,
+        choice,
+        openInvitedIds,
+        skippedLocked: lockedInvitedEvents.map((e) => e.id),
+      })
       if (isFirebaseConfigured()) {
-        await updateGuestRsvpBulkByGuestViaApi(token, choice, invitedIds)
+        await updateGuestRsvpBulkByGuestViaApi(token, choice, openInvitedIds)
       } else {
-        await updateRsvpBulkByGuest(guest!.id, choice, invitedIds)
+        await updateRsvpBulkByGuest(guest!.id, choice, openInvitedIds)
       }
       console.info("[GuestInvitePage] bulk RSVP saved", { token, choice })
       setPulseAll(true)
-      showUpdatedToast()
+      if (lockedInvitedEvents.length > 0) {
+        const skipped = lockedInvitedEvents.map((e) => e.name).join(", ")
+        showUpdatedToast(
+          `Updated open events. Skipped locked: ${skipped}.`
+        )
+      } else {
+        showUpdatedToast()
+      }
     } catch (err) {
       console.error("[GuestInvitePage] bulk RSVP failed", err)
       showErrorToast(
@@ -302,11 +354,12 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
           </p>
         </section>
 
-        {invitedIds.length > 1 && (
+        {invitedIds.length > 1 && openInvitedIds.length > 0 && (
           <BulkRsvpBanner
             disabled={busy}
             themeAccent={theme.accent}
             guestName={respondingAsLabel}
+            lockedEventNames={lockedInvitedEvents.map((e) => e.name)}
             onAcceptAll={() => void handleBulkRsvp("confirmed")}
             onDeclineAll={() => void handleBulkRsvp("declined")}
           />
@@ -321,6 +374,7 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
               guestName={respondingAsLabel}
               index={i}
               busy={busy}
+              locked={isEventRsvpLocked(event, { timeZone: weddingTimeZone })}
               pulse={pulseAll || pulseEvent === event.id}
               onRsvp={(choice) => void handleRsvp(event.id, choice)}
             />
@@ -376,12 +430,14 @@ function BulkRsvpBanner({
   disabled,
   themeAccent,
   guestName,
+  lockedEventNames,
   onAcceptAll,
   onDeclineAll,
 }: {
   disabled: boolean
   themeAccent: string
   guestName: string
+  lockedEventNames: string[]
   onAcceptAll: () => void
   onDeclineAll: () => void
 }) {
@@ -403,6 +459,12 @@ function BulkRsvpBanner({
         <span className="font-semibold text-maroon-dark">{guestName}</span>. You can still adjust
         individual events below anytime.
       </p>
+      {lockedEventNames.length > 0 && (
+        <p className="mt-2 text-center text-xs text-maroon/55">
+          Closed events will be skipped:{" "}
+          <span className="font-semibold text-maroon-dark">{lockedEventNames.join(", ")}</span>.
+        </p>
+      )}
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
@@ -440,14 +502,16 @@ function EventRsvpCard({
   guestName,
   index,
   busy,
+  locked,
   pulse,
   onRsvp,
 }: {
-  event: (typeof EVENTS)[number]
+  event: ResolvedWeddingEvent
   guest: Guest
   guestName: string
   index: number
   busy: boolean
+  locked: boolean
   pulse: boolean
   onRsvp: (choice: RsvpChoice) => void
 }) {
@@ -498,6 +562,25 @@ function EventRsvpCard({
           <p className="text-center text-sm text-slate-500">
             This invitation has been withdrawn by the hosts.
           </p>
+        ) : locked ? (
+          <div className="space-y-2 text-center">
+            <p className="text-sm font-medium text-maroon-dark">
+              {confirmed
+                ? `Your response: Accepting with Joy`
+                : declined
+                  ? `Your response: Sadly Declining`
+                  : status === "pending"
+                    ? "No response recorded yet"
+                    : null}
+            </p>
+            <p className="text-sm leading-relaxed text-maroon/65">
+              RSVPs for {event.name} are now closed. Please contact the family directly for any
+              changes.
+            </p>
+            {lastUpdated ? (
+              <p className="text-[11px] text-maroon/40">Last updated {lastUpdated}</p>
+            ) : null}
+          </div>
         ) : (
           <div className="space-y-3">
             <p className="text-center text-sm font-medium text-maroon/70">

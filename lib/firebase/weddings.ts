@@ -62,3 +62,31 @@ export async function updateWeddingInviteTheme(
 ): Promise<void> {
   await updateDoc(doc(getFirestoreDb(), "weddings", weddingId), { inviteTheme })
 }
+
+export async function updateWeddingEventOverride(
+  weddingId: string,
+  eventId: string,
+  override: {
+    date?: string
+    time?: string
+    rsvpLockHoursBefore?: number | null
+  }
+): Promise<void> {
+  const ref = doc(getFirestoreDb(), "weddings", weddingId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error("Wedding not found")
+  const existing = (snap.data().eventOverrides ?? {}) as Record<string, unknown>
+  const prev =
+    typeof existing[eventId] === "object" && existing[eventId] !== null
+      ? (existing[eventId] as Record<string, unknown>)
+      : {}
+  await updateDoc(ref, {
+    eventOverrides: {
+      ...existing,
+      [eventId]: {
+        ...prev,
+        ...override,
+      },
+    },
+  })
+}

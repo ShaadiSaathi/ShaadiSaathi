@@ -72,6 +72,22 @@ export interface FirestoreWedding {
   organiserPhone: string
   firstEventDate: string
   createdAt: number
+  /**
+   * IANA timezone for schedule/RSVP lock math. Absent → Asia/Karachi.
+   * Weddings do not historically store this; default is documented in rsvp-lock.ts.
+   */
+  timezone?: string
+  /** Additive per-event date/time/RSVP-lock overrides (core events stay mock-seeded). */
+  eventOverrides?: Partial<
+    Record<
+      EventId,
+      {
+        date?: string
+        time?: string
+        rsvpLockHoursBefore?: number | null
+      }
+    >
+  >
 }
 
 export type TaskStatusValue = "todo" | "in_progress" | "done"

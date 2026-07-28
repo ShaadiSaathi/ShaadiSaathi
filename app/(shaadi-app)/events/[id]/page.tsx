@@ -2,17 +2,24 @@
 
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { use, useState } from "react"
+import { use, useMemo, useState } from "react"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import EventBudgetSnapshot from "@/components/shaadi-saathi/events/EventBudgetSnapshot"
 import EventNotes from "@/components/shaadi-saathi/events/EventNotes"
+import EventRsvpLockSettings from "@/components/shaadi-saathi/events/EventRsvpLockSettings"
 import EventTaskSummary from "@/components/shaadi-saathi/events/EventTaskSummary"
 import EventTimeline from "@/components/shaadi-saathi/events/EventTimeline"
 import EventVendorsList from "@/components/shaadi-saathi/events/EventVendorsList"
 import VenueMap from "@/components/shaadi-saathi/events/VenueMap"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
+import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
 import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
+import {
+  loadLocalEventOverrides,
+  resolveWeddingEvent,
+} from "@/lib/events/rsvp-lock"
 import {
   type EventId,
   formatFullDate,
@@ -36,12 +43,25 @@ const MOBILE_SECTIONS: { id: MobileSection; label: string }[] = [
 
 export default function EventDetailPage({ params }: EventDetailPageProps) {
   const { id } = use(params)
-  const event = getEventById(id)
+  const baseEvent = getEventById(id)
   const { guests } = useGuests()
   const { bookings } = useVendorBookings()
+  const { isFirebaseMode } = useAuth()
+  const { wedding } = useWedding()
   const [mobileSection, setMobileSection] = useState<MobileSection>("map")
+  const [localTick, setLocalTick] = useState(0)
 
-  if (!event) {
+  const overrides = useMemo(() => {
+    void localTick
+    return isFirebaseMode ? wedding?.eventOverrides ?? {} : loadLocalEventOverrides()
+  }, [isFirebaseMode, wedding?.eventOverrides, localTick])
+
+  const event = useMemo(
+    () => (baseEvent ? resolveWeddingEvent(baseEvent.id as EventId, overrides) : undefined),
+    [baseEvent, overrides]
+  )
+
+  if (!baseEvent || !event) {
     notFound()
   }
 
@@ -89,6 +109,10 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
           </div>
         </dl>
       </header>
+
+      <div className="mb-6 sm:mb-8">
+        <EventRsvpLockSettings eventId={eventId} onSaved={() => setLocalTick((n) => n + 1)} />
+      </div>
 
       {/* Mobile: tabbed sections */}
       <div className="md:hidden">

@@ -50,6 +50,11 @@ export interface WeddingEvent {
   color: string // tailwind bg class for chips
   chipColor: string
   description: string
+  /**
+   * Optional guest RSVP lock: hours before event start.
+   * Unset/null = never lock (current default behaviour).
+   */
+  rsvpLockHoursBefore?: number | null
 }
 
 export interface Guest {
