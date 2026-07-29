@@ -11,8 +11,10 @@ import {
   type VendorPackage,
 } from "@/lib/mockVendors"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
+import { useWeddingMembersOptional } from "@/components/shaadi-saathi/family/WeddingMembersContext"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import DepositBalanceCard from "./payments/DepositBalanceCard"
+import PaymentOwnerOnlyNotice from "./payments/PaymentOwnerOnlyNotice"
 import PaymentPathSelector, {
   MockDepositPayment,
 } from "./payments/PaymentPathSelector"
@@ -25,10 +27,13 @@ interface BookingModalProps {
   onClose: () => void
 }
 
-/** Booking flow with payment path + deposit — PLACEHOLDER for real payment gateway */
+/** Booking flow with payment path + deposit — owner-only payment approvals */
 export default function BookingModal({ vendor, onClose }: BookingModalProps) {
   const { addBooking } = useVendorBookings()
   const { guests } = useGuests()
+  const membersCtx = useWeddingMembersOptional()
+  const canApprovePayments = membersCtx?.canApprovePayments ?? true
+  const ownerDisplayName = membersCtx?.ownerDisplayName ?? "the wedding owner"
   const confirmedCountFor = (ev: EventId) =>
     guests.filter((g) => g.rsvp[ev] === "confirmed").length
   const [step, setStep] = useState<Step>("details")
@@ -93,12 +98,12 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
       role="dialog"
       aria-labelledby="booking-modal-title"
       aria-modal="true"
     >
-      <div className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl">
+      <div className="safe-bottom relative flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl md:max-h-[90vh] md:max-w-md md:rounded-2xl md:pb-0">
         <button
           type="button"
           onClick={onClose}
@@ -109,10 +114,10 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+        <div className="flex shrink-0 justify-center pt-2.5 pb-1 md:hidden" aria-hidden="true">
           <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
         {step === "confirmed" ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -157,10 +162,14 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
               <DepositBalanceCard payment={previewPayment} />
             </div>
             <div className="mt-4">
-              <MockDepositPayment
-                depositAmount={split.depositAmount}
-                onPaid={handleDepositPaid}
-              />
+              {!canApprovePayments ? (
+                <PaymentOwnerOnlyNotice ownerName={ownerDisplayName} />
+              ) : (
+                <MockDepositPayment
+                  depositAmount={split.depositAmount}
+                  onPaid={handleDepositPaid}
+                />
+              )}
             </div>
             <GoldButton
               type="button"
@@ -180,19 +189,27 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
             <div className="mt-4">
               <DepositBalanceCard payment={previewPayment} />
             </div>
-            <div className="mt-5">
-              <PaymentPathSelector
-                paymentPath={paymentPath}
-                inPersonMethod={inPersonMethod}
-                onPathChange={setPaymentPath}
-                onMethodChange={setInPersonMethod}
-                acceptsCardInPerson={vendor.acceptsCardInPerson ?? false}
-              />
-            </div>
+            {!canApprovePayments ? (
+              <div className="mt-5">
+                <PaymentOwnerOnlyNotice ownerName={ownerDisplayName} />
+              </div>
+            ) : (
+              <div className="mt-5">
+                <PaymentPathSelector
+                  paymentPath={paymentPath}
+                  inPersonMethod={inPersonMethod}
+                  onPathChange={setPaymentPath}
+                  onMethodChange={setInPersonMethod}
+                  acceptsCardInPerson={vendor.acceptsCardInPerson ?? false}
+                />
+              </div>
+            )}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <GoldButton onClick={handlePaymentContinue} className="min-h-[44px] flex-1">
-                Continue to deposit
-              </GoldButton>
+              {canApprovePayments ? (
+                <GoldButton onClick={handlePaymentContinue} className="min-h-[44px] flex-1">
+                  Continue to deposit
+                </GoldButton>
+              ) : null}
               <GoldButton
                 type="button"
                 variant="ghost"

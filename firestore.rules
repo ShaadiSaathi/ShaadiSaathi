@@ -17,10 +17,29 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/weddings/$(weddingId)).data.memberUids;
     }
 
+    /** Financial approvals — only the wedding ownerId (not collaborators). */
+    function isWeddingOwner(weddingId) {
+      return isSignedIn()
+        && weddingId != null
+        && get(/databases/$(database)/documents/weddings/$(weddingId)).data.ownerId == request.auth.uid;
+    }
+
     function isVendorOwner(vendorId) {
       return isSignedIn()
         && vendorId != null
         && get(/databases/$(database)/documents/vendors/$(vendorId)).data.ownerUid == request.auth.uid;
+    }
+
+    /** Collaborators may not rewrite ownership; owner may (future transfer). */
+    function weddingOwnershipFieldsUnchanged() {
+      return request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.memberUids == resource.data.memberUids;
+    }
+
+    /** Non-financial booking touch (message read receipts). */
+    function bookingFamilyReadReceiptOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['lastReadByFamily']);
     }
 
     function isPlatformAdmin() {
@@ -101,7 +120,12 @@ service cloud.firestore {
       allow get: if true;
       allow list: if isWeddingMember(weddingId) || isPlatformAdmin();
       allow create: if isSignedIn();
-      allow update, delete: if isWeddingMember(weddingId) || isPlatformAdmin();
+      // Owner: full update (incl. future ownerId transfer). Collaborators: anything
+      // except ownerId/memberUids (those change via Admin SDK on invite accept).
+      allow update: if isPlatformAdmin()
+        || isWeddingOwner(weddingId)
+        || (isWeddingMember(weddingId) && weddingOwnershipFieldsUnchanged());
+      allow delete: if isWeddingOwner(weddingId) || isPlatformAdmin();
     }
 
     match /guests/{inviteToken} {
@@ -137,13 +161,17 @@ service cloud.firestore {
         isWeddingMember(resource.data.weddingId)
         || isVendorOwner(resource.data.vendorId)
       ));
-      allow create: if isSignedIn()
-        && isWeddingMember(request.resource.data.weddingId);
-      allow update: if isPlatformAdmin() || (isSignedIn() && (
-        isWeddingMember(resource.data.weddingId)
-        || isVendorOwner(resource.data.vendorId)
-      ));
-      allow delete: if isWeddingMember(resource.data.weddingId) || isPlatformAdmin();
+      // Creating a booking starts the payment path — owner only.
+      allow create: if isPlatformAdmin()
+        || (isSignedIn() && isWeddingOwner(request.resource.data.weddingId));
+      // Payment/status/dispute writes: owner or vendor. Collaborators: read receipts only.
+      allow update: if isPlatformAdmin()
+        || (isSignedIn() && isVendorOwner(resource.data.vendorId))
+        || (isSignedIn() && isWeddingOwner(resource.data.weddingId))
+        || (isSignedIn()
+          && isWeddingMember(resource.data.weddingId)
+          && bookingFamilyReadReceiptOnly());
+      allow delete: if isWeddingOwner(resource.data.weddingId) || isPlatformAdmin();
     }
 
     match /messages/{messageId} {

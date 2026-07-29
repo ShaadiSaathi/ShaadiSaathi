@@ -35,6 +35,8 @@ import QualityConcernForm, {
 } from "@/components/shaadi-saathi/shared/QualityConcernForm"
 import MessageThread from "@/components/shaadi-saathi/shared/MessageThread"
 import { useVendorBookings } from "./VendorBookingsContext"
+import { useWeddingMembersOptional } from "@/components/shaadi-saathi/family/WeddingMembersContext"
+import PaymentOwnerOnlyNotice from "./payments/PaymentOwnerOnlyNotice"
 
 const STATUS_STYLES = {
   requested: "bg-amber-50 text-amber-800 border-amber-200",
@@ -149,6 +151,9 @@ function BookingCard({
     proposeFamilyCounter,
   } = useVendorBookings()
   const { getVendorById } = useVendorsDirectory()
+  const membersCtx = useWeddingMembersOptional()
+  const canApprovePayments = membersCtx?.canApprovePayments ?? true
+  const ownerDisplayName = membersCtx?.ownerDisplayName ?? "the wedding owner"
   const [showDispute, setShowDispute] = useState(false)
   const [showQualityConcern, setShowQualityConcern] = useState(false)
 
@@ -219,13 +224,17 @@ function BookingCard({
 
       {booking.counterOffer?.proposedBy === "vendor" && booking.status === "requested" && (
         <div className="mt-4">
-          <CounterOfferPanel
-            booking={booking}
-            vendorName={vendor.name}
-            onAccept={() => acceptCounterOffer(booking.id)}
-            onDecline={() => declineCounterOffer(booking.id)}
-            onCounter={(price, note) => proposeFamilyCounter(booking.id, { price, note })}
-          />
+          {canApprovePayments ? (
+            <CounterOfferPanel
+              booking={booking}
+              vendorName={vendor.name}
+              onAccept={() => acceptCounterOffer(booking.id)}
+              onDecline={() => declineCounterOffer(booking.id)}
+              onCounter={(price, note) => proposeFamilyCounter(booking.id, { price, note })}
+            />
+          ) : (
+            <PaymentOwnerOnlyNotice ownerName={ownerDisplayName} />
+          )}
         </div>
       )}
 
@@ -266,19 +275,23 @@ function BookingCard({
             />
           )}
 
-          {canReportQuality && (
-            <button
-              type="button"
-              onClick={() => setShowQualityConcern(true)}
-              className="inline-flex min-h-[44px] items-center text-xs font-medium text-violet-800 underline-offset-2 hover:underline"
-            >
-              Something&apos;s wrong with the setup
-            </button>
-          )}
+          {canReportQuality &&
+            (canApprovePayments ? (
+              <button
+                type="button"
+                onClick={() => setShowQualityConcern(true)}
+                className="inline-flex min-h-[44px] items-center text-xs font-medium text-violet-800 underline-offset-2 hover:underline"
+              >
+                Something&apos;s wrong with the setup
+              </button>
+            ) : (
+              <PaymentOwnerOnlyNotice ownerName={ownerDisplayName} />
+            ))}
 
           {payment.paymentPath === "in_person" &&
             payment.balanceStatus === "due_in_person" &&
-            payment.depositStatus === "released" && (
+            payment.depositStatus === "released" &&
+            (canApprovePayments ? (
               <GoldButton
                 variant="ghost"
                 onClick={() => markBalancePaid(booking.id)}
@@ -286,21 +299,28 @@ function BookingCard({
               >
                 Mark balance as paid
               </GoldButton>
-            )}
+            ) : (
+              <PaymentOwnerOnlyNotice ownerName={ownerDisplayName} />
+            ))}
 
           {payment.dispute?.status === "under_review" && (
             <DisputeUnderReviewCard vendorName={vendor.name} />
           )}
 
-          {disputeEligible && payment.dispute?.status !== "under_review" && !payment.qualityConcern && (
-            <button
-              type="button"
-              onClick={() => setShowDispute(true)}
-              className="inline-flex min-h-[44px] items-center text-xs font-medium text-maroon/60 underline-offset-2 hover:text-maroon hover:underline"
-            >
-              Report an issue (formal dispute)
-            </button>
-          )}
+          {disputeEligible &&
+            payment.dispute?.status !== "under_review" &&
+            !payment.qualityConcern &&
+            (canApprovePayments ? (
+              <button
+                type="button"
+                onClick={() => setShowDispute(true)}
+                className="inline-flex min-h-[44px] items-center text-xs font-medium text-maroon/60 underline-offset-2 hover:text-maroon hover:underline"
+              >
+                Report an issue (formal dispute)
+              </button>
+            ) : (
+              <PaymentOwnerOnlyNotice ownerName={ownerDisplayName} />
+            ))}
 
           {booking.status !== "declined" && (
             <Link
@@ -332,7 +352,7 @@ function BookingCard({
 
       {booking.status === "no_show" && <NoShowState booking={booking} />}
 
-      {showDispute && (
+      {showDispute && canApprovePayments && (
         <DisputeForm
           vendorName={vendor.name}
           onSubmit={(data) => {
@@ -343,7 +363,7 @@ function BookingCard({
         />
       )}
 
-      {showQualityConcern && (
+      {showQualityConcern && canApprovePayments && (
         <QualityConcernForm
           onSubmit={(data) => reportQualityConcern(booking.id, data)}
           onClose={() => setShowQualityConcern(false)}

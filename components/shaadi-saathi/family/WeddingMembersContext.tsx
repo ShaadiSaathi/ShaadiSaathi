@@ -16,6 +16,10 @@ import {
   subscribeWeddingMemberProfiles,
   type WeddingMemberProfile,
 } from "@/lib/firebase/collaborators"
+import {
+  canApproveWeddingPayments,
+  getWeddingOwnerDisplayName,
+} from "@/lib/firebase/wedding-permissions"
 import type { FirestoreCollaboratorInvite } from "@/lib/firebase/types"
 import { FREE_LIMITS, PREMIUM_LIMITS } from "@/lib/premium"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
@@ -27,6 +31,11 @@ interface WeddingMembersContextValue {
   loading: boolean
   memberLimit: number
   canInviteMore: boolean
+  /** True when signed-in user is weddings.ownerId */
+  isOwner: boolean
+  /** Owner-only: approve deposits/balances/disputes */
+  canApprovePayments: boolean
+  ownerDisplayName: string
   inviteByPhone: (phone: string) => Promise<void>
   cancelInvite: (inviteId: string) => Promise<void>
   getMemberByUid: (uid: string) => WeddingMemberProfile | undefined
@@ -141,6 +150,12 @@ export function WeddingMembersProvider({ children }: { children: ReactNode }) {
     [getMemberByUid, members]
   )
 
+  const canApprovePayments = !isFirebaseMode
+    ? true
+    : canApproveWeddingPayments(firebaseUser?.uid, wedding)
+  const isOwner = !isFirebaseMode ? true : canApprovePayments
+  const ownerDisplayName = getWeddingOwnerDisplayName(members, wedding)
+
   const value = useMemo(
     () => ({
       members,
@@ -148,6 +163,9 @@ export function WeddingMembersProvider({ children }: { children: ReactNode }) {
       loading,
       memberLimit,
       canInviteMore,
+      isOwner,
+      canApprovePayments,
+      ownerDisplayName,
       inviteByPhone,
       cancelInvite,
       getMemberByUid,
@@ -159,6 +177,9 @@ export function WeddingMembersProvider({ children }: { children: ReactNode }) {
       loading,
       memberLimit,
       canInviteMore,
+      isOwner,
+      canApprovePayments,
+      ownerDisplayName,
       inviteByPhone,
       cancelInvite,
       getMemberByUid,

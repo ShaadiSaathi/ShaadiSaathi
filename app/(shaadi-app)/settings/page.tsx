@@ -245,10 +245,20 @@ export default function SettingsPage() {
                   <Avatar initials={initials(member.name)} size="md" />
                   <div>
                     <p className="font-medium text-maroon-dark">{member.name}</p>
-                    <p className="text-xs text-maroon/50">
-                      {member.role === "owner" ? "Owner" : "Collaborator"}
-                      {member.phone ? ` · ${maskPhone(member.phone)}` : ""}
-                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          member.role === "owner"
+                            ? "bg-maroon/10 text-maroon-dark"
+                            : "bg-gold/15 text-gold-dark"
+                        }`}
+                      >
+                        {member.role === "owner" ? "Owner" : "Collaborator"}
+                      </span>
+                      {member.phone ? (
+                        <span className="text-xs text-maroon/50">{maskPhone(member.phone)}</span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
                 {firebaseUser?.uid === member.uid && (
