@@ -7,12 +7,14 @@ import { WEDDING, createGuestInviteUrl } from "@/lib/mockData"
 interface InviteLinkModalProps {
   guestName: string
   inviteToken: string
+  isGroup?: boolean
   onClose: () => void
 }
 
 export default function InviteLinkModal({
   guestName,
   inviteToken,
+  isGroup = false,
   onClose,
 }: InviteLinkModalProps) {
   const [copied, setCopied] = useState(false)
@@ -61,10 +63,12 @@ export default function InviteLinkModal({
           <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
         </div>
         <h2 id="invite-link-title" className="font-display text-xl font-semibold text-maroon-dark">
-          Send invite to {guestName}
+          {isGroup ? `Share group invite for ${guestName}` : `Send invite to ${guestName}`}
         </h2>
         <p className="mt-1 text-sm text-maroon/60">
-          Share this personal link so they can view their invitation and RSVP.
+          {isGroup
+            ? "One link for the whole household — they can RSVP for everyone at once."
+            : "Share this personal link so they can view their invitation and RSVP."}
         </p>
 
         <div className="mt-4">

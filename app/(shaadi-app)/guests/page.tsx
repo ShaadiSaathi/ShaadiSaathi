@@ -54,6 +54,8 @@ export default function GuestsPage() {
   const [inviteGuest, setInviteGuest] = useState<Guest | null>(null)
   const [pendingOverride, setPendingOverride] = useState<PendingOverride | null>(null)
   const [showGuestLimit, setShowGuestLimit] = useState(false)
+  const [addingGuest, setAddingGuest] = useState(false)
+  const [addGuestError, setAddGuestError] = useState<string | null>(null)
 
   // Keep latest guests for unmount cleanup without re-binding every render
   const guestsRef = useRef(guests)
@@ -96,11 +98,12 @@ export default function GuestsPage() {
     setNewName("")
     setNewPartySize(4)
     setNewEvents(["walima"])
+    setAddGuestError(null)
     setShowAddForm(true)
     setShowGuestLimit(false)
   }
 
-  function handleAddGuest(e: React.FormEvent) {
+  async function handleAddGuest(e: React.FormEvent) {
     e.preventDefault()
     if (!newName.trim()) return
     if (addMode === "group" && newPartySize < 2) return
@@ -108,20 +111,30 @@ export default function GuestsPage() {
       setShowGuestLimit(true)
       return
     }
-    if (addMode === "group") {
-      addGuest({
-        name: newName.trim(),
-        events: newEvents,
-        kind: "group",
-        partySize: newPartySize,
-      })
-    } else {
-      addGuest({ name: newName.trim(), events: newEvents })
+    setAddingGuest(true)
+    setAddGuestError(null)
+    try {
+      const created =
+        addMode === "group"
+          ? await addGuest({
+              name: newName.trim(),
+              events: newEvents,
+              kind: "group",
+              partySize: newPartySize,
+            })
+          : await addGuest({ name: newName.trim(), events: newEvents })
+      setNewName("")
+      setNewPartySize(4)
+      setShowAddForm(false)
+      setShowGuestLimit(false)
+      setInviteGuest(created)
+    } catch (err) {
+      setAddGuestError(
+        err instanceof Error ? err.message : "Could not add guest. Please try again."
+      )
+    } finally {
+      setAddingGuest(false)
     }
-    setNewName("")
-    setNewPartySize(4)
-    setShowAddForm(false)
-    setShowGuestLimit(false)
   }
 
   function toggleNewEvent(eventId: EventId) {
@@ -231,6 +244,7 @@ export default function GuestsPage() {
           totalPct={totalPct}
           guests={rsvpGuests}
           onStatusChange={requestStatusChange}
+          onSendInvite={setInviteGuest}
         />
       ) : (
         <>
@@ -314,6 +328,7 @@ export default function GuestsPage() {
               : inviteGuest.name
           }
           inviteToken={inviteGuest.inviteToken}
+          isGroup={isGuestGroup(inviteGuest)}
           onClose={() => setInviteGuest(null)}
         />
       )}
@@ -431,9 +446,22 @@ export default function GuestsPage() {
                   ))}
                 </div>
               </fieldset>
+              {addGuestError ? (
+                <p className="text-sm text-rose-700" role="alert">
+                  {addGuestError}
+                </p>
+              ) : null}
               <div className="flex gap-3 pt-2">
-                <GoldButton type="submit" className="flex-1" disabled={newEvents.length === 0}>
-                  {addMode === "group" ? "Add Group" : "Add Guest"}
+                <GoldButton
+                  type="submit"
+                  className="flex-1"
+                  disabled={newEvents.length === 0 || addingGuest}
+                >
+                  {addingGuest
+                    ? "Adding…"
+                    : addMode === "group"
+                      ? "Add Group"
+                      : "Add Guest"}
                 </GoldButton>
                 <GoldButton
                   type="button"
@@ -518,12 +546,16 @@ function GuestRow({
           type="button"
           onClick={onSendInvite}
           className="ml-0 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-gold/25 px-4 py-2 text-sm font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5 md:ml-1 md:w-auto md:min-h-[44px] md:px-3 md:py-1 md:text-xs"
-          aria-label={`Send invite link to ${guest.name}`}
+          aria-label={
+            isGuestGroup(guest)
+              ? `Share group invite link for ${guest.name}`
+              : `Send invite link to ${guest.name}`
+          }
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
           </svg>
-          Send Invite
+          {isGuestGroup(guest) ? "Share Group Invite" : "Send Invite"}
         </button>
       </div>
     </li>
@@ -537,6 +569,7 @@ function RsvpOverview({
   totalPct,
   guests,
   onStatusChange,
+  onSendInvite,
 }: {
   rsvpEvent: EventId
   setRsvpEvent: (id: EventId) => void
@@ -544,6 +577,7 @@ function RsvpOverview({
   totalPct: number
   guests: Guest[]
   onStatusChange: (guest: Guest, eventId: EventId, status: RsvpStatus) => void
+  onSendInvite: (guest: Guest) => void
 }) {
   const event = EVENTS.find((e) => e.id === rsvpEvent)!
 
@@ -647,6 +681,21 @@ function RsvpOverview({
               />
               <RsvpSourceIndicator source={guest.rsvpSource[rsvpEvent]} />
               {guest.rsvpOrganiserAlert?.[rsvpEvent] ? <UpdatedBadge /> : null}
+              <button
+                type="button"
+                onClick={() => onSendInvite(guest)}
+                className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5"
+                aria-label={
+                  isGuestGroup(guest)
+                    ? `Share group invite link for ${guest.name}`
+                    : `Send invite link to ${guest.name}`
+                }
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                </svg>
+                {isGuestGroup(guest) ? "Group Invite" : "Invite"}
+              </button>
             </div>
           </li>
         ))}
