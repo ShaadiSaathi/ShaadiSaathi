@@ -32,7 +32,8 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
   const { addBooking } = useVendorBookings()
   const { guests } = useGuests()
   const membersCtx = useWeddingMembersOptional()
-  const canApprovePayments = membersCtx?.canApprovePayments ?? true
+  // Fail closed when context is missing — never show payment actions by accident.
+  const canApprovePayments = membersCtx?.canApprovePayments === true
   const ownerDisplayName = membersCtx?.ownerDisplayName ?? "the wedding owner"
   const confirmedCountFor = (ev: EventId) =>
     guests.filter((g) => g.rsvp[ev] === "confirmed").length

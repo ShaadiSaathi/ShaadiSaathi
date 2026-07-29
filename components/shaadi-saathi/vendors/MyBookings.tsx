@@ -152,7 +152,8 @@ function BookingCard({
   } = useVendorBookings()
   const { getVendorById } = useVendorsDirectory()
   const membersCtx = useWeddingMembersOptional()
-  const canApprovePayments = membersCtx?.canApprovePayments ?? true
+  // Fail closed when context is missing — never show payment actions by accident.
+  const canApprovePayments = membersCtx?.canApprovePayments === true
   const ownerDisplayName = membersCtx?.ownerDisplayName ?? "the wedding owner"
   const [showDispute, setShowDispute] = useState(false)
   const [showQualityConcern, setShowQualityConcern] = useState(false)
