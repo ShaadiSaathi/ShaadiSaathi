@@ -6,7 +6,6 @@ import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import BookingRequestCard from "@/components/shaadi-saathi/vendor-portal/BookingRequestCard"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
-import MehndiPattern from "@/components/shaadi-saathi/MehndiPattern"
 
 export default function VendorRequestsPage() {
   const { requests, acceptRequest, declineRequest, proposeCounterOffer } = useVendorPortal()
@@ -38,7 +37,7 @@ export default function VendorRequestsPage() {
   return (
     <PageTransition>
       <header className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+        <h1 className="shaadi-page-title">
           Booking requests
         </h1>
         <p className="mt-1 text-maroon/60">
@@ -62,14 +61,11 @@ export default function VendorRequestsPage() {
       )}
 
       {requests.length === 0 && !acceptedRequest ? (
-        <div className="relative overflow-hidden rounded-2xl border border-dashed border-gold/30 bg-white/60 p-12 text-center">
-          <MehndiPattern opacity={0.05} />
-          <div className="relative">
-            <p className="font-display text-xl font-semibold text-maroon-dark">All caught up!</p>
-            <p className="mt-2 text-maroon/60">
+        <div className="shaadi-card border border-dashed border-gold/25 bg-ivory/40 p-12 text-center">
+          <p className="shaadi-section-title text-xl">All caught up!</p>
+          <p className="mt-3 text-sm leading-relaxed text-maroon/60">
               No pending booking requests right now. New requests from families will appear here.
             </p>
-          </div>
         </div>
       ) : (
         <div className="space-y-4">

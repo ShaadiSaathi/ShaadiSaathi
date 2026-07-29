@@ -9,15 +9,17 @@ interface StatCardProps {
 
 export default function StatCard({ label, value, subtext, icon }: StatCardProps) {
   return (
-    <div className="rounded-2xl border border-gold/20 bg-white p-5 shadow-sm shadow-maroon/5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-maroon/60">{label}</p>
-          <p className="mt-1 font-display text-2xl font-bold text-maroon-dark">{value}</p>
-          {subtext && <p className="mt-1 text-xs text-maroon/50">{subtext}</p>}
+    <div className="shaadi-card p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="shaadi-label">{label}</p>
+          <p className="shaadi-stat-value mt-2">{value}</p>
+          {subtext && (
+            <p className="mt-1.5 text-xs leading-relaxed text-maroon/45">{subtext}</p>
+          )}
         </div>
         {icon && (
-          <div className="rounded-xl bg-gold/10 p-2.5 text-gold-dark">{icon}</div>
+          <div className="shrink-0 rounded-xl bg-gold/8 p-2.5 text-gold-dark">{icon}</div>
         )}
       </div>
     </div>

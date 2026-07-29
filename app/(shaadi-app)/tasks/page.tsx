@@ -98,9 +98,9 @@ function TasksPageContent() {
 
   return (
     <PageTransition>
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+          <h1 className="shaadi-page-title">
             Tasks
           </h1>
           <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
@@ -170,7 +170,7 @@ function TasksPageContent() {
               <section key={status} aria-labelledby={`status-${status}`}>
                 <h2
                   id={`status-${status}`}
-                  className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-maroon/50"
+                  className="shaadi-label mb-3 uppercase tracking-wider"
                 >
                   {STATUS_LABELS[status]} ({group.length})
                 </h2>
@@ -212,7 +212,7 @@ function TasksPageContent() {
               <section key={key} aria-labelledby={`member-${key}`}>
                 <div id={`member-${key}`} className="mb-3 flex items-center gap-2">
                   <Avatar initials={initialsOf(label)} size="sm" />
-                  <h2 className="font-display text-sm font-semibold text-maroon-dark">
+                  <h2 className="text-sm font-semibold text-maroon-dark">
                     {label}
                   </h2>
                   <span className="text-xs text-maroon/40">({group.length})</span>
@@ -264,7 +264,7 @@ function TasksPageContent() {
               <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
-              <h2 id="add-task-title" className="font-display text-xl font-semibold text-maroon-dark">
+              <h2 id="add-task-title" className="shaadi-section-title text-xl">
                 Add Task
               </h2>
               <form onSubmit={handleAddTask} className="mt-4 space-y-4">
@@ -403,7 +403,7 @@ function TaskCard({
   const isDone = task.status === "done"
 
   return (
-    <li id={`task-${task.id}`} className="scroll-mt-24 overflow-hidden rounded-xl border border-gold/15 bg-white">
+    <li id={`task-${task.id}`} className="scroll-mt-24 overflow-hidden shaadi-card">
       <AnimatePresence mode="wait">
         <motion.div
           layout

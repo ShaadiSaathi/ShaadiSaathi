@@ -47,7 +47,7 @@ export default function EventsPage() {
     <PageTransition>
       <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+          <h1 className="shaadi-page-title">
             Events
           </h1>
           <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
@@ -75,8 +75,8 @@ export default function EventsPage() {
       )}
 
       {showAddForm && (
-        <div className="mb-6 rounded-2xl border border-gold/25 bg-white p-5 shadow-sm">
-          <h2 className="font-display text-lg font-semibold text-maroon-dark">New event</h2>
+        <div className="mb-6 shaadi-card p-5">
+          <h2 className="shaadi-section-title">New event</h2>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
@@ -105,13 +105,13 @@ export default function EventsPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group relative block w-full min-h-[7.5rem] overflow-hidden rounded-2xl border border-gold/25 bg-white shadow-sm transition-all active:scale-[0.99] hover:border-gold/40 hover:shadow-md md:min-h-0 md:active:scale-100"
+              className="group shaadi-card relative block w-full min-h-[7.5rem] overflow-hidden transition-all active:scale-[0.99] hover:border-gold/25 hover:shadow-md md:min-h-0 md:active:scale-100"
             >
               <div className="h-1 bg-gradient-to-r from-gold/40 via-gold to-gold/40" aria-hidden="true" />
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-display text-xl font-semibold text-maroon-dark group-hover:text-maroon">
+                    <h2 className="shaadi-section-title text-xl group-hover:text-maroon">
                       {event.name}
                     </h2>
                     <p className="mt-1.5 text-sm text-maroon/60 md:mt-1">{formatEventDate(event.date)}</p>
@@ -133,12 +133,12 @@ export default function EventsPage() {
         {extraEvents.map((event) => (
           <div
             key={event.id}
-            className="relative w-full overflow-hidden rounded-2xl border border-dashed border-gold/30 bg-ivory/50 p-5"
+            className="shaadi-card relative w-full overflow-hidden border border-dashed border-gold/25 bg-ivory/50 p-5"
           >
             <span className="inline-flex rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold uppercase text-gold-dark">
               Custom
             </span>
-            <h2 className="mt-2 font-display text-xl font-semibold text-maroon-dark">{event.name}</h2>
+            <h2 className="shaadi-section-title mt-2 text-xl">{event.name}</h2>
             <p className="mt-1 text-sm text-maroon/60">{formatEventDate(event.date)}</p>
           </div>
         ))}

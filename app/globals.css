@@ -63,10 +63,80 @@ body:has(.refine-app) {
   background: var(--ivory);
   color: var(--maroon-dark);
   font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 .shaadi-saathi .font-display {
   font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+}
+
+/* ── Design system (visual tokens — palette unchanged) ── */
+
+.shaadi-saathi .shaadi-page-title {
+  font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+  font-size: clamp(1.65rem, 4vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--maroon-dark);
+}
+
+.shaadi-saathi .shaadi-section-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: var(--maroon-dark);
+}
+
+@media (min-width: 640px) {
+  .shaadi-saathi .shaadi-section-title {
+    font-size: 1.125rem;
+  }
+}
+
+.shaadi-saathi .shaadi-stat-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: var(--maroon-dark);
+}
+
+.shaadi-saathi .shaadi-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--maroon-dark) 55%, transparent);
+}
+
+.shaadi-saathi .shaadi-card {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 15%, transparent);
+  background: #fff;
+  box-shadow: 0 1px 2px 0 rgb(74 18 53 / 0.04);
+}
+
+.shaadi-saathi .shaadi-input {
+  min-height: 2.75rem;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+  background: rgb(253 246 237 / 0.35);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--maroon-dark);
+}
+
+.shaadi-saathi input:focus,
+.shaadi-saathi select:focus,
+.shaadi-saathi textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--maroon) 28%, transparent);
+  box-shadow: 0 0 0 3px rgb(106 27 77 / 0.08);
 }
 
 @keyframes orb-pulse {

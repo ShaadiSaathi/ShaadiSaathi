@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
-import MehndiPattern from "@/components/shaadi-saathi/MehndiPattern"
 import SidebarNavItem from "@/components/shaadi-saathi/app/SidebarNavItem"
 import SidebarUpgradeCTA from "@/components/shaadi-saathi/app/SidebarUpgradeCTA"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
@@ -100,7 +99,6 @@ export function VendorSidebar() {
 
   return (
     <aside className="relative hidden w-64 shrink-0 flex-col border-r border-gold/15 bg-white md:flex">
-      <MehndiPattern opacity={0.03} />
       <div className="relative border-b border-gold/15 px-5 py-5">
         <Link href="/" className="font-display text-lg font-bold text-maroon-dark">
           Shaadi Saathi

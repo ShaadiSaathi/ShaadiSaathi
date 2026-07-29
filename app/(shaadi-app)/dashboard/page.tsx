@@ -51,28 +51,28 @@ export default function DashboardPage() {
   return (
     <PageTransition>
       {/* Welcome header */}
-      <header className="mb-6 md:mb-8">
-        <p className="text-sm font-medium text-maroon/60">Good morning</p>
-        <h1 className="font-display text-[1.65rem] font-bold leading-tight text-maroon-dark sm:text-3xl">
+      <header className="mb-8 md:mb-10">
+        <p className="shaadi-label">Good morning</p>
+        <h1 className="shaadi-page-title mt-1">
           Welcome back, {familyUser?.name || "there"}
         </h1>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-maroon/70 sm:text-base">
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm leading-relaxed text-maroon/65">
           {weddingName}
           {isFamilyPremium && <PremiumBadge />}
         </p>
 
         {/* Mobile: condensed countdown card */}
         {nextEvent && (
-          <div className="mt-4 rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/15 to-ivory p-4 md:hidden">
-            <p className="text-xs font-medium uppercase tracking-wide text-maroon/50">Next event</p>
-            <div className="mt-1 flex items-end justify-between gap-3">
+          <div className="mt-5 shaadi-card border border-gold/20 bg-gradient-to-br from-gold/10 to-ivory p-5 md:hidden">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-maroon/45">Next event</p>
+            <div className="mt-2 flex items-end justify-between gap-4">
               <div>
-                <p className="font-display text-xl font-semibold text-maroon-dark">{nextEvent.name}</p>
-                <p className="text-sm text-maroon/60">{formatEventDate(nextEvent.date)}</p>
+                <p className="shaadi-section-title text-lg">{nextEvent.name}</p>
+                <p className="mt-1 text-sm text-maroon/55">{formatEventDate(nextEvent.date)}</p>
               </div>
               <p className="shrink-0 text-right">
-                <span className="block font-display text-3xl font-bold leading-none text-maroon">{daysUntil}</span>
-                <span className="text-xs font-medium text-maroon/55">days left</span>
+                <span className="shaadi-stat-value block text-3xl">{daysUntil}</span>
+                <span className="text-xs font-medium text-maroon/50">days left</span>
               </p>
             </div>
             <div className="mt-3">
@@ -99,11 +99,11 @@ export default function DashboardPage() {
       </header>
 
       {/* Overview cards — stacked on mobile, original grids from sm+ */}
-      <section aria-labelledby="overview-heading" className="mb-6 md:mb-8">
+      <section aria-labelledby="overview-heading" className="mb-8 md:mb-10">
         <h2 id="overview-heading" className="sr-only">
           Overview
         </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <StatCard
             label="Total guests"
             value={totalGuestHeadcount}
@@ -161,8 +161,8 @@ export default function DashboardPage() {
 
       {/* Timeline strip — snap-scroll on mobile */}
       <section aria-labelledby="timeline-heading">
-        <div className="mb-3 flex items-center justify-between md:mb-4">
-          <h2 id="timeline-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
+        <div className="mb-4 flex items-center justify-between md:mb-5">
+          <h2 id="timeline-heading" className="shaadi-section-title sm:text-xl">
             Your events
           </h2>
           <Link href="/events" className="inline-flex min-h-[44px] items-center text-sm font-medium text-gold-dark hover:underline">
@@ -170,20 +170,20 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 scrollbar-none md:mx-0 md:snap-none md:px-0 md:scrollbar-auto">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 scrollbar-none md:mx-0 md:snap-none md:px-0 md:scrollbar-auto">
           {EVENTS.map((event, i) => (
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group w-[78vw] max-w-[280px] shrink-0 snap-start rounded-2xl border border-gold/20 bg-white p-5 shadow-sm transition-shadow hover:shadow-md md:min-w-[220px] md:w-auto md:max-w-none md:flex-1"
+              className="group shaadi-card w-[78vw] max-w-[280px] shrink-0 snap-start p-5 transition-shadow hover:shadow-md md:min-w-[220px] md:w-auto md:max-w-none md:flex-1"
             >
               <div className="flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${EVENT_DOT[event.id] ?? "bg-gold"}`} />
-                <span className="font-display font-semibold text-maroon-dark group-hover:text-maroon">
+                <span className="font-semibold text-maroon-dark group-hover:text-maroon">
                   {event.name}
                 </span>
               </div>
-              <p className="mt-2 text-sm text-maroon/60">{formatEventDate(event.date)}</p>
+              <p className="mt-2.5 text-sm text-maroon/55">{formatEventDate(event.date)}</p>
               <p className="text-xs text-maroon/40">{event.time}</p>
               {i < EVENTS.length - 1 && (
                 <span className="sr-only">Next: {EVENTS[i + 1]?.name}</span>
@@ -194,28 +194,28 @@ export default function DashboardPage() {
       </section>
 
       {/* Quick links */}
-      <section className="mt-6 grid gap-2 sm:mt-8 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
+      <section className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/guests"
-          className="flex min-h-[48px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="shaadi-card flex min-h-[48px] items-center px-4 py-3.5 text-sm font-medium text-maroon transition-colors hover:border-gold/25"
         >
           Review RSVPs →
         </Link>
         <Link
           href="/vendors"
-          className="flex min-h-[48px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="shaadi-card flex min-h-[48px] items-center px-4 py-3.5 text-sm font-medium text-maroon transition-colors hover:border-gold/25"
         >
           Browse vendors →
         </Link>
         <Link
           href="/tasks"
-          className="flex min-h-[48px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="shaadi-card flex min-h-[48px] items-center px-4 py-3.5 text-sm font-medium text-maroon transition-colors hover:border-gold/25"
         >
           Check tasks →
         </Link>
         <Link
           href="/schedule"
-          className="flex min-h-[48px] items-center rounded-xl border border-gold/15 bg-white/80 px-4 py-3 text-sm font-medium text-maroon transition-colors hover:border-gold/30 hover:bg-white"
+          className="shaadi-card flex min-h-[48px] items-center px-4 py-3.5 text-sm font-medium text-maroon transition-colors hover:border-gold/25"
         >
           View schedule →
         </Link>

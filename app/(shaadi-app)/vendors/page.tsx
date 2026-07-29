@@ -81,9 +81,9 @@ function VendorsBrowseContent() {
 
   return (
     <PageTransition>
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+          <h1 className="shaadi-page-title">
             Vendors
           </h1>
           <p className="mt-1 text-maroon/60">

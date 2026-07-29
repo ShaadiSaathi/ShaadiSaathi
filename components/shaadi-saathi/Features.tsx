@@ -1,4 +1,3 @@
-import MehndiPattern from "./MehndiPattern"
 import SectionWrapper from "./SectionWrapper"
 
 const FEATURES = [
@@ -76,10 +75,9 @@ const FEATURES = [
 
 export default function Features() {
   return (
-    <SectionWrapper id="features" className="relative overflow-hidden py-16 sm:py-24">
-      <MehndiPattern opacity={0.04} className="opacity-60" />
+    <SectionWrapper id="features" className="py-16 sm:py-24">
 
-      <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-3xl font-bold text-maroon-dark sm:text-4xl">
             Everything your family needs

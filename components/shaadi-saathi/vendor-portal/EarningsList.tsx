@@ -47,13 +47,13 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
     <PageTransition>
       {!embedded && (
         <header className="mb-8">
-          <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">Earnings</h1>
+          <h1 className="shaadi-page-title">Earnings</h1>
           <p className="mt-1 text-maroon/60">Deposits, balances, and payout history</p>
         </header>
       )}
       {embedded && (
         <header className="mb-6">
-          <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">Earnings</h1>
+          <h1 className="shaadi-page-title">Earnings</h1>
           <p className="mt-1 text-maroon/60">Deposits, balances, and payout history</p>
         </header>
       )}
@@ -78,7 +78,7 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
 
       <section aria-labelledby="transactions-heading">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 id="transactions-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
+          <h2 id="transactions-heading" className="shaadi-section-title sm:text-xl">
             Transaction history
           </h2>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
@@ -111,7 +111,7 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
             No transactions match this filter.
           </div>
         ) : (
-          <ul className="divide-y divide-gold/15 rounded-2xl border border-gold/25 bg-white">
+          <ul className="shaadi-card divide-y divide-gold/15 overflow-hidden">
             {filtered.map((tx) => (
               <TransactionRow key={tx.id} tx={tx} />
             ))}
@@ -170,7 +170,7 @@ function TransactionRow({ tx }: { tx: EarningsTransaction }) {
         >
           {statusLabel}
         </span>
-        <span className="font-display text-lg font-bold text-maroon-dark">
+        <span className="shaadi-stat-value text-lg">
           {formatPrice(tx.amount)}
         </span>
       </div>

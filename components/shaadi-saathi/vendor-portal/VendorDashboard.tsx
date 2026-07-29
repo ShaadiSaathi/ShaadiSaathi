@@ -28,8 +28,8 @@ export default function VendorDashboard() {
   return (
     <PageTransition>
       <header className="mb-8">
-        <p className="text-sm font-medium text-maroon/60">Good morning</p>
-        <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+        <p className="shaadi-label">Good morning</p>
+        <h1 className="shaadi-page-title mt-1">
           Welcome back, {business.name}
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-2 text-maroon/70">
@@ -41,15 +41,15 @@ export default function VendorDashboard() {
       {/* Subscription status */}
       <section
         aria-labelledby="subscription-heading"
-        className="mb-6 rounded-2xl border border-gold/25 bg-white p-5 shadow-sm"
+        className="mb-6 shaadi-card p-5"
       >
         <h2 id="subscription-heading" className="sr-only">
           Subscription status
         </h2>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-maroon/50">Your plan</p>
-            <p className="mt-0.5 font-display text-lg font-semibold text-maroon-dark">
+            <p className="shaadi-label">Your plan</p>
+            <p className="mt-1 text-base font-semibold text-maroon-dark">
               {isFeatured ? "Featured" : "Basic (Free)"}
             </p>
             {isFeatured && nextBillingDate && (
@@ -142,7 +142,7 @@ export default function VendorDashboard() {
 
       <section aria-labelledby="upcoming-jobs">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="upcoming-jobs" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
+          <h2 id="upcoming-jobs" className="shaadi-section-title sm:text-xl">
             Upcoming jobs
           </h2>
           <Link href="/vendor/jobs" className="inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark">
@@ -166,7 +166,7 @@ export default function VendorDashboard() {
               <li key={job.id}>
                 <Link
                   href={`/vendor/jobs/${job.id}`}
-                  className="flex min-h-[44px] flex-col gap-3 rounded-2xl border border-gold/20 bg-white p-4 transition-shadow hover:shadow-md md:flex-row md:flex-wrap md:items-center md:justify-between md:p-5"
+                  className="shaadi-card flex min-h-[44px] flex-col gap-3 p-4 transition-shadow hover:shadow-md md:flex-row md:flex-wrap md:items-center md:justify-between md:p-5"
                 >
                   <div className="min-w-0">
                     <p className="font-semibold text-maroon-dark">{job.familyName}</p>

@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
-import MehndiPattern from "@/components/shaadi-saathi/MehndiPattern"
 
 export interface PortalNavItem {
   href: string
@@ -38,7 +37,6 @@ export default function PortalAppShell({
   return (
     <div className="shaadi-saathi flex min-h-screen bg-ivory">
       <aside className="relative hidden w-64 shrink-0 flex-col border-r border-gold/15 bg-white lg:flex">
-        <MehndiPattern opacity={0.03} />
         <div className="relative border-b border-gold/15 px-5 py-5">
           <Link href="/" className="font-display text-lg font-bold text-maroon-dark">
             Shaadi Saathi
@@ -69,7 +67,7 @@ export default function PortalAppShell({
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <main className="min-w-0 flex-1 overflow-x-hidden pb-32 lg:pb-0">
-          <div className="mx-auto max-w-5xl px-5 py-7 sm:px-6 sm:py-9 lg:px-8">{children}</div>
+          <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">{children}</div>
         </main>
 
         <nav

@@ -84,13 +84,13 @@ export default function BookingRequestCard({
       layout
       exit={{ opacity: 0, x: -20, height: 0 }}
       transition={{ duration: 0.3 }}
-      className={`rounded-2xl border border-gold/25 bg-white p-5 shadow-sm ${
+      className={`shaadi-card p-5 shadow-sm ${
         declining ? "opacity-50" : ""
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-display text-lg font-semibold text-maroon-dark">
+          <h3 className="shaadi-section-title">
             {request.familyName}
           </h3>
           <p className="text-sm text-maroon/60">{request.weddingName}</p>
@@ -130,7 +130,7 @@ export default function BookingRequestCard({
         )}
         <div className="sm:col-span-2">
           <dt className="text-maroon/50">Proposed price</dt>
-          <dd className="font-display text-xl font-bold text-maroon-dark">
+          <dd className="shaadi-stat-value text-xl">
             {formatPrice(request.proposedPrice)}
           </dd>
         </div>

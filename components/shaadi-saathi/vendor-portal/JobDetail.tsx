@@ -64,7 +64,7 @@ export default function JobDetail({ job }: JobDetailProps) {
       <header className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+            <h1 className="shaadi-page-title">
               {job.familyName}
             </h1>
             <p className="text-maroon/60">{job.weddingName}</p>
@@ -77,8 +77,8 @@ export default function JobDetail({ job }: JobDetailProps) {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-gold/25 bg-white p-5">
-          <h2 className="font-display text-lg font-semibold text-maroon-dark">Event details</h2>
+        <section className="shaadi-card p-5">
+          <h2 className="shaadi-section-title">Event details</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-maroon/50">Event</dt>
@@ -112,7 +112,7 @@ export default function JobDetail({ job }: JobDetailProps) {
             )}
             <div className="flex justify-between gap-4 border-t border-gold/15 pt-3">
               <dt className="text-maroon/50">Total price</dt>
-              <dd className="font-display text-xl font-bold text-maroon-dark">
+              <dd className="shaadi-stat-value text-xl">
                 {formatPrice(job.price)}
               </dd>
             </div>
@@ -120,8 +120,8 @@ export default function JobDetail({ job }: JobDetailProps) {
         </section>
 
         <section className="space-y-4">
-          <div className="rounded-2xl border border-gold/25 bg-white p-5">
-            <h2 className="font-display text-lg font-semibold text-maroon-dark">Family contact</h2>
+          <div className="shaadi-card p-5">
+            <h2 className="shaadi-section-title">Family contact</h2>
             <p className="mt-3 text-sm text-maroon/70">{job.familyPhone}</p>
             <Link
               href={`/vendor/jobs/${job.id}/messages`}
@@ -134,8 +134,8 @@ export default function JobDetail({ job }: JobDetailProps) {
             </Link>
           </div>
 
-          <div className="rounded-2xl border border-gold/25 bg-white p-5">
-            <h2 className="font-display text-lg font-semibold text-maroon-dark">Payment</h2>
+          <div className="shaadi-card p-5">
+            <h2 className="shaadi-section-title">Payment</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               <DepositStatusBadge status={payment.depositStatus} />
               <BalanceStatusBadge payment={payment} />
@@ -157,7 +157,7 @@ export default function JobDetail({ job }: JobDetailProps) {
 
       {(canCheckIn || showGrace) && (
         <section className="mt-6 rounded-2xl border border-gold/30 bg-gold/5 p-5">
-          <h2 className="font-display text-lg font-semibold text-maroon-dark">Day-of check-in</h2>
+          <h2 className="shaadi-section-title">Day-of check-in</h2>
           <p className="mt-1 text-sm text-maroon/60">
             Confirm your arrival to release the held deposit. Either you or the family can trigger
             this.
@@ -190,7 +190,7 @@ export default function JobDetail({ job }: JobDetailProps) {
 
       {canMarkCompleted && (
         <section className="mt-6 rounded-2xl border border-gold/25 bg-white p-5">
-          <h2 className="font-display text-lg font-semibold text-maroon-dark">Mark completed</h2>
+          <h2 className="shaadi-section-title">Mark completed</h2>
           <p className="mt-1 text-sm text-maroon/60">
             After the event, mark this job as completed to finalize your earnings record.
           </p>
@@ -202,7 +202,7 @@ export default function JobDetail({ job }: JobDetailProps) {
 
       {job.jobStatus === "disputed" && job.disputeFamilyMessage && (
         <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
-          <h2 className="font-display text-lg font-semibold text-amber-900">
+          <h2 className="shaadi-section-title text-amber-900">
             Family raised an issue — Respond
           </h2>
           <blockquote className="mt-3 rounded-xl bg-white/80 p-4 text-sm text-maroon/80">
@@ -274,12 +274,12 @@ export function JobListCard({ job }: { job: VendorJob }) {
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-display text-lg font-semibold text-maroon-dark">{job.familyName}</h3>
+          <h3 className="font-semibold text-maroon-dark">{job.familyName}</h3>
           <p className="text-sm text-maroon/60">
             {job.eventName} · {formatEventDate(job.eventDate)} · {job.venue}
           </p>
         </div>
-        <span className="font-display text-lg font-bold text-maroon-dark">
+        <span className="shaadi-stat-value text-lg">
           {formatPrice(job.price)}
         </span>
       </div>

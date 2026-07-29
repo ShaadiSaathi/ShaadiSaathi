@@ -102,7 +102,7 @@ export default function SettingsPage() {
     <PageTransition>
       <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+          <h1 className="shaadi-page-title">
             Family & Settings
           </h1>
           <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
@@ -130,9 +130,9 @@ export default function SettingsPage() {
       {/* Guest RSVP invite — separate from collaborator access */}
       <section
         aria-labelledby="guest-invite-heading"
-        className="mb-8 rounded-2xl border border-gold/25 bg-white p-5 shadow-sm sm:p-6"
+        className="mb-8 shaadi-card p-5 sm:p-6"
       >
-        <h2 id="guest-invite-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
+        <h2 id="guest-invite-heading" className="shaadi-section-title sm:text-xl">
           Guest RSVP link
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-maroon/60">
@@ -141,10 +141,10 @@ export default function SettingsPage() {
 
         <div className="mt-5 space-y-3">
           <div>
-            <label className="text-xs font-medium uppercase tracking-wider text-maroon/50">
+            <label className="shaadi-label uppercase tracking-wider">
               Share code
             </label>
-            <p className="mt-1 font-display text-2xl font-bold tracking-widest text-maroon-dark">
+            <p className="shaadi-stat-value mt-1 tracking-widest">
               {shareCode}
             </p>
           </div>
@@ -175,9 +175,9 @@ export default function SettingsPage() {
       <section
         id="invite-themes"
         aria-labelledby="theme-heading"
-        className="mb-8 rounded-2xl border border-gold/25 bg-white p-5 shadow-sm scroll-mt-6 sm:p-6"
+        className="mb-8 shaadi-card p-5 scroll-mt-6 sm:p-6"
       >
-        <h2 id="theme-heading" className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
+        <h2 id="theme-heading" className="shaadi-section-title sm:text-xl">
           Guest invite theme
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-maroon/60">
@@ -225,7 +225,7 @@ export default function SettingsPage() {
 
       {/* Real family collaborators */}
       <section aria-labelledby="family-heading">
-        <h2 id="family-heading" className="mb-4 font-display text-lg font-semibold text-maroon-dark sm:text-xl">
+        <h2 id="family-heading" className="mb-4 shaadi-section-title sm:text-xl">
           Who&apos;s helping
           <span className="ml-2 text-sm font-normal text-maroon/40">
             ({members.length + pendingInvites.length}/{memberLimit})
@@ -239,7 +239,7 @@ export default function SettingsPage() {
             {members.map((member) => (
               <li
                 key={member.uid}
-                className="flex items-center justify-between rounded-xl border border-gold/15 bg-white p-4"
+                className="shaadi-card flex items-center justify-between p-4"
               >
                 <div className="flex items-center gap-3">
                   <Avatar initials={initials(member.name)} size="md" />
@@ -272,7 +272,7 @@ export default function SettingsPage() {
             {pendingInvites.map((invite) => (
               <li
                 key={invite.id}
-                className="flex items-center justify-between rounded-xl border border-dashed border-gold/30 bg-ivory/40 p-4"
+                className="shaadi-card flex items-center justify-between border border-dashed border-gold/25 bg-ivory/40 p-4"
               >
                 <div>
                   <p className="font-medium text-maroon-dark">{maskPhone(invite.phone)}</p>
@@ -327,7 +327,7 @@ export default function SettingsPage() {
             className="flex items-center justify-between rounded-2xl border border-gold/25 bg-gradient-to-r from-gold/10 to-ivory p-5 transition-shadow hover:shadow-md"
           >
             <div>
-              <p className="font-display font-semibold text-maroon-dark">Seating planner</p>
+              <p className="font-semibold text-maroon-dark">Seating planner</p>
               <p className="text-sm text-maroon/60">Assign confirmed guests to tables</p>
             </div>
             <span className="text-gold-dark">→</span>

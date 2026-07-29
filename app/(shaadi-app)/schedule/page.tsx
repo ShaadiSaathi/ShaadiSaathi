@@ -54,7 +54,7 @@ export default function SchedulePage() {
   return (
     <PageTransition>
       <header className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+        <h1 className="shaadi-page-title">
           Schedule
         </h1>
         <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
@@ -73,7 +73,7 @@ export default function SchedulePage() {
           <section key={month} className="mb-8 md:mb-10" aria-labelledby={`month-${month}`}>
             <h2
               id={`month-${month}`}
-              className="mb-4 pl-9 font-display text-sm font-semibold uppercase tracking-wider text-maroon/50 md:mb-5 md:pl-14"
+              className="shaadi-label mb-4 pl-9 uppercase tracking-wider md:mb-5 md:pl-14"
             >
               {month}
             </h2>
@@ -90,10 +90,10 @@ export default function SchedulePage() {
                   />
 
                   <article
-                    className={`rounded-2xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md md:p-5 ${
+                    className={`shaadi-card p-4 transition-shadow hover:shadow-md md:p-5 ${
                       item.type === "event"
                         ? "border-gold/30"
-                        : "border-gold/15 border-dashed"
+                        : "border-dashed"
                     }`}
                   >
                     <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-2">
@@ -107,7 +107,7 @@ export default function SchedulePage() {
                         >
                           {item.type === "event" ? "Event" : "Deadline"}
                         </span>
-                        <h3 className="mt-2 break-words font-display text-base font-semibold text-maroon-dark md:text-lg">
+                        <h3 className="mt-2 break-words text-base font-semibold text-maroon-dark md:text-lg">
                           {item.title}
                         </h3>
                         <p className="mt-0.5 break-words text-sm text-maroon/60">{item.subtitle}</p>

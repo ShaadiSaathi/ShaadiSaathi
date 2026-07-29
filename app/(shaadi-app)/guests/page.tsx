@@ -175,9 +175,9 @@ export default function GuestsPage() {
 
   return (
     <PageTransition>
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+          <h1 className="shaadi-page-title">
             Guests
           </h1>
           <p className="mt-1 text-sm leading-relaxed text-maroon/60 sm:text-base">
@@ -341,7 +341,7 @@ export default function GuestsPage() {
             <div className="mb-2 flex shrink-0 justify-center md:hidden" aria-hidden="true">
               <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
             </div>
-            <h2 id="add-guest-title" className="font-display text-xl font-semibold text-maroon-dark">
+            <h2 id="add-guest-title" className="shaadi-section-title text-xl">
               {addMode === "group" ? "Add Guest Group" : "Add Guest"}
             </h2>
             <p className="mt-1 text-sm text-maroon/55">
@@ -468,7 +468,7 @@ function GuestRow({
     .slice(0, 2)
 
   return (
-    <li className="flex w-full flex-col gap-4 rounded-xl border border-gold/15 bg-white p-5 md:flex-row md:items-center md:gap-3">
+    <li className="shaadi-card flex w-full flex-col gap-4 p-5 md:flex-row md:items-center md:gap-3">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar initials={initials} size="md" />
         <div className="min-w-0">
@@ -570,8 +570,8 @@ function RsvpOverview({
         ))}
       </div>
 
-      <div className="mb-6 rounded-2xl border border-gold/20 bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="font-display text-lg font-semibold text-maroon-dark sm:text-xl">
+      <div className="mb-6 shaadi-card p-5 sm:p-6">
+        <h2 className="shaadi-section-title sm:text-xl">
           {event.name} — Live headcount
         </h2>
         <p className="mt-1 text-sm text-maroon/60">
@@ -596,7 +596,7 @@ function RsvpOverview({
             aria-label={`${totalPct}% confirmed`}
           >
             <div className="absolute inset-2 flex items-center justify-center rounded-full bg-white">
-              <span className="font-display text-lg font-bold text-maroon-dark">{totalPct}%</span>
+              <span className="shaadi-stat-value text-lg">{totalPct}%</span>
             </div>
           </div>
 

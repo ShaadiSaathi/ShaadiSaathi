@@ -51,7 +51,7 @@ export default function VendorJobsPageClient() {
       </div>
 
       <header className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">My Jobs</h1>
+        <h1 className="shaadi-page-title">My Jobs</h1>
         <p className="mt-1 text-maroon/60">Confirmed bookings across all families</p>
       </header>
 
@@ -146,7 +146,7 @@ function CalendarView({ jobs }: { jobs: VendorJob[] }) {
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([month, monthJobs]) => (
           <section key={month} className="rounded-2xl border border-gold/25 bg-white p-5">
-            <h2 className="font-display text-lg font-semibold text-maroon-dark">
+            <h2 className="shaadi-section-title">
               {new Date(`${month}-01`).toLocaleDateString("en-US", {
                 month: "long",
                 year: "numeric",

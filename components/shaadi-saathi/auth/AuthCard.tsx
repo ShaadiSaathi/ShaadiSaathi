@@ -25,7 +25,6 @@ export default function AuthCard({
 
   return (
     <div className="shaadi-saathi relative min-h-screen bg-ivory safe-top safe-bottom">
-      <MehndiPattern opacity={0.035} />
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col lg:flex-row">
         {/* Decorative panel — desktop */}
@@ -67,13 +66,13 @@ export default function AuthCard({
             Shaadi Saathi
           </Link>
 
-          <div className="mx-auto w-full max-w-md rounded-2xl border border-gold/20 bg-white/90 p-6 shadow-sm shadow-maroon/5 backdrop-blur-sm sm:p-8">
+          <div className="mx-auto w-full max-w-md shaadi-card p-6 sm:p-8">
             {badge && (
               <p className="text-center text-xs font-semibold uppercase tracking-wider text-gold-dark lg:text-left">
                 {badge}
               </p>
             )}
-            <h1 className="mt-1 text-center font-display text-[1.65rem] font-bold leading-tight text-maroon-dark sm:text-2xl lg:text-left">
+            <h1 className="shaadi-page-title mt-1 text-center lg:text-left">
               {title}
             </h1>
             {subtitle && (
