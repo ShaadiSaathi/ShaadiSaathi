@@ -56,6 +56,22 @@ function TasksPageContent() {
   const assignableMembers = weddingMembers?.members ?? []
   const formatAssignee = weddingMembers?.formatAssigneeLabel ?? ((a: string) => a)
 
+  const memberDisplayLabel = useMemo(() => {
+    const nameCounts = new Map<string, number>()
+    for (const m of assignableMembers) {
+      const lower = m.name.toLowerCase()
+      nameCounts.set(lower, (nameCounts.get(lower) ?? 0) + 1)
+    }
+    return (m: { name: string; phone?: string; role?: string }) => {
+      const isDuplicate = (nameCounts.get(m.name.toLowerCase()) ?? 0) > 1
+      if (isDuplicate && m.phone && m.phone.length > 6) {
+        const masked = `${m.phone.slice(0, 4)}••••${m.phone.slice(-2)}`
+        return `${m.name} (${masked})`
+      }
+      return m.name
+    }
+  }, [assignableMembers])
+
   function handleAddTask(e: React.FormEvent) {
     e.preventDefault()
     if (!newTitle.trim()) return
@@ -181,6 +197,7 @@ function TasksPageContent() {
                       task={task}
                       assigneeLabel={formatAssignee(task.assignee, task.assigneeUid)}
                       assignableMembers={assignableMembers}
+                      memberLabel={memberDisplayLabel}
                       onReassign={
                         isFirebaseMode
                           ? (uid) => {
@@ -224,6 +241,7 @@ function TasksPageContent() {
                       task={task}
                       assigneeLabel={formatAssignee(task.assignee, task.assigneeUid)}
                       assignableMembers={assignableMembers}
+                      memberLabel={memberDisplayLabel}
                       onReassign={
                         isFirebaseMode
                           ? (uid) => {
@@ -297,7 +315,7 @@ function TasksPageContent() {
                         <option value="">Select a family member</option>
                         {assignableMembers.map((m) => (
                           <option key={m.uid} value={m.uid}>
-                            {m.name}
+                            {memberDisplayLabel(m)}
                             {m.role === "owner" ? " (you)" : ""}
                           </option>
                         ))}
@@ -390,12 +408,14 @@ function TaskCard({
   task,
   assigneeLabel,
   assignableMembers = [],
+  memberLabel = (m) => m.name,
   onReassign,
   onToggle,
 }: {
   task: AppTask
   assigneeLabel: string
-  assignableMembers?: Array<{ uid: string; name: string; role: string }>
+  assignableMembers?: Array<{ uid: string; name: string; phone?: string; role: string }>
+  memberLabel?: (m: { name: string; phone?: string }) => string
   onReassign?: (uid: string) => void
   onToggle: () => void
 }) {
@@ -475,7 +495,7 @@ function TaskCard({
                     {!task.assigneeUid && <option value="">{assigneeLabel}</option>}
                     {assignableMembers.map((m) => (
                       <option key={m.uid} value={m.uid}>
-                        {m.name}
+                        {memberLabel(m)}
                       </option>
                     ))}
                   </select>

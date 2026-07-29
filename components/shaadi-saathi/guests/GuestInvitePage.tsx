@@ -82,11 +82,18 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
   const guest = isFirebaseConfigured() ? firestoreGuest : mockGuest
   const guestDisplayName = guest?.name?.trim() ?? ""
+  const guestPhone = guest?.phone?.trim() ?? ""
+  const maskedPhone = guestPhone.length > 6
+    ? `${guestPhone.slice(0, 4)}••••${guestPhone.slice(-2)}`
+    : guestPhone
   const partySize = guest ? guestPartySize(guest) : 1
   const groupInvite = guest ? isGuestGroup(guest) : false
-  const respondingAsLabel = groupInvite
-    ? `${guestDisplayName} (${partySize} guests)`
+  const nameWithPhone = maskedPhone
+    ? `${guestDisplayName} (${maskedPhone})`
     : guestDisplayName
+  const respondingAsLabel = groupInvite
+    ? `${nameWithPhone} — ${partySize} guests`
+    : nameWithPhone
   const inviteUnusable = invalid || !guest || !guestDisplayName
 
   useEffect(() => {
