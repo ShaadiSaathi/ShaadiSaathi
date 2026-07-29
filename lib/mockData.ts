@@ -507,7 +507,7 @@ export function createGuest(input: {
   return {
     id,
     name: input.name.trim(),
-    phone: input.phone ?? "+92 3XX ••• ••00",
+    phone: input.phone ?? (kind === "group" ? "" : "+92 3XX ••• ••00"),
     events: input.events,
     rsvp,
     rsvpSource,

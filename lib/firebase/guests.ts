@@ -101,7 +101,7 @@ export async function addGuestToFirestore(
     id: input.id,
     weddingId,
     name: input.name.trim(),
-    phone: input.phone ?? "+92 3XX ••• ••00",
+    phone: input.phone ?? (input.kind === "group" ? "" : "+92 3XX ••• ••00"),
     events: input.events,
     rsvp,
     rsvpSource,
@@ -117,7 +117,8 @@ export async function addGuestToFirestore(
       : {}),
   }
 
-  await setDoc(doc(getFirestoreDb(), "guests", input.inviteToken), guest)
+  const ref = doc(getFirestoreDb(), "guests", input.inviteToken)
+  await setDoc(ref, guest)
 }
 
 const ALL_EVENTS: EventId[] = ["mehndi", "baraat", "walima"]

@@ -20,6 +20,7 @@ import {
 import {
   addGuestToFirestore,
   clearGuestRsvpOrganiserAlerts,
+  getGuestByInviteToken,
   subscribeGuestsByWedding,
   updateGuestRsvpBulkByGuest,
   updateGuestRsvpByGuest,
@@ -145,7 +146,12 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
       partySize?: number
     }) => {
       const guest = createGuest(input)
-      if (useFirestore && weddingId) {
+      if (firebaseMode) {
+        if (!weddingId) {
+          throw new Error(
+            "Your wedding isn't ready yet. Please refresh and try again before adding guests."
+          )
+        }
         await addGuestToFirestore(weddingId, {
           id: guest.id,
           name: guest.name,
@@ -155,12 +161,25 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
           kind: guest.kind,
           partySize: guest.partySize,
         })
-        return guest
+        // Confirm the shareable token is readable by the public invite page
+        // (doc id === inviteToken) before returning to the UI.
+        const saved = await getGuestByInviteToken(guest.inviteToken)
+        if (!saved) {
+          throw new Error(
+            "Guest was created but the invite link could not be verified. Please try again."
+          )
+        }
+        return {
+          ...guest,
+          kind: saved.kind ?? guest.kind,
+          partySize: saved.partySize ?? guest.partySize,
+          inviteToken: saved.inviteToken || guest.inviteToken,
+        }
       }
       setGuests((prev) => [guest, ...prev])
       return guest
     },
-    [useFirestore, weddingId]
+    [firebaseMode, weddingId]
   )
 
   const updateRsvpByOrganiser = useCallback(

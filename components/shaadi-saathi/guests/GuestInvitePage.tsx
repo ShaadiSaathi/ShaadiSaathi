@@ -80,19 +80,30 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
     [guestToken, getGuestByToken, guests]
   )
 
-  const guest = isFirebaseConfigured() ? firestoreGuest : mockGuest
+  // Firestore is the source of truth for shareable links. Fall back to the
+  // in-memory/local guest list only when the token isn't in Firestore yet
+  // (e.g. demo/tester mode) — groups and individuals share the same collection.
+  const guest = firestoreGuest ?? mockGuest
   const guestDisplayName = guest?.name?.trim() ?? ""
   const guestPhone = guest?.phone?.trim() ?? ""
-  const maskedPhone = guestPhone.length > 6
-    ? `${guestPhone.slice(0, 4)}••••${guestPhone.slice(-2)}`
-    : guestPhone
+  // Don't show placeholder / blank phones on group invites
+  const usablePhone =
+    guestPhone &&
+    !guestPhone.includes("X") &&
+    !/^(\+92\s*)?3XX/i.test(guestPhone)
+      ? guestPhone
+      : ""
+  const maskedPhone = usablePhone.length > 6
+    ? `${usablePhone.slice(0, 4)}••••${usablePhone.slice(-2)}`
+    : usablePhone
   const partySize = guest ? guestPartySize(guest) : 1
   const groupInvite = guest ? isGuestGroup(guest) : false
-  const nameWithPhone = maskedPhone
-    ? `${guestDisplayName} (${maskedPhone})`
-    : guestDisplayName
+  const nameWithPhone =
+    !groupInvite && maskedPhone
+      ? `${guestDisplayName} (${maskedPhone})`
+      : guestDisplayName
   const respondingAsLabel = groupInvite
-    ? `${nameWithPhone} — ${partySize} guests`
+    ? `${nameWithPhone} (${partySize} guests)`
     : nameWithPhone
   const inviteUnusable = invalid || !guest || !guestDisplayName
 
@@ -132,18 +143,21 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
       async (g) => {
         if (!g) {
           const oneShot = await getGuestByInviteToken(guestToken)
-          if (!oneShot || !oneShot.name?.trim()) {
-            setInvalid(true)
-            setGuestLoading(false)
-            return
+          if (oneShot?.name?.trim()) {
+            setFirestoreGuest(oneShot)
+            setInvalid(false)
+          } else {
+            // Leave firestoreGuest null — page may still resolve via local/mock guest
+            // (same guests collection holds both individuals and groups).
+            setFirestoreGuest(null)
+            setInvalid(false)
           }
-          setFirestoreGuest(oneShot)
         } else if (!g.name?.trim()) {
-          setInvalid(true)
-          setGuestLoading(false)
-          return
+          setFirestoreGuest(null)
+          setInvalid(false)
         } else {
           setFirestoreGuest(g)
+          setInvalid(false)
         }
         setGuestLoading(false)
 
@@ -177,7 +191,9 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
         }
       },
       () => {
-        setInvalid(true)
+        // Network/permission error — still allow local/mock fallback for the token.
+        setFirestoreGuest(null)
+        setInvalid(false)
         setGuestLoading(false)
       }
     )
