@@ -46,6 +46,48 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.platformAdmin == true;
     }
 
+    /**
+     * Vendor owners may edit listing fields and submit KYC for review (pending),
+     * but cannot set themselves to verified/rejected or clear admin review fields.
+     */
+    function vendorVerificationSubmitOnly() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly([
+          'verificationStatus',
+          'verificationCnic',
+          'verificationBusinessName',
+          'verificationCity',
+          'verificationSubmittedAt',
+          'verificationRejectionReason',
+        ])
+        && request.resource.data.verificationStatus == 'pending'
+        && resource.data.get('verificationStatus', 'unverified') in ['unverified', 'rejected']
+        && request.resource.data.verificationCnic is string
+        && request.resource.data.verificationCnic.size() >= 5
+        && request.resource.data.verificationCnic.size() <= 20
+        && request.resource.data.verificationBusinessName is string
+        && request.resource.data.verificationBusinessName.size() >= 2
+        && request.resource.data.verificationCity is string
+        && request.resource.data.verificationCity.size() >= 2;
+    }
+
+    function vendorOwnerUpdateAllowed() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return vendorVerificationSubmitOnly()
+        || (
+          !changed.hasAny([
+            'verificationStatus',
+            'verificationCnic',
+            'verificationBusinessName',
+            'verificationCity',
+            'verificationSubmittedAt',
+            'verificationReviewedAt',
+            'verificationRejectionReason',
+            'ownerUid',
+          ])
+        );
+    }
+
     function guestRsvpOnlyUpdate() {
       // Public invite link may update RSVP fields without auth.
       let allowed = ['rsvp', 'rsvpSource', 'updatedAt', 'rsvpUpdatedAt', 'rsvpOrganiserAlert'];
@@ -152,8 +194,51 @@ service cloud.firestore {
 
     match /vendors/{vendorId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isVendorOwner(vendorId);
+      // New vendors must start unverified — they cannot self-approve for payments.
+      allow create: if isSignedIn()
+        && request.resource.data.verificationStatus == 'unverified';
+      allow update: if isPlatformAdmin()
+        || (isVendorOwner(vendorId) && vendorOwnerUpdateAllowed());
+      allow delete: if isVendorOwner(vendorId) || isPlatformAdmin();
+    }
+
+    // Sensitive bank/IBAN details for Safepay payouts — NOT on the public vendors doc.
+    // Owner + platform admin only. Never readable by families or other vendors.
+    function isValidPayoutAccountWrite(vendorId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'vendorId', 'ownerUid', 'iban', 'accountHolderName', 'bankName',
+          'accountNumber', 'createdAt', 'updatedAt'
+        ])
+        && d.vendorId == vendorId
+        && d.ownerUid == request.auth.uid
+        && d.iban is string && d.iban.size() >= 24 && d.iban.size() <= 34
+        && d.accountHolderName is string
+          && d.accountHolderName.size() >= 2 && d.accountHolderName.size() <= 120
+        && d.bankName is string
+          && d.bankName.size() >= 2 && d.bankName.size() <= 120
+        && (!('accountNumber' in d) || (d.accountNumber is string && d.accountNumber.size() <= 40))
+        && d.createdAt is number
+        && d.updatedAt is number;
+    }
+
+    match /vendor_payout_accounts/{vendorId} {
+      allow read: if isPlatformAdmin()
+        || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create: if isSignedIn()
+        && isVendorOwner(vendorId)
+        && isValidPayoutAccountWrite(vendorId);
+      allow update: if isPlatformAdmin()
+        || (isSignedIn()
+          && isVendorOwner(vendorId)
+          && resource.data.ownerUid == request.auth.uid
+          && isValidPayoutAccountWrite(vendorId)
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if isPlatformAdmin()
+        || (isSignedIn()
+          && isVendorOwner(vendorId)
+          && resource.data.ownerUid == request.auth.uid);
     }
 
     match /bookings/{bookingId} {
@@ -161,9 +246,13 @@ service cloud.firestore {
         isWeddingMember(resource.data.weddingId)
         || isVendorOwner(resource.data.vendorId)
       ));
-      // Creating a booking starts the payment path — owner only.
+      // Confirmed bookings must be created via Admin API (/api/bookings/create)
+      // so platform-wide date locks can be claimed atomically. Clients may not
+      // write confirmed bookings directly.
       allow create: if isPlatformAdmin()
-        || (isSignedIn() && isWeddingOwner(request.resource.data.weddingId));
+        || (isSignedIn()
+          && isWeddingOwner(request.resource.data.weddingId)
+          && request.resource.data.status == 'requested');
       // Payment/status/dispute writes: owner or vendor. Collaborators: read receipts only.
       allow update: if isPlatformAdmin()
         || (isSignedIn() && isVendorOwner(resource.data.vendorId))
@@ -172,6 +261,15 @@ service cloud.firestore {
           && isWeddingMember(resource.data.weddingId)
           && bookingFamilyReadReceiptOnly());
       allow delete: if isWeddingOwner(resource.data.weddingId) || isPlatformAdmin();
+    }
+
+    // Denormalized confirmed-date locks for a vendor (vendorId_YYYY-MM-DD).
+    // Written only by Admin SDK during booking create. Families/vendors may read
+    // to show "Not available on …" before attempting a booking.
+    match /vendor_date_locks/{lockId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create, update, delete: if false;
     }
 
     match /messages/{messageId} {
@@ -254,25 +352,73 @@ service cloud.firestore {
     }
 
     // In-app notifications inbox. Recipients may only read/update their own
-    // docs; wedding members may create notifications for fellow members.
+    // docs. Wedding members and booking vendors may create for the other party.
+    function notificationTypeAllowed(t) {
+      return t in [
+        'task_assigned', 'task_due_soon',
+        'booking_request', 'quote_received', 'quote_accepted', 'quote_rejected',
+        'extra_work_needed', 'dispute_raised', 'dispute_vendor_response'
+      ];
+    }
+
+    function bookingDoc(bookingId) {
+      return get(/databases/$(database)/documents/bookings/$(bookingId));
+    }
+
+    function vendorOwnerUid(vendorId) {
+      return get(/databases/$(database)/documents/vendors/$(vendorId)).data.ownerUid;
+    }
+
+    function notificationRecipientIsWeddingMember() {
+      let d = request.resource.data;
+      return d.recipientUid in get(/databases/$(database)/documents/weddings/$(d.weddingId)).data.memberUids;
+    }
+
+    function notificationRecipientIsBookingVendor() {
+      let d = request.resource.data;
+      return d.keys().hasAny(['bookingId'])
+        && d.bookingId is string
+        && exists(/databases/$(database)/documents/bookings/$(d.bookingId))
+        && bookingDoc(d.bookingId).data.weddingId == d.weddingId
+        && vendorOwnerUid(bookingDoc(d.bookingId).data.vendorId) == d.recipientUid;
+    }
+
+    function notificationActorIsBookingVendor() {
+      let d = request.resource.data;
+      return d.keys().hasAny(['bookingId'])
+        && d.bookingId is string
+        && exists(/databases/$(database)/documents/bookings/$(d.bookingId))
+        && bookingDoc(d.bookingId).data.weddingId == d.weddingId
+        && isVendorOwner(bookingDoc(d.bookingId).data.vendorId);
+    }
+
     function isValidNotificationCreate() {
       let d = request.resource.data;
       return d.keys().hasOnly([
           'id', 'recipientUid', 'weddingId', 'type', 'message',
-          'taskId', 'read', 'createdAt', 'actorUid', 'actorName'
+          'taskId', 'bookingId', 'href', 'priority',
+          'read', 'createdAt', 'actorUid', 'actorName'
         ])
         && d.id == request.resource.id
         && d.recipientUid is string && d.recipientUid.size() > 0 && d.recipientUid.size() <= 128
         && d.weddingId is string && d.weddingId.size() > 0 && d.weddingId.size() <= 128
-        && d.type in ['task_assigned', 'task_due_soon']
+        && notificationTypeAllowed(d.type)
         && d.message is string && d.message.size() > 0 && d.message.size() <= 500
-        && d.taskId is string && d.taskId.size() > 0 && d.taskId.size() <= 128
+        && (!d.keys().hasAny(['taskId']) || (d.taskId is string && d.taskId.size() > 0 && d.taskId.size() <= 128))
+        && (!d.keys().hasAny(['bookingId']) || (d.bookingId is string && d.bookingId.size() > 0 && d.bookingId.size() <= 128))
+        && (!d.keys().hasAny(['href']) || (d.href is string && d.href.size() > 0 && d.href.size() <= 300))
+        && (!d.keys().hasAny(['priority']) || d.priority in ['normal', 'urgent'])
         && d.read == false
         && d.createdAt is number
         && (!d.keys().hasAny(['actorUid']) || (d.actorUid is string && d.actorUid.size() <= 128))
         && (!d.keys().hasAny(['actorName']) || (d.actorName is string && d.actorName.size() <= 80))
-        && isWeddingMember(d.weddingId)
-        && d.recipientUid in get(/databases/$(database)/documents/weddings/$(d.weddingId)).data.memberUids;
+        && (
+          // Family/collaborator → fellow member (tasks) or booking vendor
+          (isWeddingMember(d.weddingId)
+            && (notificationRecipientIsWeddingMember() || notificationRecipientIsBookingVendor()))
+          // Vendor → wedding members on their booking
+          || (notificationActorIsBookingVendor() && notificationRecipientIsWeddingMember())
+        );
     }
 
     match /notifications/{notificationId} {

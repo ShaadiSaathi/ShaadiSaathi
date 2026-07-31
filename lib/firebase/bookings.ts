@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteField,
   doc,
   onSnapshot,
   query,
@@ -12,7 +13,12 @@ import type { EventId } from "@/lib/mockData"
 import type { VendorBooking, BookingStatus } from "@/lib/mockVendors"
 import { createInitialPayment, type PaymentPath } from "@/lib/mockPayments"
 import { getFirestoreDb } from "./config"
-import type { FirestoreBooking } from "./types"
+import type {
+  FirestoreBooking,
+  FirestoreBookingCounterOffer,
+  FirestoreBookingDispute,
+  FirestoreExtraWorkRequest,
+} from "./types"
 
 function toVendorBooking(data: FirestoreBooking): VendorBooking {
   return {
@@ -26,6 +32,17 @@ function toVendorBooking(data: FirestoreBooking): VendorBooking {
     note: data.note,
     createdAt: new Date(data.createdAt).toISOString(),
     payment: createInitialPayment(data.price, data.paymentPath),
+    ...(data.counterOffer
+      ? {
+          counterOffer: {
+            price: data.counterOffer.price,
+            packageName: data.counterOffer.packageName,
+            note: data.counterOffer.note,
+            proposedAt: new Date(data.counterOffer.proposedAt).toISOString().slice(0, 10),
+            proposedBy: data.counterOffer.proposedBy,
+          },
+        }
+      : {}),
   }
 }
 
@@ -84,7 +101,59 @@ export async function updateBookingStatus(
   bookingId: string,
   status: BookingStatus
 ): Promise<void> {
-  await updateDoc(doc(getFirestoreDb(), "bookings", bookingId), { status })
+  await updateDoc(doc(getFirestoreDb(), "bookings", bookingId), {
+    status,
+    updatedAt: Date.now(),
+  })
+}
+
+export async function updateBookingFields(
+  bookingId: string,
+  fields: Record<string, unknown>
+): Promise<void> {
+  await updateDoc(doc(getFirestoreDb(), "bookings", bookingId), {
+    ...fields,
+    updatedAt: Date.now(),
+  })
+}
+
+export async function setBookingCounterOffer(
+  bookingId: string,
+  counterOffer: FirestoreBookingCounterOffer,
+  status?: BookingStatus
+): Promise<void> {
+  await updateBookingFields(bookingId, {
+    counterOffer,
+    ...(status ? { status } : {}),
+  })
+}
+
+export async function setBookingDispute(
+  bookingId: string,
+  dispute: FirestoreBookingDispute
+): Promise<void> {
+  await updateBookingFields(bookingId, {
+    status: "disputed",
+    dispute,
+  })
+}
+
+export async function clearBookingCounterOffer(
+  bookingId: string,
+  extra: Record<string, unknown> = {}
+): Promise<void> {
+  await updateDoc(doc(getFirestoreDb(), "bookings", bookingId), {
+    ...extra,
+    counterOffer: deleteField(),
+    updatedAt: Date.now(),
+  })
+}
+
+export async function setBookingExtraWorkRequest(
+  bookingId: string,
+  extraWorkRequest: FirestoreExtraWorkRequest
+): Promise<void> {
+  await updateBookingFields(bookingId, { extraWorkRequest })
 }
 
 export async function markBookingRead(

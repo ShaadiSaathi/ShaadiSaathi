@@ -1,3 +1,11 @@
+/**
+ * Single entry-point for creating in-app notifications.
+ *
+ * Architecture note for future FCM push: add push delivery as a side-effect
+ * inside createNotification / createNotificationAdmin (or a shared helper both
+ * call) — callers should never duplicate inbox writes.
+ */
+
 import {
   collection,
   doc,
@@ -13,9 +21,26 @@ import {
   type Unsubscribe,
 } from "firebase/firestore"
 import { getFirestoreDb } from "./config"
-import type { FirestoreNotification, NotificationType } from "./types"
+import type {
+  FirestoreNotification,
+  NotificationPriority,
+  NotificationType,
+} from "./types"
 
 export type AppNotification = FirestoreNotification
+
+export type CreateNotificationInput = {
+  recipientUid: string
+  weddingId: string
+  type: NotificationType
+  message: string
+  taskId?: string
+  bookingId?: string
+  href?: string
+  priority?: NotificationPriority
+  actorUid?: string
+  actorName?: string
+}
 
 function toAppNotification(data: FirestoreNotification): AppNotification {
   return {
@@ -24,9 +49,12 @@ function toAppNotification(data: FirestoreNotification): AppNotification {
     weddingId: data.weddingId,
     type: data.type,
     message: data.message,
-    taskId: data.taskId,
     read: data.read,
     createdAt: data.createdAt,
+    ...(data.taskId ? { taskId: data.taskId } : {}),
+    ...(data.bookingId ? { bookingId: data.bookingId } : {}),
+    ...(data.href ? { href: data.href } : {}),
+    ...(data.priority ? { priority: data.priority } : {}),
     ...(data.actorUid ? { actorUid: data.actorUid } : {}),
     ...(data.actorName ? { actorName: data.actorName } : {}),
   }
@@ -46,25 +74,92 @@ export function formatTaskDueSoonMessage(title: string, dueDate: string): string
   return `Reminder: '${taskTitle}' is due soon (${dueDate})`
 }
 
-export async function createNotification(input: {
-  recipientUid: string
-  weddingId: string
-  type: NotificationType
-  message: string
-  taskId: string
-  actorUid?: string
-  actorName?: string
-}): Promise<string> {
+export function formatBookingRequestMessage(
+  familyName: string,
+  weddingName: string,
+  eventLabel: string
+): string {
+  const family = familyName.trim() || "A family"
+  const wedding = weddingName.trim() || "their wedding"
+  return `${family} sent a booking request for ${eventLabel} (${wedding})`
+}
+
+export function formatQuoteReceivedMessage(
+  vendorName: string,
+  weddingName: string,
+  priceLabel: string
+): string {
+  const vendor = vendorName.trim() || "A vendor"
+  const wedding = weddingName.trim() || "your wedding"
+  return `${vendor} sent a quote of ${priceLabel} for ${wedding}`
+}
+
+export function formatQuoteDecisionMessage(
+  familyName: string,
+  weddingName: string,
+  accepted: boolean
+): string {
+  const family = familyName.trim() || "The family"
+  const wedding = weddingName.trim() || "their wedding"
+  return accepted
+    ? `${family} accepted your quote for ${wedding}`
+    : `${family} declined your quote for ${wedding}`
+}
+
+export function formatExtraWorkNeededMessage(
+  vendorName: string,
+  weddingName: string,
+  eventLabel: string
+): string {
+  const vendor = vendorName.trim() || "Your vendor"
+  const wedding = weddingName.trim() || "your wedding"
+  return `URGENT: ${vendor} requested extra work approval for ${eventLabel} (${wedding})`
+}
+
+export function formatDisputeRaisedMessage(
+  familyName: string,
+  weddingName: string,
+  eventLabel: string
+): string {
+  const family = familyName.trim() || "A family"
+  const wedding = weddingName.trim() || "their wedding"
+  return `${family} raised a dispute on ${eventLabel} (${wedding})`
+}
+
+export function formatDisputeVendorResponseMessage(
+  vendorName: string,
+  weddingName: string,
+  eventLabel: string
+): string {
+  const vendor = vendorName.trim() || "The vendor"
+  const wedding = weddingName.trim() || "your wedding"
+  return `${vendor} responded to the dispute on ${eventLabel} (${wedding})`
+}
+
+/**
+ * Create one inbox notification for a recipient.
+ * Prefer this (or the Admin SDK twin) from every product trigger so push can
+ * later hook a single place.
+ */
+export async function createNotification(input: CreateNotificationInput): Promise<string> {
   const ref = doc(collection(getFirestoreDb(), "notifications"))
+  const message = input.message.trim().slice(0, 500)
+  if (!input.recipientUid || !input.weddingId || !message) {
+    throw new Error("Notification requires recipient, wedding, and message")
+  }
+
   const notification: FirestoreNotification = {
     id: ref.id,
     recipientUid: input.recipientUid,
     weddingId: input.weddingId,
     type: input.type,
-    message: input.message,
-    taskId: input.taskId,
+    message,
     read: false,
     createdAt: Date.now(),
+    ...(input.taskId ? { taskId: input.taskId } : {}),
+    ...(input.bookingId ? { bookingId: input.bookingId } : {}),
+    ...(input.href ? { href: input.href } : {}),
+    ...(input.priority ? { priority: input.priority } : {}),
     ...(input.actorUid ? { actorUid: input.actorUid } : {}),
     ...(input.actorName ? { actorName: input.actorName } : {}),
   }
@@ -89,6 +184,7 @@ export async function notifyTaskAssigned(input: {
     type: "task_assigned",
     message: formatTaskAssignedMessage(input.actorName, input.taskTitle, input.dueDate),
     taskId: input.taskId,
+    href: `/tasks#task-${input.taskId}`,
     actorUid: input.actorUid,
     actorName: input.actorName,
   })
@@ -142,4 +238,19 @@ export async function hasDueSoonNotification(taskId: string, recipientUid: strin
   )
   const snap = await getDocs(q)
   return !snap.empty
+}
+
+/** Default in-app path for a notification (family vs vendor portals). */
+export function resolveNotificationHref(
+  item: AppNotification,
+  portal: "family" | "vendor"
+): string {
+  if (item.href) return item.href
+  if (item.taskId) return `/tasks#task-${item.taskId}`
+  if (item.bookingId) {
+    return portal === "vendor"
+      ? `/vendor/jobs/${item.bookingId}`
+      : `/vendors/bookings#booking-${item.bookingId}`
+  }
+  return portal === "vendor" ? "/vendor/requests" : "/vendors/bookings"
 }

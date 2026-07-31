@@ -6,9 +6,22 @@ import { useEffect, useState } from "react"
 import SidebarNavItem from "@/components/shaadi-saathi/app/SidebarNavItem"
 import SidebarUpgradeCTA from "@/components/shaadi-saathi/app/SidebarUpgradeCTA"
 import NotificationBell from "@/components/shaadi-saathi/notifications/NotificationBell"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
+import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useMessages } from "@/components/shaadi-saathi/messages/MessagesContext"
 import { CURRENT_USER, WEDDING } from "@/lib/mockData"
+
+/** Live wedding title for the sidebar — same source as guest invites. */
+function useSidebarWeddingName() {
+  const { familyUser, isFirebaseMode } = useAuth()
+  const { wedding } = useWedding()
+  const liveName = wedding?.name?.trim() || familyUser?.weddingName?.trim()
+  if (liveName) return liveName
+  // Never show the mock "Ayesha & Bilal" name for real signed-in accounts
+  if (isFirebaseMode || familyUser) return "Your wedding"
+  return WEDDING.name
+}
 
 const PRIMARY_TAB_ITEMS = [
   {
@@ -153,6 +166,15 @@ export function Sidebar() {
   const pathname = usePathname()
   const { isFamilyPremium } = usePremium()
   const { familyUnreadCount } = useMessages()
+  const { familyUser } = useAuth()
+  const weddingName = useSidebarWeddingName()
+  const plannerName = familyUser?.name?.trim() || CURRENT_USER.name
+  const plannerInitials = plannerName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || CURRENT_USER.initials
 
   return (
     <aside className="relative hidden w-64 shrink-0 flex-col border-r border-gold/15 bg-white md:flex">
@@ -162,9 +184,9 @@ export function Sidebar() {
           <Link href="/" className="font-display text-lg font-bold text-maroon-dark">
             Shaadi Saathi
           </Link>
-          <p className="mt-0.5 truncate text-xs text-maroon/50">{WEDDING.name}</p>
+          <p className="mt-0.5 truncate text-xs text-maroon/50">{weddingName}</p>
         </div>
-        <NotificationBell align="right" className="-mr-1 -mt-1" />
+        <NotificationBell align="right" className="-mr-1 -mt-1" portal="family" />
       </div>
 
       <nav className="relative flex-1 space-y-1 px-3 py-4" aria-label="App navigation">
@@ -233,10 +255,10 @@ export function Sidebar() {
         </Link>
         <div className="flex items-center gap-3 rounded-xl bg-ivory px-3 py-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-maroon to-maroon-dark text-sm font-semibold text-gold">
-            {CURRENT_USER.initials}
+            {plannerInitials}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-maroon-dark">{CURRENT_USER.name}</p>
+            <p className="truncate text-sm font-semibold text-maroon-dark">{plannerName}</p>
             <p className="text-xs text-maroon/50">Planner</p>
           </div>
         </div>
@@ -250,11 +272,15 @@ function MoreMenuSheet({
   onClose,
   pathname,
   isFamilyPremium,
+  plannerName,
+  plannerInitials,
 }: {
   open: boolean
   onClose: () => void
   pathname: string
   isFamilyPremium: boolean
+  plannerName: string
+  plannerInitials: string
 }) {
   useEffect(() => {
     if (!open) return
@@ -340,10 +366,10 @@ function MoreMenuSheet({
 
           <div className="mt-3 flex items-center gap-3 rounded-xl bg-white px-3 py-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-maroon to-maroon-dark text-sm font-semibold text-gold">
-              {CURRENT_USER.initials}
+              {plannerInitials}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-maroon-dark">{CURRENT_USER.name}</p>
+              <p className="truncate text-sm font-semibold text-maroon-dark">{plannerName}</p>
               <p className="text-xs text-maroon/50">Planner</p>
             </div>
           </div>
@@ -357,8 +383,16 @@ export function BottomNav() {
   const pathname = usePathname()
   const { isFamilyPremium } = usePremium()
   const { familyUnreadCount } = useMessages()
+  const { familyUser } = useAuth()
   const [moreOpen, setMoreOpen] = useState(false)
   const moreActive = isMoreSectionActive(pathname)
+  const plannerName = familyUser?.name?.trim() || CURRENT_USER.name
+  const plannerInitials = plannerName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || CURRENT_USER.initials
 
   useEffect(() => {
     setMoreOpen(false)
@@ -371,13 +405,13 @@ export function BottomNav() {
         onClose={() => setMoreOpen(false)}
         pathname={pathname}
         isFamilyPremium={isFamilyPremium}
+        plannerName={plannerName}
+        plannerInitials={plannerInitials}
       />
       <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe md:hidden">
-        <nav
-          className="border-t border-gold/20 bg-white/95 backdrop-blur-md"
-          aria-label="Mobile navigation"
-        >
-          <ul className="flex items-stretch px-1 py-1.5">
+        <nav className="bg-white/90 backdrop-blur-md" aria-label="Mobile navigation">
+          {/* VSCO-style: no top border, no heavy icon chips — active = color + thicker stroke */}
+          <ul className="flex items-stretch gap-1 px-3 py-2">
             {PRIMARY_TAB_ITEMS.map((item) => {
               const active = isActive(pathname, item.href)
               const label = "shortLabel" in item && item.shortLabel ? item.shortLabel : item.label
@@ -385,19 +419,19 @@ export function BottomNav() {
                 <li key={item.href} className="flex-1">
                   <Link
                     href={item.href}
-                    className={`flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[11px] font-medium leading-none transition-colors ${
-                      active ? "text-maroon" : "text-maroon/55"
+                    className={`flex min-h-[56px] flex-col items-center justify-center gap-1.5 px-1 py-1.5 text-[11px] font-medium leading-none transition-colors ${
+                      active ? "text-maroon" : "text-maroon/40"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
                     <span
-                      className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
-                        active ? "bg-maroon text-gold" : "text-gold-dark/70"
+                      className={`relative flex h-7 w-7 items-center justify-center [&_svg]:h-6 [&_svg]:w-6 ${
+                        active ? "[&_svg]:stroke-[2]" : "[&_svg]:stroke-[1.5]"
                       }`}
                     >
                       {item.icon}
                       {item.href === "/vendors" && familyUnreadCount > 0 && (
-                        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-0.5 text-[9px] font-bold text-white ring-2 ring-white">
+                        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-0.5 text-[9px] font-bold text-white">
                           {familyUnreadCount > 9 ? "9+" : familyUnreadCount}
                         </span>
                       )}
@@ -411,18 +445,20 @@ export function BottomNav() {
               <button
                 type="button"
                 onClick={() => setMoreOpen(true)}
-                className={`flex min-h-[56px] w-full flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[11px] font-medium leading-none transition-colors ${
-                  moreActive || moreOpen ? "text-maroon" : "text-maroon/55"
+                className={`flex min-h-[56px] w-full flex-col items-center justify-center gap-1.5 px-1 py-1.5 text-[11px] font-medium leading-none transition-colors ${
+                  moreActive || moreOpen ? "text-maroon" : "text-maroon/40"
                 }`}
                 aria-expanded={moreOpen}
                 aria-haspopup="dialog"
               >
-                <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
-                    moreActive || moreOpen ? "bg-maroon text-gold" : "text-gold-dark/70"
-                  }`}
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <span className="flex h-7 w-7 items-center justify-center">
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={moreActive || moreOpen ? 2 : 1.5}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                   </svg>
                 </span>

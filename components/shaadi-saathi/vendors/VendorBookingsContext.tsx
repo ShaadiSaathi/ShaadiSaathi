@@ -24,13 +24,18 @@ import {
   type BookingStatus,
   getVendorById as getMockVendorById,
 } from "@/lib/mockVendors"
+import { subscribeBookingsByWedding, setBookingCounterOffer, setBookingDispute, clearBookingCounterOffer, updateBookingFields } from "@/lib/firebase/bookings"
+import { createBookingApi } from "@/lib/firebase/bookings-client"
+import { getVendor } from "@/lib/firebase/vendors"
 import {
-  createBookingInFirestore,
-  subscribeBookingsByWedding,
-} from "@/lib/firebase/bookings"
+  createNotification,
+  formatDisputeRaisedMessage,
+  formatQuoteDecisionMessage,
+} from "@/lib/firebase/notifications"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
+import { EVENTS } from "@/lib/mockData"
 
 interface CreateBookingInput {
   vendorId: string
@@ -52,7 +57,7 @@ interface VendorReliability {
 interface VendorBookingsContextValue {
   bookings: VendorBooking[]
   vendorReliability: Record<string, VendorReliability>
-  addBooking: (input: CreateBookingInput) => VendorBooking
+  addBooking: (input: CreateBookingInput) => Promise<VendorBooking>
   vendorCheckIn: (bookingId: string, photo: CheckInPhoto) => void
   markBalancePaid: (bookingId: string) => void
   processNoShow: (bookingId: string) => void
@@ -63,13 +68,13 @@ interface VendorBookingsContextValue {
   submitDispute: (
     bookingId: string,
     data: { category: DisputeCategory; description: string; evidenceFileName?: string }
-  ) => void
-  acceptCounterOffer: (bookingId: string) => void
-  declineCounterOffer: (bookingId: string) => void
+  ) => void | Promise<void>
+  acceptCounterOffer: (bookingId: string) => void | Promise<void>
+  declineCounterOffer: (bookingId: string) => void | Promise<void>
   proposeFamilyCounter: (
     bookingId: string,
     data: { price: number; note?: string }
-  ) => void
+  ) => void | Promise<void>
   getBookingsByEvent: (eventId: EventId) => VendorBooking[]
   getBookingsByStatus: (status: BookingStatus) => VendorBooking[]
 }
@@ -91,7 +96,8 @@ function buildReliabilityMap(
 }
 
 export function VendorBookingsProvider({ children }: { children: ReactNode }) {
-  const { weddingId: authWeddingId, familyUser, isFirebaseMode: firebaseMode } = useAuth()
+  const { weddingId: authWeddingId, familyUser, isFirebaseMode: firebaseMode, firebaseUser } =
+    useAuth()
   const { weddingId: ctxWeddingId, wedding } = useWedding()
   const { vendors, getVendorById } = useVendorsDirectory()
   const weddingId = authWeddingId ?? ctxWeddingId
@@ -206,13 +212,51 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
   }, [bookings, processNoShow])
 
   const addBooking = useCallback(
-    (input: CreateBookingInput) => {
-      const id = `booking-${Date.now()}`
+    async (input: CreateBookingInput) => {
       const payment = enrichPaymentWithSchedule(
         createInitialPayment(input.price, input.paymentPath, input.inPersonMethod),
         input.eventId
       )
 
+      // Firebase: create via Admin API so platform-wide date locks are claimed
+      // atomically. Client Firestore creates of confirmed bookings are rejected.
+      if (useFirestore && weddingId) {
+        const vendor = getVendorById(input.vendorId) ?? getMockVendorById(input.vendorId)
+        const result = await createBookingApi({
+          weddingId,
+          vendorId: input.vendorId,
+          eventId: input.eventId,
+          price: input.price,
+          paymentPath: input.paymentPath,
+          inPersonMethod: input.inPersonMethod,
+          familyName: familyUser?.name ?? "",
+          weddingName: wedding?.name ?? familyUser?.weddingName ?? "",
+          vendorName: vendor?.name ?? "Vendor",
+          ...(input.packageName ? { packageName: input.packageName } : {}),
+          ...(input.guestCount != null ? { guestCount: input.guestCount } : {}),
+          ...(input.note ? { note: input.note } : {}),
+        })
+
+        const booking: VendorBooking = {
+          id: result.bookingId,
+          vendorId: input.vendorId,
+          eventId: input.eventId,
+          status: result.status,
+          guestCount: input.guestCount,
+          packageName: input.packageName,
+          price: input.price,
+          note: input.note,
+          createdAt: MOCK_NOW.toISOString().slice(0, 10),
+          payment,
+        }
+        setBookings((prev) => {
+          if (prev.some((b) => b.id === booking.id)) return prev
+          return [booking, ...prev]
+        })
+        return booking
+      }
+
+      const id = `booking-${Date.now()}`
       const booking: VendorBooking = {
         id,
         vendorId: input.vendorId,
@@ -226,27 +270,6 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
         payment,
       }
       setBookings((prev) => [booking, ...prev])
-
-      // Persist to Firestore, scoped to this wedding, so it survives reloads
-      // and only ever belongs to the current account.
-      if (useFirestore && weddingId) {
-        const vendor = getVendorById(input.vendorId) ?? getMockVendorById(input.vendorId)
-        void createBookingInFirestore({
-          id,
-          weddingId,
-          vendorId: input.vendorId,
-          eventId: input.eventId,
-          status: "confirmed",
-          price: input.price,
-          paymentPath: input.paymentPath,
-          familyName: familyUser?.name ?? "",
-          weddingName: wedding?.name ?? familyUser?.weddingName ?? "",
-          vendorName: vendor?.name ?? "Vendor",
-          ...(input.packageName ? { packageName: input.packageName } : {}),
-          ...(input.guestCount != null ? { guestCount: input.guestCount } : {}),
-          ...(input.note ? { note: input.note } : {}),
-        })
-      }
       return booking
     },
     [useFirestore, weddingId, familyUser, wedding, getVendorById]
@@ -320,10 +343,41 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const submitDispute = useCallback(
-    (
+    async (
       bookingId: string,
       data: { category: DisputeCategory; description: string; evidenceFileName?: string }
     ) => {
+      if (useFirestore && weddingId && firebaseUser) {
+        const booking = bookings.find((b) => b.id === bookingId)
+        const event = EVENTS.find((e) => e.id === booking?.eventId)
+        await setBookingDispute(bookingId, {
+          status: "under_review",
+          category: data.category,
+          description: data.description,
+          ...(data.evidenceFileName ? { evidenceFileName: data.evidenceFileName } : {}),
+          submittedAt: Date.now(),
+          familyReason: data.description,
+        })
+        const vendor = booking ? await getVendor(booking.vendorId) : null
+        const recipientUid = vendor?.ownerUid
+        if (recipientUid && recipientUid !== firebaseUser.uid) {
+          await createNotification({
+            recipientUid,
+            weddingId,
+            type: "dispute_raised",
+            message: formatDisputeRaisedMessage(
+              familyUser?.name || wedding?.name || "A family",
+              wedding?.name || familyUser?.weddingName || "their wedding",
+              event?.name ?? booking?.eventId ?? "an event"
+            ),
+            bookingId,
+            href: `/vendor/jobs/${bookingId}`,
+            actorUid: firebaseUser.uid,
+            actorName: familyUser?.name,
+          })
+        }
+        return
+      }
       setBookings((prev) =>
         prev.map((b) => {
           if (b.id !== bookingId || !b.payment) return b
@@ -343,40 +397,126 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
         })
       )
     },
-    []
+    [useFirestore, weddingId, firebaseUser, bookings, familyUser, wedding]
   )
 
-  const acceptCounterOffer = useCallback((bookingId: string) => {
-    setBookings((prev) =>
-      prev.map((b) => {
-        if (b.id !== bookingId || !b.counterOffer) return b
-        const price = b.counterOffer.price
-        const payment = enrichPaymentWithSchedule(
-          createInitialPayment(price, "in_person", "cash"),
-          b.eventId
-        )
-        return {
-          ...b,
-          status: "confirmed" as const,
-          price,
-          packageName: b.counterOffer.packageName ?? b.packageName,
-          counterOffer: undefined,
-          payment,
+  const acceptCounterOffer = useCallback(
+    async (bookingId: string) => {
+      if (useFirestore && weddingId && firebaseUser) {
+        const booking = bookings.find((b) => b.id === bookingId)
+        const price = booking?.counterOffer?.price ?? booking?.price
+        await clearBookingCounterOffer(bookingId, {
+          status: "confirmed",
+          ...(price != null ? { price } : {}),
+          ...(booking?.counterOffer?.packageName
+            ? { packageName: booking.counterOffer.packageName }
+            : {}),
+        })
+        const vendor = booking ? await getVendor(booking.vendorId) : null
+        if (vendor?.ownerUid && vendor.ownerUid !== firebaseUser.uid) {
+          await createNotification({
+            recipientUid: vendor.ownerUid,
+            weddingId,
+            type: "quote_accepted",
+            message: formatQuoteDecisionMessage(
+              familyUser?.name || "The family",
+              wedding?.name || familyUser?.weddingName || "their wedding",
+              true
+            ),
+            bookingId,
+            href: `/vendor/jobs/${bookingId}`,
+            actorUid: firebaseUser.uid,
+            actorName: familyUser?.name,
+          })
         }
-      })
-    )
-  }, [])
-
-  const declineCounterOffer = useCallback((bookingId: string) => {
-    setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId ? { ...b, status: "declined" as const, counterOffer: undefined } : b
+        return
+      }
+      setBookings((prev) =>
+        prev.map((b) => {
+          if (b.id !== bookingId || !b.counterOffer) return b
+          const nextPrice = b.counterOffer.price
+          const payment = enrichPaymentWithSchedule(
+            createInitialPayment(nextPrice, "in_person", "cash"),
+            b.eventId
+          )
+          return {
+            ...b,
+            status: "confirmed" as const,
+            price: nextPrice,
+            packageName: b.counterOffer.packageName ?? b.packageName,
+            counterOffer: undefined,
+            payment,
+          }
+        })
       )
-    )
-  }, [])
+    },
+    [useFirestore, weddingId, firebaseUser, bookings, familyUser, wedding]
+  )
+
+  const declineCounterOffer = useCallback(
+    async (bookingId: string) => {
+      if (useFirestore && weddingId && firebaseUser) {
+        const booking = bookings.find((b) => b.id === bookingId)
+        await clearBookingCounterOffer(bookingId, {
+          status: "declined",
+        })
+        const vendor = booking ? await getVendor(booking.vendorId) : null
+        if (vendor?.ownerUid && vendor.ownerUid !== firebaseUser.uid) {
+          await createNotification({
+            recipientUid: vendor.ownerUid,
+            weddingId,
+            type: "quote_rejected",
+            message: formatQuoteDecisionMessage(
+              familyUser?.name || "The family",
+              wedding?.name || familyUser?.weddingName || "their wedding",
+              false
+            ),
+            bookingId,
+            href: "/vendor/requests",
+            actorUid: firebaseUser.uid,
+            actorName: familyUser?.name,
+          })
+        }
+        return
+      }
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId
+            ? { ...b, status: "declined" as const, counterOffer: undefined }
+            : b
+        )
+      )
+    },
+    [useFirestore, weddingId, firebaseUser, bookings, familyUser, wedding]
+  )
 
   const proposeFamilyCounter = useCallback(
-    (bookingId: string, data: { price: number; note?: string }) => {
+    async (bookingId: string, data: { price: number; note?: string }) => {
+      if (useFirestore && weddingId && firebaseUser) {
+        await setBookingCounterOffer(bookingId, {
+          price: data.price,
+          ...(data.note ? { note: data.note } : {}),
+          proposedAt: Date.now(),
+          proposedBy: "family",
+        })
+        const booking = bookings.find((b) => b.id === bookingId)
+        const vendor = booking ? await getVendor(booking.vendorId) : null
+        if (vendor?.ownerUid && vendor.ownerUid !== firebaseUser.uid) {
+          await createNotification({
+            recipientUid: vendor.ownerUid,
+            weddingId,
+            type: "quote_received",
+            message: `${familyUser?.name || "The family"} sent a counter-offer for ${
+              wedding?.name || "their wedding"
+            }`,
+            bookingId,
+            href: "/vendor/requests",
+            actorUid: firebaseUser.uid,
+            actorName: familyUser?.name,
+          })
+        }
+        return
+      }
       setBookings((prev) =>
         prev.map((b) => {
           if (b.id !== bookingId) return b
@@ -395,7 +535,7 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
         })
       )
     },
-    []
+    [useFirestore, weddingId, firebaseUser, bookings, familyUser, wedding]
   )
 
   const getBookingsByEvent = useCallback(

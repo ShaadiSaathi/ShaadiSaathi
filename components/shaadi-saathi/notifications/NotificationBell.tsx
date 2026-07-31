@@ -3,7 +3,10 @@
 import Link from "next/link"
 import { useEffect, useId, useRef, useState } from "react"
 import { useNotifications } from "@/components/shaadi-saathi/notifications/NotificationsContext"
-import type { AppNotification } from "@/lib/firebase/notifications"
+import {
+  resolveNotificationHref,
+  type AppNotification,
+} from "@/lib/firebase/notifications"
 
 function relativeTime(ms: number): string {
   const diff = Date.now() - ms
@@ -17,6 +20,10 @@ function relativeTime(ms: number): string {
   return new Date(ms).toLocaleDateString()
 }
 
+function isUrgent(item: AppNotification): boolean {
+  return item.priority === "urgent" || item.type === "extra_work_needed"
+}
+
 function NotificationRow({
   item,
   onSelect,
@@ -24,18 +31,38 @@ function NotificationRow({
   item: AppNotification
   onSelect: (item: AppNotification) => void
 }) {
+  const urgent = isUrgent(item)
   return (
     <button
       type="button"
       onClick={() => onSelect(item)}
       className={`w-full border-b border-gold/10 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-maroon/[0.03] ${
-        item.read ? "bg-white" : "bg-maroon/[0.04]"
+        urgent
+          ? item.read
+            ? "bg-rose-50/50"
+            : "bg-rose-50"
+          : item.read
+            ? "bg-white"
+            : "bg-maroon/[0.04]"
       }`}
     >
-      <p className={`text-sm leading-snug ${item.read ? "text-maroon/70" : "font-medium text-maroon-dark"}`}>
-        {item.message}
-      </p>
-      <p className="mt-1 text-xs text-maroon/45">{relativeTime(item.createdAt)}</p>
+      <div className="flex items-start gap-2">
+        {urgent ? (
+          <span className="mt-0.5 shrink-0 rounded-full bg-rose-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+            Urgent
+          </span>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <p
+            className={`text-sm leading-snug ${
+              item.read ? "text-maroon/70" : "font-medium text-maroon-dark"
+            }`}
+          >
+            {item.message}
+          </p>
+          <p className="mt-1 text-xs text-maroon/45">{relativeTime(item.createdAt)}</p>
+        </div>
+      </div>
     </button>
   )
 }
@@ -43,9 +70,11 @@ function NotificationRow({
 export default function NotificationBell({
   className = "",
   align = "right",
+  portal = "family",
 }: {
   className?: string
   align?: "left" | "right"
+  portal?: "family" | "vendor"
 }) {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
   const [open, setOpen] = useState(false)
@@ -77,8 +106,13 @@ export default function NotificationBell({
       }
     }
     setOpen(false)
-    window.location.href = `/tasks#task-${item.taskId}`
+    window.location.href = resolveNotificationHref(item, portal)
   }
+
+  const emptyCopy =
+    portal === "vendor"
+      ? "No notifications yet. Booking requests, quote decisions, and disputes will show up here."
+      : "No notifications yet. Task assignments, quotes, and booking updates will show up here."
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
@@ -128,9 +162,7 @@ export default function NotificationBell({
 
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-maroon/50">
-                No notifications yet. When someone assigns you a task, it will show up here.
-              </p>
+              <p className="px-4 py-8 text-center text-sm text-maroon/50">{emptyCopy}</p>
             ) : (
               notifications.map((item) => (
                 <NotificationRow key={item.id} item={item} onSelect={(n) => void handleSelect(n)} />
@@ -140,11 +172,11 @@ export default function NotificationBell({
 
           <div className="border-t border-gold/10 px-4 py-2.5">
             <Link
-              href="/tasks"
+              href={portal === "vendor" ? "/vendor/jobs" : "/vendors/bookings"}
               onClick={() => setOpen(false)}
               className="text-xs font-medium text-maroon/55 transition-colors hover:text-maroon"
             >
-              Open tasks
+              {portal === "vendor" ? "Open jobs" : "Open bookings"}
             </Link>
           </div>
         </div>

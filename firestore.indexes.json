@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vendorId", "order": "ASCENDING" },
+        { "fieldPath": "eventDate", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "wedding_collaborator_invites",
       "queryScope": "COLLECTION",
       "fields": [

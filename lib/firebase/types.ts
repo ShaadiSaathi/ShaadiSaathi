@@ -8,6 +8,9 @@ import type {
   InPersonMethod,
   PaymentPath,
 } from "@/lib/mockPayments"
+import type { VendorVerificationStatus } from "./vendor-verification"
+
+export type { VendorVerificationStatus }
 
 export type UserRole = "family" | "vendor"
 
@@ -45,6 +48,8 @@ export type FirestoreBookingPayment = {
   safepayPayoutToken?: string
   safepayPayoutStatus?: SafepayPayoutStatus
   safepayPayoutRequestId?: string
+  safepayPayoutAttemptedAt?: number
+  safepayPayoutError?: string
   updatedAt: number
 }
 
@@ -124,23 +129,57 @@ export interface FirestoreTask {
   createdAt: number
 }
 
-export type NotificationType = "task_assigned" | "task_due_soon"
+export type NotificationType =
+  | "task_assigned"
+  | "task_due_soon"
+  | "booking_request"
+  | "quote_received"
+  | "quote_accepted"
+  | "quote_rejected"
+  | "extra_work_needed"
+  | "dispute_raised"
+  | "dispute_vendor_response"
+
+export type NotificationPriority = "normal" | "urgent"
 
 /** In-app inbox item — recipient-scoped; not push/FCM. */
 export interface FirestoreNotification {
   id: string
   recipientUid: string
+  /** Wedding context when applicable (always set for current product events) */
   weddingId: string
   type: NotificationType
   message: string
-  /** Related task document id */
-  taskId: string
   read: boolean
   createdAt: number
+  /** Related task (assignment / due-soon) */
+  taskId?: string
+  /** Related booking (quotes, disputes, extra work, requests) */
+  bookingId?: string
+  /** Deep link inside the app (family or vendor path) */
+  href?: string
+  /** urgent = Extra Work Needed and similar time-sensitive alerts */
+  priority?: NotificationPriority
   /** Who triggered the notification (e.g. assigner) */
   actorUid?: string
   /** Denormalized display name so recipients need no users/{uid} read */
   actorName?: string
+}
+
+export interface FirestoreBookingCounterOffer {
+  price: number
+  packageName?: string
+  note?: string
+  proposedAt: number
+  proposedBy: "vendor" | "family"
+}
+
+export interface FirestoreExtraWorkRequest {
+  description: string
+  estimatedAmount?: number
+  status: "pending" | "approved" | "rejected"
+  requestedAt: number
+  requestedByUid: string
 }
 
 export interface FirestoreGuest {
@@ -198,6 +237,15 @@ export interface FirestoreVendor {
   featuredBoost?: number
   rating?: number
   reviewCount?: number
+  /** Identity check for payments — defaults to unverified on signup */
+  verificationStatus?: VendorVerificationStatus
+  /** Submitted CNIC / national ID number (text only — no document upload yet) */
+  verificationCnic?: string
+  verificationBusinessName?: string
+  verificationCity?: string
+  verificationSubmittedAt?: number
+  verificationReviewedAt?: number
+  verificationRejectionReason?: string
 }
 
 export interface FirestoreBookingDispute {
@@ -221,6 +269,11 @@ export interface FirestoreBooking {
   weddingId: string
   vendorId: string
   eventId: EventId
+  /**
+   * Calendar date (YYYY-MM-DD) for the wedding event this booking covers.
+   * Required for platform-wide conflict checks across families.
+   */
+  eventDate?: string
   status: BookingStatus
   price: number
   packageName?: string
@@ -236,6 +289,8 @@ export interface FirestoreBooking {
   createdByUid?: string
   updatedAt?: number
   dispute?: FirestoreBookingDispute
+  counterOffer?: FirestoreBookingCounterOffer
+  extraWorkRequest?: FirestoreExtraWorkRequest
   /** Per-user last read timestamp for unread badges */
   lastReadByFamily?: number
   lastReadByVendor?: number

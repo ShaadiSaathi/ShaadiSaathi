@@ -76,6 +76,7 @@ export async function runDueSoonReminders(): Promise<DueSoonResult> {
         type: "task_due_soon",
         message: formatTaskDueSoonMessage(task.title ?? "a task", dueDate),
         taskId: task.id,
+        href: `/tasks#task-${task.id}`,
         read: false,
         createdAt: Date.now(),
         actorName: "Shaadi Saathi",

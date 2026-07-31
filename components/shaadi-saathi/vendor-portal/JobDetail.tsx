@@ -200,6 +200,8 @@ export default function JobDetail({ job }: JobDetailProps) {
         </section>
       )}
 
+      <ExtraWorkRequestSection jobId={job.id} />
+
       {job.jobStatus === "disputed" && job.disputeFamilyMessage && (
         <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
           <h2 className="shaadi-section-title text-amber-900">
@@ -260,6 +262,90 @@ export default function JobDetail({ job }: JobDetailProps) {
         </div>
       )}
     </PageTransition>
+  )
+}
+
+function ExtraWorkRequestSection({ jobId }: { jobId: string }) {
+  const { requestExtraWork } = useVendorPortal()
+  const [open, setOpen] = useState(false)
+  const [description, setDescription] = useState("")
+  const [amount, setAmount] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!description.trim()) return
+    setBusy(true)
+    setError(null)
+    try {
+      const estimated =
+        amount.trim() && Number.isFinite(Number(amount)) ? Number(amount) : undefined
+      await requestExtraWork(jobId, {
+        description: description.trim(),
+        ...(estimated != null ? { estimatedAmount: estimated } : {}),
+      })
+      setDone(true)
+      setOpen(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send request")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="mt-6 rounded-2xl border border-rose-200/80 bg-rose-50/40 p-5">
+      <h2 className="shaadi-section-title text-rose-950">Extra work needed</h2>
+      <p className="mt-1 text-sm text-maroon/65">
+        Flag unexpected scope for family approval. This sends an <strong>urgent</strong>{" "}
+        notification so they can respond quickly.
+      </p>
+      {done ? (
+        <p className="mt-3 text-sm font-medium text-emerald-800" role="status">
+          Extra work request sent to the family.
+        </p>
+      ) : open ? (
+        <form onSubmit={(e) => void handleSubmit(e)} className="mt-4 space-y-3">
+          <textarea
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What extra work is needed and why?"
+            className="w-full rounded-xl border border-gold/25 bg-white px-4 py-3 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon focus:outline-none focus:ring-2 focus:ring-maroon/20"
+            required
+          />
+          <input
+            type="number"
+            min={0}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Estimated amount (PKR, optional)"
+            className="w-full rounded-xl border border-gold/25 bg-white px-4 py-3 text-sm"
+          />
+          {error ? (
+            <p className="text-sm text-rose-700" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <GoldButton type="submit" disabled={busy}>
+              {busy ? "Sending…" : "Send urgent request"}
+            </GoldButton>
+            <GoldButton type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </GoldButton>
+          </div>
+        </form>
+      ) : (
+        <div className="mt-4">
+          <GoldButton type="button" onClick={() => setOpen(true)}>
+            Request extra work
+          </GoldButton>
+        </div>
+      )}
+    </section>
   )
 }
 
