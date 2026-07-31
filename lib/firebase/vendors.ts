@@ -1,10 +1,12 @@
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
   onSnapshot,
   setDoc,
+  updateDoc,
   type Unsubscribe,
 } from "firebase/firestore"
 import type { EventId } from "@/lib/mockData"
@@ -13,6 +15,12 @@ import { getFirestoreDb, isFirebaseConfigured } from "./config"
 import { DEMO_VENDOR_ID } from "./seed"
 import type { FirestoreVendor } from "./types"
 import { createUserProfile, getUserProfile, upsertUserProfile } from "./users"
+import {
+  isValidCnicInput,
+  normalizeVendorVerificationStatus,
+  sanitizeCnic,
+  type VendorVerificationStatus,
+} from "./vendor-verification"
 
 const ALL_EVENTS: EventId[] = ["mehndi", "baraat", "walima"]
 
@@ -59,6 +67,7 @@ function normalizeVendor(raw: FirestoreVendor): FirestoreVendor {
     acceptsCardInPerson: raw.acceptsCardInPerson ?? false,
     featuredBoost:
       raw.featuredBoost ?? (raw.subscriptionTier === "featured" ? 10 : 0),
+    verificationStatus: normalizeVendorVerificationStatus(raw.verificationStatus),
   }
 }
 
@@ -105,6 +114,7 @@ export function toDirectoryVendor(raw: FirestoreVendor): Vendor {
     suspended: v.suspended,
     acceptsCardInPerson: v.acceptsCardInPerson,
     completedJobsCount: v.completedJobsCount,
+    verificationStatus: v.verificationStatus,
   }
 }
 
@@ -183,6 +193,7 @@ export async function createVendorForUser(
     acceptsCardInPerson: false,
     featuredBoost: 0,
     coverGradient: coverGradientForId(vendorId),
+    verificationStatus: "unverified",
     createdAt: Date.now(),
   }
 
@@ -208,4 +219,64 @@ export async function createVendorForUser(
   }
 
   return vendorId
+}
+
+export type SubmitVendorVerificationInput = {
+  cnic: string
+  businessName: string
+  city: string
+}
+
+/**
+ * Vendor submits / resubmits identity details for manual admin review.
+ * Sets status to pending; cannot self-approve.
+ */
+export async function submitVendorVerification(
+  vendorId: string,
+  ownerUid: string,
+  input: SubmitVendorVerificationInput
+): Promise<VendorVerificationStatus> {
+  if (!isFirebaseConfigured()) {
+    throw new Error("Firebase is not configured")
+  }
+
+  const cnic = sanitizeCnic(input.cnic)
+  const businessName = input.businessName.trim()
+  const city = input.city.trim()
+
+  if (!isValidCnicInput(cnic)) {
+    throw new Error("Enter a valid CNIC / ID number (5–20 characters)")
+  }
+  if (businessName.length < 2) {
+    throw new Error("Business name is required")
+  }
+  if (city.length < 2) {
+    throw new Error("City is required")
+  }
+
+  const vendor = await getVendor(vendorId)
+  if (!vendor) {
+    throw new Error("Vendor profile not found")
+  }
+  if (vendor.ownerUid !== ownerUid) {
+    throw new Error("Not authorized to update this vendor")
+  }
+  if (vendor.verificationStatus === "verified") {
+    throw new Error("This vendor is already verified")
+  }
+  if (vendor.verificationStatus === "pending") {
+    throw new Error("Verification is already under review")
+  }
+
+  const now = Date.now()
+  await updateDoc(doc(getFirestoreDb(), "vendors", vendorId), {
+    verificationStatus: "pending",
+    verificationCnic: cnic,
+    verificationBusinessName: businessName,
+    verificationCity: city,
+    verificationSubmittedAt: now,
+    verificationRejectionReason: deleteField(),
+  })
+
+  return "pending"
 }

@@ -19,6 +19,7 @@ import PaymentPathSelector, {
   MockDepositPayment,
 } from "./payments/PaymentPathSelector"
 import { useVendorBookings } from "./VendorBookingsContext"
+import { useVendorEventAvailability } from "./useVendorEventAvailability"
 
 type Step = "details" | "payment" | "deposit" | "confirmed"
 
@@ -46,12 +47,24 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
   const [note, setNote] = useState("")
   const [paymentPath, setPaymentPath] = useState<PaymentPath>("in_person")
   const [inPersonMethod, setInPersonMethod] = useState<InPersonMethod>("cash")
+  const [bookingError, setBookingError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const { rows: availabilityRows } = useVendorEventAvailability(vendor)
 
-  const availableEvents = EVENTS.filter((e) => vendor.availableFor.includes(e.id))
+  const availableEvents = EVENTS.filter((e) => {
+    if (!vendor.availableFor.includes(e.id)) return false
+    const row = availabilityRows.find((r) => r.eventId === e.id)
+    // While loading, still show service-available events; create API enforces.
+    if (!row) return true
+    return row.available
+  })
+
+  const selectedAvailability = availabilityRows.find((r) => r.eventId === eventId)
 
   function handleEventChange(id: EventId) {
     setEventId(id)
     setGuestCount(confirmedCountFor(id))
+    setBookingError("")
   }
 
   function computePrice(): number {
@@ -67,6 +80,17 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
 
   function handleDetailsSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setBookingError("")
+    if (selectedAvailability && !selectedAvailability.available) {
+      setBookingError(selectedAvailability.label)
+      return
+    }
+    if (availableEvents.length === 0) {
+      setBookingError(
+        "This vendor has no open dates for your wedding events right now."
+      )
+      return
+    }
     setStep("payment")
   }
 
@@ -74,18 +98,31 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
     setStep("deposit")
   }
 
-  function handleDepositPaid() {
-    addBooking({
-      vendorId: vendor.id,
-      eventId,
-      guestCount: selectedPackage?.perHead ? guestCount : undefined,
-      packageName: selectedPackage?.name,
-      price: totalPrice,
-      note: note || undefined,
-      paymentPath,
-      inPersonMethod: paymentPath === "in_person" ? inPersonMethod : undefined,
-    })
-    setStep("confirmed")
+  async function handleDepositPaid() {
+    setBookingError("")
+    setSubmitting(true)
+    try {
+      await addBooking({
+        vendorId: vendor.id,
+        eventId,
+        guestCount: selectedPackage?.perHead ? guestCount : undefined,
+        packageName: selectedPackage?.name,
+        price: totalPrice,
+        note: note || undefined,
+        paymentPath,
+        inPersonMethod: paymentPath === "in_person" ? inPersonMethod : undefined,
+      })
+      setStep("confirmed")
+    } catch (err) {
+      setBookingError(
+        err instanceof Error
+          ? err.message
+          : "Could not complete this booking. Please try again."
+      )
+      setStep("details")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const previewPayment = {
@@ -169,9 +206,15 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
                 <MockDepositPayment
                   depositAmount={split.depositAmount}
                   onPaid={handleDepositPaid}
+                  disabled={submitting}
                 />
               )}
             </div>
+            {bookingError ? (
+              <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">
+                {bookingError}
+              </p>
+            ) : null}
             <GoldButton
               type="button"
               variant="ghost"
@@ -229,6 +272,11 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
             <p className="mt-1 text-sm text-maroon/60">{vendor.name}</p>
 
             <form onSubmit={handleDetailsSubmit} className="mt-5 space-y-4">
+              {bookingError ? (
+                <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">
+                  {bookingError}
+                </p>
+              ) : null}
               <div>
                 <label htmlFor="booking-event" className="block text-sm font-medium text-maroon/70">
                   Which event?

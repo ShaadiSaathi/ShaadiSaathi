@@ -109,11 +109,14 @@ export default function PaymentPathSelector({
 export function MockDepositPayment({
   depositAmount,
   onPaid,
+  disabled = false,
 }: {
   depositAmount: number
-  onPaid: (providerId: string) => void
+  onPaid: (providerId: string) => void | Promise<void>
+  disabled?: boolean
 }) {
   const [provider, setProvider] = useState("jazzcash")
+  const [busy, setBusy] = useState(false)
 
   return (
     <div className="space-y-3 rounded-xl border border-gold/25 bg-white p-4">
@@ -138,6 +141,7 @@ export function MockDepositPayment({
               value={p.id}
               checked={provider === p.id}
               onChange={() => setProvider(p.id)}
+              disabled={disabled || busy}
               className="text-maroon"
             />
             <span className="text-sm font-medium text-maroon-dark">{p.label}</span>
@@ -146,10 +150,16 @@ export function MockDepositPayment({
       </div>
       <button
         type="button"
-        onClick={() => onPaid(provider)}
-        className="w-full rounded-full bg-gold py-2.5 text-sm font-semibold text-maroon-dark shadow-sm"
+        disabled={disabled || busy}
+        onClick={() => {
+          setBusy(true)
+          void Promise.resolve(onPaid(provider)).finally(() => setBusy(false))
+        }}
+        className="w-full rounded-full bg-gold py-2.5 text-sm font-semibold text-maroon-dark shadow-sm disabled:opacity-60"
       >
-        Pay Rs. {depositAmount.toLocaleString("en-PK")} (mock)
+        {busy
+          ? "Confirming…"
+          : `Pay Rs. ${depositAmount.toLocaleString("en-PK")} (mock)`}
       </button>
     </div>
   )

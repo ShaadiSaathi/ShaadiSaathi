@@ -51,7 +51,13 @@ export default function EventTimeline({ eventId }: EventTimelineProps) {
         </GoldButton>
       </div>
 
-      <div className="relative">
+      {entries.length === 0 && !showAdd ? (
+        <p className="rounded-xl border border-dashed border-gold/30 bg-ivory/40 px-4 py-8 text-center text-sm text-maroon/55">
+          No schedule yet. Add your first run-of-show entry when you&apos;re ready.
+        </p>
+      ) : null}
+
+      <div className={`relative ${entries.length === 0 ? "hidden" : ""}`}>
         <div
           className="absolute left-[7px] top-2 bottom-2 w-px bg-gradient-to-b from-gold/40 via-gold/20 to-transparent sm:left-[11px]"
           aria-hidden="true"

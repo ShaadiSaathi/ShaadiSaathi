@@ -25,6 +25,15 @@ export function NewVendorBadge() {
   )
 }
 
+export function VerifiedVendorBadge() {
+  return (
+    <StatusBadge
+      label="Verified"
+      className="border-emerald-200 bg-emerald-50 text-emerald-800 normal-case tracking-normal"
+    />
+  )
+}
+
 export function RepeatClientBadge() {
   return (
     <StatusBadge

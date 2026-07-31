@@ -97,26 +97,28 @@ body:has(.refine-app) {
 }
 
 .shaadi-saathi .shaadi-stat-value {
-  font-size: 1.75rem;
-  font-weight: 600;
+  font-size: clamp(2.25rem, 5vw, 2.75rem);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-  letter-spacing: -0.025em;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
   color: var(--maroon-dark);
 }
 
 .shaadi-saathi .shaadi-label {
-  font-size: 0.8125rem;
+  font-size: 0.6875rem;
   font-weight: 500;
-  line-height: 1.4;
-  color: color-mix(in srgb, var(--maroon-dark) 55%, transparent);
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--maroon-dark) 42%, transparent);
 }
 
 .shaadi-saathi .shaadi-card {
-  border-radius: 1rem;
-  border: 1px solid color-mix(in srgb, var(--gold) 15%, transparent);
+  border-radius: 1.25rem; /* 20px — Monarch soft cards */
+  border: none;
   background: #fff;
-  box-shadow: 0 1px 2px 0 rgb(74 18 53 / 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .shaadi-saathi .shaadi-input {

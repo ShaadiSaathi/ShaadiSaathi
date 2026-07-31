@@ -10,7 +10,7 @@ import CategoryIcon from "@/components/shaadi-saathi/vendors/CategoryIcon"
 import FamilyConsultThread from "@/components/shaadi-saathi/vendors/FamilyConsultThread"
 import MessageModal from "@/components/shaadi-saathi/vendors/MessageModal"
 import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
-import { NewVendorBadge } from "@/components/shaadi-saathi/shared/StatusBadge"
+import { NewVendorBadge, VerifiedVendorBadge } from "@/components/shaadi-saathi/shared/StatusBadge"
 import { isNewVendor } from "@/lib/mockVendorPortal"
 import { EVENTS } from "@/lib/mockData"
 import {
@@ -62,55 +62,55 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
         ← Back to vendors
       </Link>
 
-      <section aria-label="Vendor gallery" className="mb-6 md:hidden">
+      {/* VSCO-style gallery: image-first, generous whitespace, no chrome border */}
+      <section aria-label="Vendor gallery" className="mb-10 md:hidden">
         <div className="-mx-4 flex snap-x snap-mandatory overflow-x-auto scrollbar-none">
           {images.map((gradient, i) => (
             <div
               key={i}
-              className={`h-52 min-w-full shrink-0 snap-center bg-gradient-to-br ${gradient}`}
+              className={`h-64 min-w-full shrink-0 snap-center bg-gradient-to-br ${gradient}`}
               role="img"
               aria-label={`${vendor.name} photo ${i + 1} of ${images.length}`}
             />
           ))}
         </div>
         {images.length > 1 && (
-          <div className="mt-2 flex justify-center gap-1.5" aria-hidden="true">
+          <div className="mt-4 flex justify-center gap-2" aria-hidden="true">
             {images.map((_, i) => (
               <span key={i} className="h-1.5 w-1.5 rounded-full bg-maroon/25" />
             ))}
           </div>
         )}
-        <p className="mt-2 text-center text-xs text-maroon/45">
+        <p className="mt-4 px-1 text-center text-xs text-maroon/40">
           Photos coming soon — this vendor is still completing their gallery.
         </p>
       </section>
 
-      <section
-        aria-label="Vendor gallery"
-        className="mb-6 hidden overflow-hidden rounded-2xl border border-gold/20 md:block"
-      >
-        <div className={`relative h-64 bg-gradient-to-br ${images[galleryIndex]}`}>
-          {images.length > 1 && (
-            <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  aria-label={`View image ${i + 1}`}
-                  onClick={() => setGalleryIndex(i)}
-                  className="flex h-11 w-11 items-end justify-center pb-3"
-                >
-                  <span
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      i === galleryIndex ? "bg-white" : "bg-white/50"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-          )}
+      <section aria-label="Vendor gallery" className="mb-10 hidden md:block">
+        <div className="overflow-hidden rounded-[1.25rem] shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
+          <div className={`relative h-80 bg-gradient-to-br ${images[galleryIndex]}`}>
+            {images.length > 1 && (
+              <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1 pb-4">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`View image ${i + 1}`}
+                    onClick={() => setGalleryIndex(i)}
+                    className="flex h-11 w-11 items-end justify-center pb-1"
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full transition-colors ${
+                        i === galleryIndex ? "bg-white" : "bg-white/50"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <p className="border-t border-gold/15 bg-white px-4 py-2 text-xs text-maroon/50">
+        <p className="mt-4 text-center text-xs text-maroon/40">
           Photos coming soon — ask the vendor for recent work when you message them.
         </p>
       </section>
@@ -129,20 +129,23 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
             </h1>
             <p className="mt-1 text-maroon/60">{vendor.city}</p>
           </div>
-          <div className="flex items-center gap-1.5 text-lg font-semibold text-maroon-dark">
-            {isNewVendor(vendor.completedJobsCount ?? 0) ? (
-              <NewVendorBadge />
-            ) : (
-              <>
-                <svg className="h-5 w-5 text-gold" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                {vendor.rating}
-                <span className="text-sm font-normal text-maroon/50">
-                  ({vendor.reviewCount} reviews)
-                </span>
-              </>
-            )}
+          <div className="flex flex-col items-end gap-2">
+            {vendor.verificationStatus === "verified" ? <VerifiedVendorBadge /> : null}
+            <div className="flex items-center gap-1.5 text-lg font-semibold text-maroon-dark">
+              {isNewVendor(vendor.completedJobsCount ?? 0) ? (
+                <NewVendorBadge />
+              ) : (
+                <>
+                  <svg className="h-5 w-5 text-gold" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  {vendor.rating}
+                  <span className="text-sm font-normal text-maroon/50">
+                    ({vendor.reviewCount} reviews)
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <p className="mt-4 leading-relaxed text-maroon/75">

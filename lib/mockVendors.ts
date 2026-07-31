@@ -4,6 +4,7 @@
  */
 
 import type { EventId } from "./mockData"
+import type { VendorVerificationStatus } from "./firebase/vendor-verification"
 import type { VendorSubscriptionTier } from "./premium"
 import { EVENTS, getRsvpSummary } from "./mockData"
 import type { BookingPayment } from "./mockPayments"
@@ -85,6 +86,8 @@ export interface Vendor {
   acceptsCardInPerson?: boolean
   /** Completed jobs on platform — used for "New to Shaadi Saathi" badge */
   completedJobsCount?: number
+  /** Manual identity verification — gates payment release, not visibility */
+  verificationStatus?: VendorVerificationStatus
 }
 
 export interface VendorBooking {

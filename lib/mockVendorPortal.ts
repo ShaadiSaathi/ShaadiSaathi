@@ -4,6 +4,7 @@
  */
 
 import type { EventId } from "./mockData"
+import type { VendorVerificationStatus } from "./firebase/vendor-verification"
 import type {
   BalanceStatus,
   BookingPayment,
@@ -66,6 +67,12 @@ export interface VendorBusiness {
   completedJobsCount: number
   flaggedIncidents: FlaggedIncident[]
   subscriptionTier?: "basic" | "featured"
+  verificationStatus?: VendorVerificationStatus
+  verificationCnic?: string
+  verificationBusinessName?: string
+  verificationCity?: string
+  verificationSubmittedAt?: number
+  verificationRejectionReason?: string
 }
 
 export interface BookingRequest {
@@ -121,6 +128,9 @@ export interface EarningsTransaction {
   balanceStatus?: BalanceStatus
   date: string
   label: string
+  safepayPayoutStatus?: BookingPayment["safepayPayoutStatus"]
+  safepayPayoutError?: string
+  safepayPayoutAttemptedAt?: string
 }
 
 export const CURRENT_VENDOR: VendorBusiness = {
@@ -318,6 +328,9 @@ export function buildEarningsFromJobs(jobs: VendorJob[]): EarningsTransaction[] 
       depositStatus: p.depositStatus,
       date: p.depositPaidAt?.slice(0, 10) ?? job.eventDate,
       label: `Deposit — ${job.familyName}`,
+      safepayPayoutStatus: p.safepayPayoutStatus,
+      safepayPayoutError: p.safepayPayoutError,
+      safepayPayoutAttemptedAt: p.safepayPayoutAttemptedAt,
     })
     if (p.balanceStatus !== "pending_online" || p.balanceChargedAt) {
       txs.push({
@@ -330,6 +343,9 @@ export function buildEarningsFromJobs(jobs: VendorJob[]): EarningsTransaction[] 
         balanceStatus: p.balanceStatus,
         date: p.balanceChargedAt?.slice(0, 10) ?? job.eventDate,
         label: `Balance — ${job.familyName}`,
+        safepayPayoutStatus: p.safepayPayoutStatus,
+        safepayPayoutError: p.safepayPayoutError,
+        safepayPayoutAttemptedAt: p.safepayPayoutAttemptedAt,
       })
     }
   }

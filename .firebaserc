@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "shaadi-saathi-dd3da",
+    "production": "shaadi-saathi-dd3da",
+    "staging": "shaadisaathistaging"
+  }
+}

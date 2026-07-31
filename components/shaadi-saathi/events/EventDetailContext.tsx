@@ -9,6 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
+import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import {
   EVENTS,
   type EventId,
@@ -41,23 +43,29 @@ interface EventDetailContextValue {
   removeMoodPhoto: (eventId: EventId, photoId: string) => void
 }
 
-const STORAGE_KEY = "shaadi-saathi-event-details"
-
 const EventDetailContext = createContext<EventDetailContextValue | null>(null)
 
-function loadStore(): EventDetailStore {
+function storageKey(weddingId: string | null, isFirebaseMode: boolean): string {
+  if (isFirebaseMode && weddingId) {
+    return `shaadi-saathi-event-details:${weddingId}`
+  }
+  // Mock / tester mode only — never share with real Firebase weddings
+  return "shaadi-saathi-event-details:mock"
+}
+
+function loadStore(key: string): EventDetailStore {
   if (typeof window === "undefined") return {}
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(key)
     return raw ? (JSON.parse(raw) as EventDetailStore) : {}
   } catch {
     return {}
   }
 }
 
-function persistStore(store: EventDetailStore) {
+function persistStore(key: string, store: EventDetailStore) {
   if (typeof window === "undefined") return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store))
+  localStorage.setItem(key, JSON.stringify(store))
 }
 
 function getDefaultEvent(eventId: EventId) {
@@ -65,17 +73,24 @@ function getDefaultEvent(eventId: EventId) {
 }
 
 export function EventDetailProvider({ children }: { children: ReactNode }) {
+  const { isFirebaseMode } = useAuth()
+  const { weddingId } = useWedding()
+  const key = storageKey(weddingId, isFirebaseMode)
+
   const [store, setStore] = useState<EventDetailStore>({})
   const [hydrated, setHydrated] = useState(false)
 
-  useEffect(() => {
-    setStore(loadStore())
-    setHydrated(true)
-  }, [])
+  // Real accounts start blank; mock/demo keeps sample content.
+  const useDemoDefaults = !isFirebaseMode
 
   useEffect(() => {
-    if (hydrated) persistStore(store)
-  }, [store, hydrated])
+    setStore(loadStore(key))
+    setHydrated(true)
+  }, [key])
+
+  useEffect(() => {
+    if (hydrated) persistStore(key, store)
+  }, [store, hydrated, key])
 
   const patchEvent = useCallback(
     (eventId: EventId, patch: EventDetailOverrides) => {
@@ -87,10 +102,27 @@ export function EventDetailProvider({ children }: { children: ReactNode }) {
     []
   )
 
-  const getNotes = useCallback(
+  const defaultNotes = useCallback(
     (eventId: EventId) =>
-      store[eventId]?.organiserNotes ?? getDefaultEvent(eventId).organiserNotes,
-    [store]
+      useDemoDefaults ? getDefaultEvent(eventId).organiserNotes : "",
+    [useDemoDefaults]
+  )
+
+  const defaultTimeline = useCallback(
+    (eventId: EventId) =>
+      useDemoDefaults ? getDefaultEvent(eventId).daySchedule : [],
+    [useDemoDefaults]
+  )
+
+  const defaultMoodPhotos = useCallback(
+    (eventId: EventId) =>
+      useDemoDefaults ? getDefaultEvent(eventId).moodPhotos : [],
+    [useDemoDefaults]
+  )
+
+  const getNotes = useCallback(
+    (eventId: EventId) => store[eventId]?.organiserNotes ?? defaultNotes(eventId),
+    [store, defaultNotes]
   )
 
   const setNotes = useCallback(
@@ -101,19 +133,18 @@ export function EventDetailProvider({ children }: { children: ReactNode }) {
   )
 
   const getTimeline = useCallback(
-    (eventId: EventId) =>
-      store[eventId]?.daySchedule ?? getDefaultEvent(eventId).daySchedule,
-    [store]
+    (eventId: EventId) => store[eventId]?.daySchedule ?? defaultTimeline(eventId),
+    [store, defaultTimeline]
   )
 
   const addTimelineEntry = useCallback(
     (eventId: EventId, entry: Omit<EventTimelineEntry, "id">) => {
-      const current = store[eventId]?.daySchedule ?? getDefaultEvent(eventId).daySchedule
+      const current = store[eventId]?.daySchedule ?? defaultTimeline(eventId)
       patchEvent(eventId, {
         daySchedule: [...current, { ...entry, id: `tl-${Date.now()}` }],
       })
     },
-    [store, patchEvent]
+    [store, patchEvent, defaultTimeline]
   )
 
   const updateTimelineEntry = useCallback(
@@ -122,29 +153,29 @@ export function EventDetailProvider({ children }: { children: ReactNode }) {
       entryId: string,
       updates: Partial<Omit<EventTimelineEntry, "id">>
     ) => {
-      const current = store[eventId]?.daySchedule ?? getDefaultEvent(eventId).daySchedule
+      const current = store[eventId]?.daySchedule ?? defaultTimeline(eventId)
       patchEvent(eventId, {
         daySchedule: current.map((e) =>
           e.id === entryId ? { ...e, ...updates } : e
         ),
       })
     },
-    [store, patchEvent]
+    [store, patchEvent, defaultTimeline]
   )
 
   const removeTimelineEntry = useCallback(
     (eventId: EventId, entryId: string) => {
-      const current = store[eventId]?.daySchedule ?? getDefaultEvent(eventId).daySchedule
+      const current = store[eventId]?.daySchedule ?? defaultTimeline(eventId)
       patchEvent(eventId, {
         daySchedule: current.filter((e) => e.id !== entryId),
       })
     },
-    [store, patchEvent]
+    [store, patchEvent, defaultTimeline]
   )
 
   const moveTimelineEntry = useCallback(
     (eventId: EventId, entryId: string, direction: "up" | "down") => {
-      const current = [...(store[eventId]?.daySchedule ?? getDefaultEvent(eventId).daySchedule)]
+      const current = [...(store[eventId]?.daySchedule ?? defaultTimeline(eventId))]
       const idx = current.findIndex((e) => e.id === entryId)
       if (idx < 0) return
       const swapIdx = direction === "up" ? idx - 1 : idx + 1
@@ -152,31 +183,30 @@ export function EventDetailProvider({ children }: { children: ReactNode }) {
       ;[current[idx], current[swapIdx]] = [current[swapIdx]!, current[idx]!]
       patchEvent(eventId, { daySchedule: current })
     },
-    [store, patchEvent]
+    [store, patchEvent, defaultTimeline]
   )
 
   const getMoodPhotos = useCallback(
-    (eventId: EventId) =>
-      store[eventId]?.moodPhotos ?? getDefaultEvent(eventId).moodPhotos,
-    [store]
+    (eventId: EventId) => store[eventId]?.moodPhotos ?? defaultMoodPhotos(eventId),
+    [store, defaultMoodPhotos]
   )
 
   const addMoodPhoto = useCallback(
     (eventId: EventId, photo: EventMoodPhoto) => {
-      const current = store[eventId]?.moodPhotos ?? getDefaultEvent(eventId).moodPhotos
+      const current = store[eventId]?.moodPhotos ?? defaultMoodPhotos(eventId)
       patchEvent(eventId, { moodPhotos: [...current, photo] })
     },
-    [store, patchEvent]
+    [store, patchEvent, defaultMoodPhotos]
   )
 
   const removeMoodPhoto = useCallback(
     (eventId: EventId, photoId: string) => {
-      const current = store[eventId]?.moodPhotos ?? getDefaultEvent(eventId).moodPhotos
+      const current = store[eventId]?.moodPhotos ?? defaultMoodPhotos(eventId)
       patchEvent(eventId, {
         moodPhotos: current.filter((p) => p.id !== photoId),
       })
     },
-    [store, patchEvent]
+    [store, patchEvent, defaultMoodPhotos]
   )
 
   const value = useMemo(

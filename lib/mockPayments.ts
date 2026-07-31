@@ -87,6 +87,15 @@ export interface BookingPayment {
   dispute?: BookingDispute
   refundAmount?: number
   refundConfirmedAt?: string
+  /** Safepay Raastwire payout tracking (real payout, not just "Released") */
+  safepayPayoutStatus?:
+    | "P_INITIATED"
+    | "P_RECEIVED"
+    | "P_FAILED"
+    | "P_REJECTED"
+    | "P_SETTLED"
+  safepayPayoutError?: string
+  safepayPayoutAttemptedAt?: string
 }
 
 export const PAYMENT_PROVIDERS = [
@@ -223,6 +232,95 @@ export function getDepositStatusLabel(status: DepositStatus): string {
     refunded: "Refunded",
   }
   return labels[status]
+}
+
+/** Vendor-facing payout state — more specific than Held/Released alone. */
+export type VendorPayoutDisplayStatus =
+  | "held"
+  | "released_pending_payout"
+  | "payout_processing"
+  | "payout_sent"
+  | "payout_failed"
+  | "payout_unavailable"
+  | "refunded"
+
+export function getVendorPayoutDisplay(payment: BookingPayment): {
+  status: VendorPayoutDisplayStatus
+  label: string
+  style: string
+  detail?: string
+} {
+  if (payment.depositStatus === "refunded") {
+    return {
+      status: "refunded",
+      label: "Refunded",
+      style: DEPOSIT_STATUS_STYLES.refunded,
+    }
+  }
+
+  if (payment.depositStatus === "held") {
+    return {
+      status: "held",
+      label: "Held",
+      style: DEPOSIT_STATUS_STYLES.held,
+      detail: "Held until day-of check-in",
+    }
+  }
+
+  // depositStatus === "released"
+  const sp = payment.safepayPayoutStatus
+  if (sp === "P_SETTLED") {
+    return {
+      status: "payout_sent",
+      label: "Payout Sent",
+      style: "bg-emerald-50 text-emerald-800 border-emerald-200",
+      detail: "Funds sent to your bank account",
+    }
+  }
+  if (sp === "P_INITIATED" || sp === "P_RECEIVED") {
+    return {
+      status: "payout_processing",
+      label: "Payout Processing",
+      style: "bg-sky-50 text-sky-900 border-sky-200",
+      detail: "Safepay is processing your payout",
+    }
+  }
+  if (sp === "P_FAILED" || sp === "P_REJECTED") {
+    return {
+      status: "payout_failed",
+      label: "Payout Failed",
+      style: "bg-rose-50 text-rose-800 border-rose-200",
+      detail: payment.safepayPayoutError || "Payout could not be completed",
+    }
+  }
+
+  if (
+    payment.safepayPayoutError &&
+    /not yet available|not been configured/i.test(payment.safepayPayoutError)
+  ) {
+    return {
+      status: "payout_unavailable",
+      label: "Payouts Not Yet Available",
+      style: "bg-maroon/8 text-maroon/70 border-maroon/15",
+      detail: payment.safepayPayoutError,
+    }
+  }
+
+  if (payment.safepayPayoutError) {
+    return {
+      status: "payout_failed",
+      label: "Payout Pending",
+      style: "bg-amber-50 text-amber-900 border-amber-200",
+      detail: payment.safepayPayoutError,
+    }
+  }
+
+  return {
+    status: "released_pending_payout",
+    label: "Released — Payout Pending",
+    style: "bg-amber-50 text-amber-900 border-amber-200",
+    detail: "Deposit released; waiting for bank payout",
+  }
 }
 
 export function getBalanceStatusLabel(status: BalanceStatus, payment: BookingPayment): string {

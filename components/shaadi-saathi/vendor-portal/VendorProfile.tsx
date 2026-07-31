@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
@@ -8,8 +8,16 @@ import FeaturedBadge from "@/components/shaadi-saathi/premium/FeaturedBadge"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { NewVendorBadge } from "@/components/shaadi-saathi/shared/StatusBadge"
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { isNewVendor } from "@/lib/mockVendorPortal"
 import { VENDOR_CATEGORIES } from "@/lib/mockVendors"
+import {
+  getVendorPayoutAccount,
+  isValidPakistaniIban,
+  normalizePakistaniIban,
+  saveVendorPayoutAccount,
+  type VendorPayoutAccount,
+} from "@/lib/firebase/vendor-payout-account"
 
 const MOCK_GALLERY = [
   { id: "g1", label: "Walima spread" },
@@ -18,14 +26,67 @@ const MOCK_GALLERY = [
   { id: "g4", label: "Dessert station" },
 ]
 
-/** Vendor profile — business info, reliability, suspension demo toggle */
+/** Vendor profile — business info, reliability, verification, payout bank details */
 export default function VendorProfile() {
-  const { business, updateBusiness, updateIncidentResponse } = useVendorPortal()
+  const { business, updateBusiness, updateIncidentResponse, submitVerification } =
+    useVendorPortal()
+  const { vendorId, firebaseUser, isFirebaseMode } = useAuth()
   const { vendorTier, vendorCategories, setVendorCategories } = usePremium()
   const isFeatured = vendorTier === "featured"
   const [bio, setBio] = useState(business.bio)
   const [priceRange, setPriceRange] = useState(business.priceRange)
   const [saved, setSaved] = useState(false)
+  const [cnic, setCnic] = useState(business.verificationCnic ?? "")
+  const [verifyBusinessName, setVerifyBusinessName] = useState(
+    business.verificationBusinessName ?? business.name
+  )
+  const [verifyCity, setVerifyCity] = useState(
+    business.verificationCity ?? business.city
+  )
+  const [verifyBusy, setVerifyBusy] = useState(false)
+  const [verifyError, setVerifyError] = useState<string | null>(null)
+  const [verifySuccess, setVerifySuccess] = useState<string | null>(null)
+
+  const [iban, setIban] = useState("")
+  const [accountHolderName, setAccountHolderName] = useState("")
+  const [bankName, setBankName] = useState("")
+  const [accountNumber, setAccountNumber] = useState("")
+  const [payoutAccount, setPayoutAccount] = useState<VendorPayoutAccount | null>(null)
+  const [bankBusy, setBankBusy] = useState(false)
+  const [bankError, setBankError] = useState<string | null>(null)
+  const [bankSuccess, setBankSuccess] = useState<string | null>(null)
+
+  useEffect(() => {
+    setCnic(business.verificationCnic ?? "")
+    setVerifyBusinessName(business.verificationBusinessName ?? business.name)
+    setVerifyCity(business.verificationCity ?? business.city)
+  }, [
+    business.verificationCnic,
+    business.verificationBusinessName,
+    business.verificationCity,
+    business.name,
+    business.city,
+  ])
+
+  useEffect(() => {
+    if (!isFirebaseMode || !vendorId) return
+    let cancelled = false
+    void getVendorPayoutAccount(vendorId)
+      .then((account) => {
+        if (cancelled || !account) return
+        setPayoutAccount(account)
+        setIban(account.iban)
+        setAccountHolderName(account.accountHolderName)
+        setBankName(account.bankName)
+        setAccountNumber(account.accountNumber ?? "")
+      })
+      .catch((err) => {
+        console.error("load payout account failed", err)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isFirebaseMode, vendorId])
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -33,6 +94,56 @@ export default function VendorProfile() {
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
+
+  async function handleVerificationSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setVerifyBusy(true)
+    setVerifyError(null)
+    setVerifySuccess(null)
+    try {
+      await submitVerification({
+        cnic,
+        businessName: verifyBusinessName,
+        city: verifyCity,
+      })
+      setVerifySuccess("Submitted for review. We’ll notify you when it’s approved.")
+    } catch (err) {
+      setVerifyError(err instanceof Error ? err.message : "Could not submit verification")
+    } finally {
+      setVerifyBusy(false)
+    }
+  }
+
+  async function handleBankSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!isFirebaseMode || !vendorId || !firebaseUser) {
+      setBankError("Sign in as a vendor to save bank details")
+      return
+    }
+    setBankBusy(true)
+    setBankError(null)
+    setBankSuccess(null)
+    try {
+      const savedAccount = await saveVendorPayoutAccount(vendorId, firebaseUser.uid, {
+        iban,
+        accountHolderName,
+        bankName,
+        accountNumber: accountNumber || undefined,
+      })
+      setPayoutAccount(savedAccount)
+      setIban(savedAccount.iban)
+      setBankSuccess(
+        "Bank details saved securely. Payouts use your IBAN after verification and job release."
+      )
+    } catch (err) {
+      setBankError(err instanceof Error ? err.message : "Could not save bank details")
+    } finally {
+      setBankBusy(false)
+    }
+  }
+
+  const status = business.verificationStatus ?? "unverified"
+  const ibanPreviewOk = iban.trim().length === 0 || isValidPakistaniIban(iban)
 
   if (business.suspended) {
     return (
@@ -87,6 +198,236 @@ export default function VendorProfile() {
           </Link>
         )}
       </header>
+
+      <section
+        aria-labelledby="verification-heading"
+        className="mb-6 rounded-2xl border border-gold/25 bg-white p-5 sm:p-6"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2
+              id="verification-heading"
+              className="font-display text-lg font-semibold text-maroon-dark"
+            >
+              Payment verification
+            </h2>
+            <p className="mt-1 text-sm text-maroon/60">
+              Required before deposits or payouts can be released to you. You can still
+              receive booking requests while unverified.
+            </p>
+          </div>
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${
+              status === "verified"
+                ? "bg-emerald-50 text-emerald-800"
+                : status === "pending"
+                  ? "bg-amber-50 text-amber-900"
+                  : status === "rejected"
+                    ? "bg-rose-50 text-rose-800"
+                    : "bg-maroon/8 text-maroon/70"
+            }`}
+          >
+            {status}
+          </span>
+        </div>
+
+        {status === "verified" ? (
+          <p className="mt-4 text-sm text-emerald-800">
+            You’re verified. Families can release deposits and payouts to your account.
+          </p>
+        ) : null}
+
+        {status === "pending" ? (
+          <p className="mt-4 text-sm text-amber-900/90">
+            Your details are under review. You can’t receive real payments until an admin
+            approves verification.
+            {business.verificationSubmittedAt
+              ? ` Submitted ${new Date(business.verificationSubmittedAt).toLocaleString()}.`
+              : null}
+          </p>
+        ) : null}
+
+        {status === "rejected" ? (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <p className="font-semibold">Verification not approved</p>
+            <p className="mt-1 leading-relaxed">
+              {business.verificationRejectionReason ||
+                "Please check your CNIC / ID number and business details, then resubmit."}
+            </p>
+          </div>
+        ) : null}
+
+        {status === "unverified" || status === "rejected" ? (
+          <form onSubmit={handleVerificationSubmit} className="mt-5 space-y-4">
+            <div>
+              <label htmlFor="verify-cnic" className="shaadi-label mb-1.5 block">
+                CNIC / ID number
+              </label>
+              <input
+                id="verify-cnic"
+                className="shaadi-input"
+                value={cnic}
+                onChange={(e) => setCnic(e.target.value)}
+                placeholder="e.g. 35202-1234567-1"
+                autoComplete="off"
+                required
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="verify-business" className="shaadi-label mb-1.5 block">
+                  Business name
+                </label>
+                <input
+                  id="verify-business"
+                  className="shaadi-input"
+                  value={verifyBusinessName}
+                  onChange={(e) => setVerifyBusinessName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="verify-city" className="shaadi-label mb-1.5 block">
+                  City
+                </label>
+                <input
+                  id="verify-city"
+                  className="shaadi-input"
+                  value={verifyCity}
+                  onChange={(e) => setVerifyCity(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            {verifyError ? (
+              <p className="text-sm text-rose-700" role="alert">
+                {verifyError}
+              </p>
+            ) : null}
+            {verifySuccess ? (
+              <p className="text-sm text-emerald-700" role="status">
+                {verifySuccess}
+              </p>
+            ) : null}
+            <GoldButton type="submit" disabled={verifyBusy}>
+              {verifyBusy
+                ? "Submitting…"
+                : status === "rejected"
+                  ? "Resubmit for review"
+                  : "Submit for verification"}
+            </GoldButton>
+          </form>
+        ) : null}
+      </section>
+
+      {isFirebaseMode ? (
+        <section
+          aria-labelledby="payout-bank-heading"
+          className="mb-6 rounded-2xl border border-gold/25 bg-white p-5 sm:p-6"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2
+                id="payout-bank-heading"
+                className="font-display text-lg font-semibold text-maroon-dark"
+              >
+                Payout bank details
+              </h2>
+              <p className="mt-1 text-sm text-maroon/60">
+                Safepay pays out to a Pakistani IBAN after day-of check-in. These details are
+                private — only you and platform admins can see them.
+              </p>
+            </div>
+            <span
+              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${
+                payoutAccount
+                  ? "bg-emerald-50 text-emerald-800"
+                  : "bg-maroon/8 text-maroon/70"
+              }`}
+            >
+              {payoutAccount ? "Saved" : "Not set"}
+            </span>
+          </div>
+
+          <form onSubmit={handleBankSave} className="mt-5 space-y-4">
+            <div>
+              <label htmlFor="payout-holder" className="shaadi-label mb-1.5 block">
+                Account holder name
+              </label>
+              <input
+                id="payout-holder"
+                className="shaadi-input"
+                value={accountHolderName}
+                onChange={(e) => setAccountHolderName(e.target.value)}
+                autoComplete="name"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="payout-bank" className="shaadi-label mb-1.5 block">
+                Bank name
+              </label>
+              <input
+                id="payout-bank"
+                className="shaadi-input"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                placeholder="e.g. Bank Alfalah"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="payout-iban" className="shaadi-label mb-1.5 block">
+                Pakistani IBAN
+              </label>
+              <input
+                id="payout-iban"
+                className="shaadi-input font-mono text-sm"
+                value={iban}
+                onChange={(e) => setIban(normalizePakistaniIban(e.target.value))}
+                placeholder="PK25ALFH0216001008658216"
+                autoComplete="off"
+                spellCheck={false}
+                required
+              />
+              {!ibanPreviewOk ? (
+                <p className="mt-1 text-xs text-rose-700">
+                  IBAN must be 24 characters starting with PK.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-maroon/45">
+                  Required by Safepay — account number alone is not enough for payouts.
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="payout-account-number" className="shaadi-label mb-1.5 block">
+                Account number <span className="font-normal text-maroon/40">(optional)</span>
+              </label>
+              <input
+                id="payout-account-number"
+                className="shaadi-input"
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+            {bankError ? (
+              <p className="text-sm text-rose-700" role="alert">
+                {bankError}
+              </p>
+            ) : null}
+            {bankSuccess ? (
+              <p className="text-sm text-emerald-700" role="status">
+                {bankSuccess}
+              </p>
+            ) : null}
+            <GoldButton type="submit" disabled={bankBusy || !ibanPreviewOk}>
+              {bankBusy ? "Saving…" : payoutAccount ? "Update bank details" : "Save bank details"}
+            </GoldButton>
+          </form>
+        </section>
+      ) : null}
 
       <div className="mb-6 rounded-2xl border border-gold/25 bg-white p-5">
         <div className="flex flex-wrap items-center gap-4">

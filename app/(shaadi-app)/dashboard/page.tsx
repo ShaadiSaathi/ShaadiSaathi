@@ -61,30 +61,32 @@ export default function DashboardPage() {
           {isFamilyPremium && <PremiumBadge />}
         </p>
 
-        {/* Mobile: condensed countdown card */}
+        {/* Mobile: Arc-style soft gold color block for countdown */}
         {nextEvent && (
-          <div className="mt-5 shaadi-card border border-gold/20 bg-gradient-to-br from-gold/10 to-ivory p-5 md:hidden">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-maroon/45">Next event</p>
-            <div className="mt-2 flex items-end justify-between gap-4">
+          <div className="mt-5 rounded-[1.25rem] bg-gold/15 px-5 py-6 md:hidden">
+            <p className="shaadi-label">Next event</p>
+            <div className="mt-3 flex items-end justify-between gap-4">
               <div>
-                <p className="shaadi-section-title text-lg">{nextEvent.name}</p>
+                <p className="font-display text-xl font-semibold text-maroon-dark">
+                  {nextEvent.name}
+                </p>
                 <p className="mt-1 text-sm text-maroon/55">{formatEventDate(nextEvent.date)}</p>
               </div>
               <p className="shrink-0 text-right">
-                <span className="shaadi-stat-value block text-3xl">{daysUntil}</span>
-                <span className="text-xs font-medium text-maroon/50">days left</span>
+                <span className="shaadi-stat-value block">{daysUntil}</span>
+                <span className="text-xs font-medium text-maroon/45">days left</span>
               </p>
             </div>
-            <div className="mt-3">
+            <div className="mt-4">
               <WeddingInviteLinkButton variant="link" />
             </div>
           </div>
         )}
 
-        {/* Desktop: original inline countdown + invite */}
-        <div className="mt-3 hidden flex-wrap items-center gap-3 md:flex">
+        {/* Desktop: soft gold pill countdown */}
+        <div className="mt-4 hidden flex-wrap items-center gap-3 md:flex">
           {nextEvent && (
-            <p className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-1.5 text-sm font-medium text-maroon-dark">
+            <p className="inline-flex items-center gap-2 rounded-full bg-gold/15 px-5 py-2 text-sm font-medium text-maroon-dark">
               <span className="h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
               {daysUntil} days until the {nextEvent.name}
             </p>
@@ -193,29 +195,29 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Quick links */}
+      {/* Quick links — Arc-style pill CTAs */}
       <section className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/guests"
-          className="shaadi-card flex min-h-[48px] items-center px-4 py-3.5 text-sm font-medium text-maroon transition-colors hover:border-gold/25"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
         >
           Review RSVPs →
         </Link>
         <Link
           href="/vendors"
-          className="shaadi-card flex min-h-[48px] items-center px-4 py-3.5 text-sm font-medium text-maroon transition-colors hover:border-gold/25"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
         >
           Browse vendors →
         </Link>
         <Link
           href="/tasks"
-          className="shaadi-card flex min-h-[48px] items-center px-4 py-3.5 text-sm font-medium text-maroon transition-colors hover:border-gold/25"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
         >
           Check tasks →
         </Link>
         <Link
           href="/schedule"
-          className="shaadi-card flex min-h-[48px] items-center px-4 py-3.5 text-sm font-medium text-maroon transition-colors hover:border-gold/25"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
         >
           View schedule →
         </Link>

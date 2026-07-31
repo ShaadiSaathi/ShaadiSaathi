@@ -6,25 +6,38 @@ import StatCard from "@/components/shaadi-saathi/app/StatCard"
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
 import { formatPrice } from "@/lib/mockVendors"
 import {
-  DEPOSIT_STATUS_STYLES,
   BALANCE_STATUS_STYLES,
-  getDepositStatusLabel,
   getBalanceStatusLabel,
+  getVendorPayoutDisplay,
+  type BookingPayment,
 } from "@/lib/mockPayments"
 import { getPendingPayouts } from "@/lib/mockVendorPortal"
 import type { EarningsTransaction } from "@/lib/mockVendorPortal"
 
-type StatusFilter = "all" | "held" | "released" | "disputed"
+type StatusFilter =
+  | "all"
+  | "held"
+  | "payout_sent"
+  | "payout_failed"
+  | "pending_payout"
 
-/** Earnings summary + transaction history with filters */
+/** Earnings summary + transaction history with real Safepay payout status */
 export default function EarningsList({ embedded = false }: { embedded?: boolean }) {
   const { earnings, jobs } = useVendorPortal()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
 
   const pendingPayouts = getPendingPayouts(jobs)
+  const nowMonth = new Date().toISOString().slice(0, 7)
   const earnedThisMonth = earnings
-    .filter((t) => t.date.startsWith("2026-07") && isReleased(t))
+    .filter((t) => t.date.startsWith(nowMonth) && isPayoutSent(t))
     .reduce((sum, t) => sum + t.amount, 0)
+
+  const awaitingBank = jobs.reduce((sum, j) => {
+    const p = j.payment
+    if (p.depositStatus !== "released") return sum
+    if (p.safepayPayoutStatus === "P_SETTLED") return sum
+    return sum + p.depositAmount
+  }, 0)
 
   const filtered = useMemo(() => {
     if (statusFilter === "all") return earnings
@@ -33,14 +46,25 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
         (t) => t.depositStatus === "held" || t.balanceStatus === "charged_pending_release"
       )
     }
-    if (statusFilter === "released") {
-      return earnings.filter((t) => isReleased(t))
+    if (statusFilter === "payout_sent") {
+      return earnings.filter((t) => isPayoutSent(t))
     }
-    return earnings.filter(
-      (t) =>
-        t.depositStatus === "refunded" ||
-        t.balanceStatus === "charged_pending_release" && t.depositStatus === "released"
-    )
+    if (statusFilter === "payout_failed") {
+      return earnings.filter(
+        (t) =>
+          t.safepayPayoutStatus === "P_FAILED" ||
+          t.safepayPayoutStatus === "P_REJECTED" ||
+          Boolean(t.safepayPayoutError)
+      )
+    }
+    // pending_payout: released but not settled
+    return earnings.filter((t) => {
+      if (t.type !== "deposit") return false
+      return (
+        t.depositStatus === "released" &&
+        t.safepayPayoutStatus !== "P_SETTLED"
+      )
+    })
   }, [earnings, statusFilter])
 
   return (
@@ -62,17 +86,17 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
         <StatCard
           label="Earned this month"
           value={formatPrice(earnedThisMonth)}
-          subtext="Released payouts"
+          subtext="Payouts sent to your bank"
         />
         <StatCard
           label="Pending payouts"
           value={formatPrice(pendingPayouts)}
-          subtext="Deposits & balances held"
+          subtext="Still held until check-in"
         />
         <StatCard
-          label="Next payout"
-          value="Jul 18"
-          subtext="Weekly release (mock)"
+          label="Awaiting bank transfer"
+          value={formatPrice(awaitingBank)}
+          subtext="Released — payout in progress or pending"
         />
       </section>
 
@@ -86,8 +110,9 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
               [
                 ["all", "All"],
                 ["held", "Held"],
-                ["released", "Released"],
-                ["disputed", "Disputed"],
+                ["pending_payout", "Payout pending"],
+                ["payout_sent", "Payout sent"],
+                ["payout_failed", "Failed"],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -122,41 +147,64 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
   )
 }
 
-function isReleased(tx: EarningsTransaction): boolean {
-  if (tx.type === "deposit") {
-    return tx.depositStatus === "released"
-  }
-  return (
-    tx.balanceStatus === "released_online" ||
-    tx.balanceStatus === "paid_in_person"
-  )
+function isPayoutSent(tx: EarningsTransaction): boolean {
+  return tx.safepayPayoutStatus === "P_SETTLED"
 }
 
 function TransactionRow({ tx }: { tx: EarningsTransaction }) {
-  const statusLabel =
-    tx.type === "deposit"
-      ? getDepositStatusLabel(tx.depositStatus ?? "held")
-      : getBalanceStatusLabel(tx.balanceStatus ?? "pending_online", {
-          totalPrice: tx.amount,
-          depositAmount: 0,
-          depositPercent: 0,
-          balanceAmount: tx.amount,
-          paymentPath: "online",
-          depositStatus: "released",
-          balanceStatus: tx.balanceStatus ?? "pending_online",
-        })
+  if (tx.type === "deposit") {
+    const paymentLike = {
+      depositStatus: tx.depositStatus ?? "held",
+      safepayPayoutStatus: tx.safepayPayoutStatus,
+      safepayPayoutError: tx.safepayPayoutError,
+    } as BookingPayment
+    const display = getVendorPayoutDisplay(paymentLike)
 
-  const statusStyle =
-    tx.type === "deposit"
-      ? DEPOSIT_STATUS_STYLES[tx.depositStatus ?? "held"]
-      : BALANCE_STATUS_STYLES[tx.balanceStatus ?? "pending_online"]
+    return (
+      <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
+        <div className="min-w-0">
+          <p className="font-medium text-maroon-dark">{tx.label}</p>
+          <p className="text-sm text-maroon/50">
+            {tx.eventName} · Deposit ·{" "}
+            {new Date(tx.date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </p>
+          {display.detail ? (
+            <p className="mt-1 max-w-md text-xs text-maroon/45">{display.detail}</p>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${display.style}`}
+          >
+            {display.label}
+          </span>
+          <span className="shaadi-stat-value text-lg">{formatPrice(tx.amount)}</span>
+        </div>
+      </li>
+    )
+  }
+
+  const statusLabel = getBalanceStatusLabel(tx.balanceStatus ?? "pending_online", {
+    totalPrice: tx.amount,
+    depositAmount: 0,
+    depositPercent: 0,
+    balanceAmount: tx.amount,
+    paymentPath: "online",
+    depositStatus: "released",
+    balanceStatus: tx.balanceStatus ?? "pending_online",
+  })
+  const statusStyle = BALANCE_STATUS_STYLES[tx.balanceStatus ?? "pending_online"]
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
       <div className="min-w-0">
         <p className="font-medium text-maroon-dark">{tx.label}</p>
         <p className="text-sm text-maroon/50">
-          {tx.eventName} · {tx.type === "deposit" ? "Deposit" : "Balance"} ·{" "}
+          {tx.eventName} · Balance ·{" "}
           {new Date(tx.date).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -170,9 +218,7 @@ function TransactionRow({ tx }: { tx: EarningsTransaction }) {
         >
           {statusLabel}
         </span>
-        <span className="shaadi-stat-value text-lg">
-          {formatPrice(tx.amount)}
-        </span>
+        <span className="shaadi-stat-value text-lg">{formatPrice(tx.amount)}</span>
       </div>
     </li>
   )

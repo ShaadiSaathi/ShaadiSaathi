@@ -496,23 +496,23 @@ function GuestRow({
     .slice(0, 2)
 
   return (
-    <li className="shaadi-card flex w-full flex-col gap-4 p-5 md:flex-row md:items-center md:gap-3">
+    <li className="shaadi-card flex w-full flex-col gap-5 p-6 md:flex-row md:items-center md:gap-4 md:p-5">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar initials={initials} size="md" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="truncate font-medium text-maroon-dark">{guest.name}</p>
             {isGuestGroup(guest) && (
-              <span className="inline-flex shrink-0 items-center rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-maroon/70">
+              <span className="inline-flex shrink-0 items-center rounded-full bg-gold/12 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-maroon/65">
                 Group of {guestPartySize(guest)}
               </span>
             )}
           </div>
           {!isGuestGroup(guest) && (
-            <p className="text-sm text-maroon/50">{guest.phone}</p>
+            <p className="text-sm text-maroon/45">{guest.phone}</p>
           )}
           {isGuestGroup(guest) && (
-            <p className="text-sm text-maroon/50">One invite link for the whole household</p>
+            <p className="text-sm text-maroon/45">One invite link for the whole household</p>
           )}
         </div>
       </div>
@@ -545,7 +545,7 @@ function GuestRow({
         <button
           type="button"
           onClick={onSendInvite}
-          className="ml-0 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-gold/25 px-4 py-2 text-sm font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5 md:ml-1 md:w-auto md:min-h-[44px] md:px-3 md:py-1 md:text-xs"
+          className="ml-0 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-maroon px-5 py-2.5 text-sm font-semibold text-ivory transition-opacity hover:opacity-90 md:ml-1 md:w-auto md:min-h-[44px] md:px-4 md:py-2 md:text-xs"
           aria-label={
             isGuestGroup(guest)
               ? `Share group invite link for ${guest.name}`
@@ -604,16 +604,15 @@ function RsvpOverview({
         ))}
       </div>
 
-      <div className="mb-6 shaadi-card p-5 sm:p-6">
-        <h2 className="shaadi-section-title sm:text-xl">
-          {event.name} — Live headcount
-        </h2>
-        <p className="mt-1 text-sm text-maroon/60">
-          {summary.confirmed} confirmed · {summary.pending} pending · {summary.declined} declined
+      <div className="mb-6 shaadi-card px-6 py-7 sm:px-7 sm:py-8">
+        <p className="shaadi-label">{event.name} headcount</p>
+        <p className="shaadi-stat-value mt-3">{summary.confirmed}</p>
+        <p className="mt-2 text-sm text-maroon/45">
+          confirmed · {summary.pending} pending · {summary.declined} declined
           {summary.cancelled > 0 && ` · ${summary.cancelled} cancelled`}
         </p>
 
-        <div className="mt-5 flex items-center gap-6">
+        <div className="mt-6 flex items-center gap-6">
           <div
             className="relative h-24 w-24 shrink-0 rounded-full"
             style={{
@@ -630,29 +629,29 @@ function RsvpOverview({
             aria-label={`${totalPct}% confirmed`}
           >
             <div className="absolute inset-2 flex items-center justify-center rounded-full bg-white">
-              <span className="shaadi-stat-value text-lg">{totalPct}%</span>
+              <span className="text-lg font-bold tabular-nums text-maroon-dark">{totalPct}%</span>
             </div>
           </div>
 
           <div className="flex-1 space-y-2">
-            <div className="h-3 overflow-hidden rounded-full bg-maroon/10">
+            <div className="h-3 overflow-hidden rounded-full bg-maroon/8">
               <div
                 className="h-full rounded-full bg-emerald-500 transition-all"
                 style={{ width: `${confirmedPct}%` }}
               />
             </div>
-            <p className="text-xs text-maroon/50">
+            <p className="text-xs text-maroon/45">
               {summary.confirmed} of {summary.total} guests confirmed for {event.name}
             </p>
           </div>
         </div>
       </div>
 
-      <ul className="w-full space-y-3 md:space-y-2" role="list">
+      <ul className="w-full space-y-3 md:space-y-3" role="list">
         {guests.map((guest) => (
           <li
             key={guest.id}
-            className="flex w-full items-center justify-between gap-3 rounded-xl border border-gold/10 bg-white p-4 md:p-4"
+            className="shaadi-card flex w-full items-center justify-between gap-3 p-5 md:p-5"
           >
             <div className="flex min-w-0 items-center gap-3">
               <Avatar
