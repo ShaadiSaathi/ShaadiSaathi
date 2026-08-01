@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs"
 import { parsePhoneNumber } from "react-phone-number-input"
 import { collection, doc, setDoc } from "firebase/firestore"
 import { getFirestoreDb, isFirebaseConfigured } from "./config"
@@ -74,7 +75,21 @@ export async function logVerificationError(
       timestamp: Date.now(),
       uid: (input.uid ?? "").slice(0, 128),
     })
-  } catch {
-    // Swallow: logging must never interrupt the verification experience.
+  } catch (error) {
+    // Never interrupt verification — but do NOT fail silently. Empty catch
+    // previously hid permission/network failures and made OTP debugging blind.
+    console.error("[verification_errors] write failed", error)
+    Sentry.captureException(error, {
+      tags: {
+        component: "verification-errors",
+        collection: "verification_errors",
+        flow: input.flow.slice(0, 40),
+        stage: input.stage,
+      },
+      extra: {
+        code: input.code.slice(0, 100),
+        rawCode: (input.rawCode ?? "").slice(0, 100),
+      },
+    })
   }
 }

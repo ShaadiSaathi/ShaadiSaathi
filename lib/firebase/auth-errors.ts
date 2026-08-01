@@ -33,9 +33,14 @@ function extractCode(err: unknown): string {
   if (err instanceof AuthTimeoutError) return "timeout"
   if (typeof err === "object" && err !== null) {
     const maybe = err as { code?: unknown; message?: unknown; name?: unknown }
-    if (typeof maybe.code === "string" && maybe.code) return maybe.code
+    if (typeof maybe.code === "string" && maybe.code) {
+      // Normalize opaque Firebase numeric codes, e.g. "auth/error-code:-39"
+      if (/error-code:\s*-?39/i.test(maybe.code)) return "auth/error-code:-39"
+      return maybe.code
+    }
     if (typeof maybe.message === "string") {
-      const match = maybe.message.match(/(?:auth|otp)\/[a-z0-9-]+/i)
+      if (/error-code:\s*-?39/i.test(maybe.message)) return "auth/error-code:-39"
+      const match = maybe.message.match(/(?:auth|otp)\/[a-z0-9:-]+/i)
       if (match) return match[0]
     }
   }
@@ -90,6 +95,9 @@ const FRIENDLY_MESSAGES: Record<string, string> = {
   "auth/missing-phone-number": "Please enter your phone number and try again.",
   "auth/quota-exceeded":
     "We're getting a lot of requests right now. Please try again in a few minutes.",
+  // Firebase opaque SMS anti-abuse / rate-limit (often 503 on sendVerificationCode).
+  "auth/error-code:-39":
+    "SMS verification is temporarily blocked for this number or network. Wait about an hour, try a different phone, or try again later.",
   "auth/too-many-requests":
     "Too many attempts from this device. Please wait a little while, then tap Retry.",
   "auth/network-request-failed":
