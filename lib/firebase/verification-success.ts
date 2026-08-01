@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs"
 import { parsePhoneNumber } from "react-phone-number-input"
 import { collection, doc, setDoc } from "firebase/firestore"
 import { getFirestoreDb, isFirebaseConfigured } from "./config"
@@ -56,7 +57,15 @@ export async function logVerificationSuccess(
       timestamp: Date.now(),
       uid: (input.uid ?? "").slice(0, 128),
     })
-  } catch {
-    // Swallow: logging must never interrupt the verification experience.
+  } catch (error) {
+    // Never interrupt verification — but surface silent diagnostic write failures.
+    console.error("[verification_success] write failed", error)
+    Sentry.captureException(error, {
+      tags: {
+        component: "verification-success",
+        collection: "verification_success",
+        flow: input.flow.slice(0, 40),
+      },
+    })
   }
 }
