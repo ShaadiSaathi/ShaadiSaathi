@@ -130,10 +130,14 @@ export type FirestoreBookingPayment = {
   balanceStatus: BalanceStatus
   depositPaidAt?: number
   checkInAt?: number
+  scheduledArrivalAt?: number
+  gracePeriodEndsAt?: number
   balanceMarkedPaidAt?: number
   balanceChargedAt?: number
   refundAmount?: number
   refundConfirmedAt?: number
+  noShowDeclaredAt?: number
+  noShowAutoDeclared?: boolean
   currency: string
   stripeDepositPaymentIntentId?: string
   stripeBalancePaymentIntentId?: string

@@ -105,11 +105,26 @@ export async function POST(request: Request) {
 
     const now = Date.now()
     const prev = booking.payment
+    const {
+      defaultArrivalTimeForEvent,
+      gracePeriodEndsMs,
+      scheduledArrivalMs,
+    } = await import("@/lib/automation/constants")
+    const arrivalMs = scheduledArrivalMs(
+      eventDate,
+      defaultArrivalTimeForEvent(booking.eventId)
+    )
     const payment: FirestoreBookingPayment = {
       ...(prev as FirestoreBookingPayment),
       depositStatus: "held",
       depositPaidAt: now,
       stripeDepositPaymentIntentId: paymentIntentId,
+      ...(Number.isFinite(arrivalMs)
+        ? {
+            scheduledArrivalAt: arrivalMs,
+            gracePeriodEndsAt: gracePeriodEndsMs(arrivalMs),
+          }
+        : {}),
       updatedAt: now,
     }
 

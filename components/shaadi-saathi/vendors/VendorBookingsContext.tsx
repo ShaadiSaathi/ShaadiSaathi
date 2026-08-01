@@ -27,6 +27,7 @@ import {
 import { subscribeBookingsByWedding, setBookingCounterOffer, setBookingDispute, clearBookingCounterOffer, updateBookingFields } from "@/lib/firebase/bookings"
 import { createBookingApi } from "@/lib/firebase/bookings-client"
 import { getVendor } from "@/lib/firebase/vendors"
+import { disputeVendorResponseDeadlineAt } from "@/lib/automation/constants"
 import {
   createNotification,
   formatDisputeRaisedMessage,
@@ -356,6 +357,7 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
           description: data.description,
           ...(data.evidenceFileName ? { evidenceFileName: data.evidenceFileName } : {}),
           submittedAt: Date.now(),
+          vendorResponseDeadlineAt: disputeVendorResponseDeadlineAt(Date.now()),
           familyReason: data.description,
         })
         const vendor = booking ? await getVendor(booking.vendorId) : null
