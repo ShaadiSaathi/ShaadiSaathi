@@ -326,6 +326,25 @@ async function processExpiredDispute(
     })
     result.logIds.push(nLog)
   }
+
+  try {
+    const { emailDisputeParties } = await import("@/lib/email")
+    await emailDisputeParties({
+      weddingId: booking.weddingId,
+      vendorId: booking.vendorId,
+      bookingId: booking.id,
+      resolution: "family",
+      weddingName: booking.weddingName,
+      eventLabel: booking.eventId,
+      autoResolved: true,
+      familySummary:
+        "Resolved in your favour — the vendor did not respond within 48 hours.",
+      vendorSummary:
+        "Auto-resolved for the family because no vendor response arrived within 48 hours.",
+    })
+  } catch (emailErr) {
+    console.error("[automation] dispute email skipped:", emailErr)
+  }
 }
 
 async function processNoShow(

@@ -18,6 +18,10 @@ import {
   saveVendorPayoutAccount,
   type VendorPayoutAccount,
 } from "@/lib/firebase/vendor-payout-account"
+import { getFirestoreDb, isFirebaseConfigured } from "@/lib/firebase/config"
+import { getUserProfile } from "@/lib/firebase/users"
+import { updateVendorContactEmail } from "@/lib/firebase/vendors"
+import { normalizeEmail } from "@/lib/email/config"
 
 const MOCK_GALLERY = [
   { id: "g1", label: "Walima spread" },
@@ -55,6 +59,57 @@ export default function VendorProfile() {
   const [bankBusy, setBankBusy] = useState(false)
   const [bankError, setBankError] = useState<string | null>(null)
   const [bankSuccess, setBankSuccess] = useState<string | null>(null)
+
+  const [contactEmail, setContactEmail] = useState("")
+  const [emailBusy, setEmailBusy] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [emailSuccess, setEmailSuccess] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isFirebaseMode || !firebaseUser) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const profile = await getUserProfile(getFirestoreDb(), firebaseUser.uid)
+        if (cancelled) return
+        const fromUser = profile?.email?.trim() || ""
+        const fromBusiness = business.email?.trim() || ""
+        setContactEmail(fromUser || fromBusiness)
+      } catch {
+        // ignore load errors — field stays optional
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isFirebaseMode, firebaseUser, business.email])
+
+  async function handleEmailSave(e: React.FormEvent) {
+    e.preventDefault()
+    setEmailError(null)
+    setEmailSuccess(null)
+    if (!isFirebaseMode || !firebaseUser || !vendorId || !isFirebaseConfigured()) {
+      setEmailError("Sign in as a vendor to save email.")
+      return
+    }
+    const trimmed = contactEmail.trim()
+    const normalized = trimmed ? normalizeEmail(trimmed) : null
+    if (trimmed && !normalized) {
+      setEmailError("Enter a valid email address, or leave it blank.")
+      return
+    }
+    setEmailBusy(true)
+    try {
+      await updateVendorContactEmail(vendorId, firebaseUser.uid, normalized)
+      updateBusiness({ email: normalized ?? "" })
+      setContactEmail(normalized ?? "")
+      setEmailSuccess(normalized ? "Email saved." : "Email cleared.")
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Could not save email.")
+    } finally {
+      setEmailBusy(false)
+    }
+  }
 
   useEffect(() => {
     setCnic(business.verificationCnic ?? "")
@@ -198,6 +253,44 @@ export default function VendorProfile() {
           </Link>
         )}
       </header>
+
+      <section
+        aria-labelledby="vendor-email-heading"
+        className="mb-6 rounded-2xl border border-gold/25 bg-white p-5 sm:p-6"
+      >
+        <h2
+          id="vendor-email-heading"
+          className="font-display text-lg font-semibold text-maroon-dark"
+        >
+          Contact email
+          <span className="ml-2 text-sm font-normal text-maroon/40">(optional)</span>
+        </h2>
+        <p className="mt-1 text-sm text-maroon/60">
+          Used for booking confirmations and dispute updates. Phone remains your login.
+        </p>
+        <form onSubmit={handleEmailSave} className="mt-4 space-y-3">
+          <label htmlFor="vendor-contact-email" className="text-xs font-medium uppercase tracking-wider text-maroon/50">
+            Email
+          </label>
+          <input
+            id="vendor-contact-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@business.com"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            className="min-h-[44px] w-full rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm text-maroon-dark"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <GoldButton type="submit" disabled={emailBusy || !isFirebaseMode}>
+              {emailBusy ? "Saving…" : "Save email"}
+            </GoldButton>
+            {emailSuccess ? <p className="text-sm text-emerald-800">{emailSuccess}</p> : null}
+            {emailError ? <p className="text-sm text-rose-700">{emailError}</p> : null}
+          </div>
+        </form>
+      </section>
 
       <section
         aria-labelledby="verification-heading"

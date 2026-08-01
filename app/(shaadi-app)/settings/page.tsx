@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { isValidPhoneNumber } from "react-phone-number-input"
 import Avatar from "@/components/shaadi-saathi/app/Avatar"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
@@ -16,6 +16,9 @@ import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { createWeddingInviteUrl } from "@/lib/mockData"
 import { INVITE_THEMES } from "@/lib/premium"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
+import { getFirestoreDb, isFirebaseConfigured } from "@/lib/firebase/config"
+import { getUserProfile, updateUserContactEmail } from "@/lib/firebase/users"
+import { normalizeEmail } from "@/lib/email/config"
 
 function maskPhone(phone: string): string {
   if (phone.length <= 6) return phone
@@ -29,6 +32,97 @@ function initials(name: string): string {
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("")
+}
+
+function ContactEmailForm() {
+  const { firebaseUser, isFirebaseMode } = useAuth()
+  const [email, setEmail] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isFirebaseMode || !firebaseUser || !isFirebaseConfigured()) {
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    void getUserProfile(getFirestoreDb(), firebaseUser.uid)
+      .then((profile) => {
+        if (cancelled) return
+        setEmail(profile?.email ?? "")
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [firebaseUser, isFirebaseMode])
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setMessage(null)
+    if (!firebaseUser || !isFirebaseMode) {
+      setError("Sign in to save an email.")
+      return
+    }
+    const trimmed = email.trim()
+    const normalized = trimmed ? normalizeEmail(trimmed) : null
+    if (trimmed && !normalized) {
+      setError("Enter a valid email address, or leave it blank.")
+      return
+    }
+    setSaving(true)
+    try {
+      await updateUserContactEmail(getFirestoreDb(), firebaseUser.uid, normalized)
+      setEmail(normalized ?? "")
+      setMessage(normalized ? "Email saved." : "Email cleared.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save email.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!isFirebaseMode) {
+    return (
+      <p className="mt-3 text-sm text-maroon/50">
+        Email contact is available when signed in with Firebase.
+      </p>
+    )
+  }
+
+  if (loading) {
+    return <p className="mt-3 text-sm text-maroon/50">Loading…</p>
+  }
+
+  return (
+    <form onSubmit={handleSave} className="mt-4 space-y-3">
+      <label htmlFor="contact-email" className="shaadi-label uppercase tracking-wider">
+        Email
+      </label>
+      <input
+        id="contact-email"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        placeholder="you@example.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="min-h-[44px] w-full rounded-xl border border-gold/20 bg-ivory px-4 py-2.5 text-sm text-maroon-dark"
+      />
+      <div className="flex flex-wrap items-center gap-3">
+        <GoldButton type="submit" disabled={saving}>
+          {saving ? "Saving…" : "Save email"}
+        </GoldButton>
+        {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
+        {error ? <p className="text-sm text-rose-700">{error}</p> : null}
+      </div>
+    </form>
+  )
 }
 
 export default function SettingsPage() {
@@ -126,6 +220,22 @@ export default function SettingsPage() {
           />
         </div>
       )}
+
+      {/* Optional contact email — receipts & updates only; phone remains login */}
+      <section
+        aria-labelledby="contact-email-heading"
+        className="mb-8 shaadi-card p-5 sm:p-6"
+      >
+        <h2 id="contact-email-heading" className="shaadi-section-title sm:text-xl">
+          Contact email
+          <span className="ml-2 text-sm font-normal text-maroon/40">(optional)</span>
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-maroon/60">
+          Add an email if you want payment receipts and booking updates. Phone
+          number stays your login — this is never required.
+        </p>
+        <ContactEmailForm />
+      </section>
 
       {/* Guest RSVP invite — separate from collaborator access */}
       <section

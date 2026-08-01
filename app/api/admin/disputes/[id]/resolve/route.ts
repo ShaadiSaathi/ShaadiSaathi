@@ -102,6 +102,29 @@ export async function POST(
       updatedAt: FieldValue.serverTimestamp(),
     })
 
+    try {
+      const { emailDisputeParties } = await import("@/lib/email")
+      await emailDisputeParties({
+        weddingId: booking.weddingId,
+        vendorId: booking.vendorId,
+        bookingId,
+        resolution: body.resolution,
+        weddingName: booking.weddingName,
+        eventLabel: booking.eventId,
+        autoResolved: false,
+        familySummary:
+          body.resolution === "split" && splitFamilyAmount != null
+            ? `Family portion: PKR ${Math.round(splitFamilyAmount).toLocaleString("en-PK")}`
+            : undefined,
+        vendorSummary:
+          body.resolution === "split" && splitVendorAmount != null
+            ? `Vendor portion: PKR ${Math.round(splitVendorAmount).toLocaleString("en-PK")}`
+            : undefined,
+      })
+    } catch (emailErr) {
+      console.error("[admin/disputes/resolve] email skipped:", emailErr)
+    }
+
     return Response.json({ ok: true })
   } catch (err) {
     return adminErrorResponse(err)

@@ -65,6 +65,8 @@ export interface FirestoreUser {
   role: UserRole
   phone: string
   name: string
+  /** Optional contact email for receipts / booking updates — never used for login */
+  email?: string
   weddingId?: string
   vendorId?: string
   createdAt: number
@@ -226,6 +228,8 @@ export interface FirestoreVendor {
   city: string
   phone: string
   bio: string
+  /** Optional contact email (also stored on users/{ownerUid}.email) */
+  email?: string
   ownerUid: string
   subscriptionTier: "basic" | "featured"
   createdAt: number

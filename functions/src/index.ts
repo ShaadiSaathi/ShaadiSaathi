@@ -43,6 +43,79 @@ function defaultArrivalTimeForEvent(eventId: string): string {
   return DEFAULT_EVENT_TIMES[eventId] ?? "12:00"
 }
 
+async function userEmail(uid: string | null): Promise<string | null> {
+  if (!uid) return null
+  const snap = await db.collection("users").doc(uid).get()
+  const email = snap.data()?.email
+  return typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null
+}
+
+/** Fail-soft Resend send from Cloud Functions (no SDK — keeps functions lean). */
+async function sendResendEmail(to: string | null, subject: string, text: string) {
+  const key = process.env.RESEND_API_KEY?.trim()
+  if (!key || !to) return
+  const from =
+    process.env.RESEND_FROM_EMAIL?.trim() || "Shaadi Saathi <onboarding@resend.dev>"
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from, to: [to], subject, text }),
+    })
+    if (!res.ok) {
+      logger.warn("Resend send failed", { status: res.status, body: await res.text() })
+    }
+  } catch (err) {
+    logger.warn("Resend send error", err)
+  }
+}
+
+async function emailDisputeOutcomeCf(input: {
+  weddingId: string
+  vendorId: string
+  bookingId: string
+  weddingName: string
+  eventLabel: string
+}) {
+  const wedding = (await db.collection("weddings").doc(input.weddingId).get()).data()
+  const vendor = (await db.collection("vendors").doc(input.vendorId).get()).data()
+  const familyEmail = await userEmail(
+    typeof wedding?.ownerId === "string" ? wedding.ownerId : null
+  )
+  const vendorEmail =
+    (await userEmail(typeof vendor?.ownerUid === "string" ? vendor.ownerUid : null)) ||
+    (typeof vendor?.email === "string" ? vendor.email.trim() : null)
+
+  const subject = "Shaadi Saathi — dispute resolved in favour of the family"
+  await sendResendEmail(
+    familyEmail,
+    subject,
+    [
+      "A dispute was auto-resolved because the vendor response window ended.",
+      "",
+      "Outcome: in favour of the family",
+      `Wedding: ${input.weddingName}`,
+      `Event: ${input.eventLabel}`,
+      `Booking ID: ${input.bookingId}`,
+    ].join("\n")
+  )
+  await sendResendEmail(
+    vendorEmail,
+    subject,
+    [
+      "A dispute was auto-resolved because the vendor response window ended.",
+      "",
+      "Outcome: in favour of the family",
+      `Wedding: ${input.weddingName}`,
+      `Event: ${input.eventLabel}`,
+      `Booking ID: ${input.bookingId}`,
+    ].join("\n")
+  )
+}
+
 /** Inclusive window: due today through the next 2 calendar days (≈24–48h). */
 function dueSoonDateStrings(now = new Date()): string[] {
   const dates: string[] = []
@@ -450,6 +523,15 @@ export async function runBookingAutomationSweep(options?: {
         source,
         message: "Dispute auto-resolved for family after vendor response deadline",
         details: { deadline, refundSucceeded: refund.succeeded },
+      })
+
+      // Optional Resend emails (skip if RESEND_API_KEY unset or user has no email)
+      await emailDisputeOutcomeCf({
+        weddingId: booking.weddingId,
+        vendorId: booking.vendorId,
+        bookingId: booking.id,
+        weddingName: weddingLabel,
+        eventLabel: String(eventLabel),
       })
     } catch (err) {
       result.errors.push(

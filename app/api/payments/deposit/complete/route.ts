@@ -143,6 +143,56 @@ export async function POST(request: Request) {
       })
     })
 
+    // Transactional emails — never fail the payment confirmation
+    try {
+      const {
+        getWeddingOwnerEmail,
+        getVendorOwnerEmail,
+        sendBookingConfirmationEmail,
+        sendPaymentReceiptEmail,
+      } = await import("@/lib/email")
+      const family = await getWeddingOwnerEmail(booking.weddingId)
+      const vendor = await getVendorOwnerEmail(booking.vendorId)
+      const weddingName =
+        typeof wedding.name === "string" ? wedding.name : undefined
+      const bookingDoc = bookingSnap.data() as {
+        vendorName?: string
+        weddingName?: string
+        eventId?: string
+      }
+      const amount = payment.depositAmount
+      await sendPaymentReceiptEmail({
+        to: family.email,
+        kind: "deposit",
+        amountPkr: amount,
+        bookingId,
+        weddingName: bookingDoc.weddingName ?? weddingName,
+        vendorName: bookingDoc.vendorName,
+        eventLabel: booking.eventId,
+      })
+      await sendBookingConfirmationEmail({
+        to: family.email,
+        weddingName: bookingDoc.weddingName ?? weddingName,
+        vendorName: bookingDoc.vendorName,
+        eventLabel: booking.eventId,
+        eventDate,
+        bookingId,
+        depositAmountPkr: amount,
+      })
+      // Vendor gets confirmation too if they opted into email
+      await sendBookingConfirmationEmail({
+        to: vendor.email,
+        weddingName: bookingDoc.weddingName ?? weddingName,
+        vendorName: bookingDoc.vendorName,
+        eventLabel: booking.eventId,
+        eventDate,
+        bookingId,
+        depositAmountPkr: amount,
+      })
+    } catch (emailErr) {
+      console.error("[payments/deposit/complete] email skipped:", emailErr)
+    }
+
     return NextResponse.json({ ok: true, status: intent.status })
   } catch (error) {
     if (error instanceof PaymentAuthError) {
