@@ -1,0 +1,649 @@
+{
+  "version": "0.1.0-poc",
+  "updatedAt": "2026-08-03",
+  "description": "Proof-of-concept wedding & decoration knowledge base. South Asian only for this pass. Facts are summarized in our own words from cited sources — not verbatim article text. Attribution via sourceUrls for chatbot 'learn more' links.",
+  "categories": [
+    "western",
+    "south-asian",
+    "east-asian",
+    "southeast-asian",
+    "middle-eastern",
+    "african"
+  ],
+  "populated": ["south-asian"],
+  "entries": [
+    {
+      "id": "sa-pakistani-muslim",
+      "tradition": "south-asian",
+      "region": "Pakistan (and Pakistani diaspora)",
+      "community": "Muslim Pakistani — Punjabi, Urdu-speaking, and related regional customs",
+      "ceremonyEvents": [
+        {
+          "id": "mayun",
+          "name": "Mayun",
+          "aliases": ["Manjha"],
+          "order": 1,
+          "timing": "A few days before the main wedding; often quieter and more intimate",
+          "host": "Bride's side (typically)",
+          "description": "Marks the start of pre-wedding rituals for the bride. Ubtan (turmeric/sandalwood paste) is applied; yellow is the signature colour of the day. The bride is traditionally 'secluded' at home with close family.",
+          "typicalGuestScale": "Intimate — close family and friends",
+          "decorNotes": "Yellow/gold accents, marigold or marigold-adjacent florals, low-key home or lawn setup rather than full stage production."
+        },
+        {
+          "id": "dholki",
+          "name": "Dholki",
+          "order": 2,
+          "timing": "Often weeks leading up to the wedding, or informal nights before Mehndi",
+          "host": "Either family",
+          "description": "Informal singing and dhol-led evenings with friends and relatives. More social than ceremonial; modern versions may blend into Mehndi entertainment.",
+          "typicalGuestScale": "Small to medium",
+          "decorNotes": "Minimal decor; floor cushions, fairy lights, or a simple lounge corner."
+        },
+        {
+          "id": "mehndi",
+          "name": "Mehndi",
+          "aliases": ["Henna night", "Rasm-e-Henna"],
+          "order": 3,
+          "timing": "Usually 1–3 days before Barat / Nikah",
+          "host": "Traditionally bride's side; some families run separate bride- and groom-side Mehndis",
+          "description": "Festive henna application for the bride (hands and feet) and often female guests, with music, dance, and colour. One of the most energetic pre-wedding events.",
+          "typicalGuestScale": "Often ~50–150; can be larger for joint Mehndis",
+          "decorNotes": "Bright yellows, greens, oranges; marigold, marigold strings, neon or jewel accents; stage for performances; seating that allows guests to sit still during henna."
+        },
+        {
+          "id": "nikah",
+          "name": "Nikah",
+          "aliases": ["Nikkah"],
+          "order": 4,
+          "timing": "Same day as Barat, earlier the same day, or as a separate intimate ceremony",
+          "host": "Flexible — home, mosque, or venue",
+          "description": "Islamic marriage contract (nikahnama) overseen by an imam/qazi with witnesses. Religiously core; scale can be very small or folded into Barat day.",
+          "typicalGuestScale": "Intimate to mid-size depending on whether it is combined with Barat",
+          "decorNotes": "Softer, more modest palette — ivory, soft gold, pastels; less dance-floor energy than Mehndi."
+        },
+        {
+          "id": "barat",
+          "name": "Barat",
+          "aliases": ["Baraat"],
+          "order": 5,
+          "timing": "Main wedding day",
+          "host": "Bride's family hosts the venue; groom arrives with procession",
+          "description": "Groom's procession (music, dancing, often decorated transport) arrives at the bride's celebration. Includes formal greetings, photos, dinner, playful rituals (e.g. joota chupai in many Punjabi families), and often Rukhsati — the bride's farewell departure.",
+          "typicalGuestScale": "Largest or second-largest day; commonly hundreds of guests",
+          "decorNotes": "Most formal stage and seating; jewel tones and bridal red/gold for the couple; guest dress codes avoid competing with bridal red in many communities."
+        },
+        {
+          "id": "walima",
+          "name": "Walima",
+          "order": 6,
+          "timing": "Usually the day after Barat, or within about a week",
+          "host": "Groom's family",
+          "description": "Post-marriage feast encouraged in Islamic tradition as a public celebration of the union. Formal reception energy: dinner, couple as hosts, extended guest list.",
+          "typicalGuestScale": "Often 300+ at full-scale events; varies widely by family",
+          "decorNotes": "Elegant softer palettes — champagne, silver, mint, soft gold; reception-style stage and banquet tables."
+        }
+      ],
+      "decorThemes": [
+        {
+          "id": "classic-desi-opulence",
+          "name": "Classic desi opulence",
+          "motifs": ["marigold garlands", "gold mirror work", "heavy draping", "ornate stage"],
+          "description": "Layered fabrics, gold accents, dense florals, and a statement stage — still the default language for many Barat and Walima halls.",
+          "bestForEvents": ["barat", "walima"]
+        },
+        {
+          "id": "mehndi-garden-festival",
+          "name": "Mehndi garden / festival",
+          "motifs": ["marigold", "marigold torans", "lanterns", "rangoli-adjacent floor art", "bright textiles"],
+          "description": "Outdoor or lawn-friendly colour burst with yellow-green dominance, informal seating, and performance space.",
+          "bestForEvents": ["mehndi", "mayun"]
+        },
+        {
+          "id": "mughal-minimal",
+          "name": "Mughal minimal",
+          "motifs": ["jali / lattice", "single statement arch", "geometric panels", "restrained gold"],
+          "description": "2024–2025 industry trend: Mughal arches and Islamic geometric references with clean lines and uncluttered staging rather than maximal layering.",
+          "bestForEvents": ["nikah", "walima", "barat"]
+        }
+      ],
+      "colorPalettes": [
+        {
+          "id": "mehndi-brights",
+          "name": "Mehndi brights",
+          "colors": ["yellow", "parrot green", "orange", "marigold gold"],
+          "typicalEvents": ["mehndi", "mayun"],
+          "notes": "Traditional Mehndi dress-and-decor code revolves around yellow and green; modern events expand into orange and multi-colour themes."
+        },
+        {
+          "id": "barat-jewels",
+          "name": "Barat jewel tones",
+          "colors": ["bridal red", "maroon", "emerald", "sapphire", "antique gold"],
+          "typicalEvents": ["barat"],
+          "notes": "Couple and stage often carry the deepest colour; guests typically stay out of full bridal red."
+        },
+        {
+          "id": "walima-soft-luxe",
+          "name": "Walima soft luxe",
+          "colors": ["champagne", "ivory", "soft gold", "mint", "silver"],
+          "typicalEvents": ["walima", "nikah"],
+          "notes": "Softer formality than Barat; works with pastel bridal looks."
+        },
+        {
+          "id": "trend-dusty-rose-emerald",
+          "name": "Dusty rose & emerald",
+          "colors": ["dusty rose", "emerald", "ivory"],
+          "typicalEvents": ["walima", "barat"],
+          "notes": "Cited as a 2025 South Asian palette shift beyond only red-and-gold."
+        }
+      ],
+      "floralConventions": [
+        "Marigold (genda) strings and torans for entrances and stages — affordable, fragrant, culturally familiar.",
+        "Roses, orchids, and lilies appear in more curated 2025 'Mughal minimal' clusters rather than only dense overflowing mounds.",
+        "Fresh jasmine and tuberose more common when families want fragrance-forward or softer evening aesthetics.",
+        "Hanging floral installations and floral chandeliers show up as reception/Walima focal points in recent industry roundups."
+      ],
+      "lightingConventions": [
+        "Warm uplighting and fairy lights for Mehndi lawns and home events.",
+        "Statement chandelier or soft ambient wash for Walima / Mughal-minimal stages; industry guides caution against over-lighting so shadows keep intimacy.",
+        "Pin-spotting centrepieces and stage edges for large banquet halls.",
+        "LED or colour-change accents sometimes used for performance moments (more trend-forward than traditional)."
+      ],
+      "seatingSetups": [
+        "Mehndi: mix of banquet chairs and lounge/floor seating so guests can stay still for henna; clear sightlines to a small stage.",
+        "Barat / Walima: round banquet tables or long family tables; buffet service is very common because multi-dish South Asian menus need room.",
+        "Nikah (intimate): theatre or living-room rows facing the signing table / imam.",
+        "VIP / sofa seating on or near the stage for the couple and immediate family is standard at hall events."
+      ],
+      "commonVendors": [
+        {
+          "id": "decorator",
+          "label": "Decorator / stage & draping",
+          "whyNeeded": "Multi-day events often need distinct stage, entrance, and seating looks per function.",
+          "bookingTip": "Book early for peak shaadi season; ask whether floral is included or separate."
+        },
+        {
+          "id": "florist",
+          "label": "Florist",
+          "whyNeeded": "Garlands, stage florals, and fresh mehndi/baraat accents.",
+          "bookingTip": "Clarify which flowers are seasonal in your city to avoid last-minute substitutions."
+        },
+        {
+          "id": "mehndi-artist",
+          "label": "Mehndi artist",
+          "whyNeeded": "Bridal and guest henna; skilled artists book months ahead.",
+          "bookingTip": "Confirm duration, guest count for henna stations, and travel fees."
+        },
+        {
+          "id": "caterer",
+          "label": "Caterer",
+          "whyNeeded": "Different menus per event; often buffet-heavy with veg/non-veg split.",
+          "bookingTip": "Do not invent package prices in chat — ask the family for their quotes."
+        },
+        {
+          "id": "dhol-dj",
+          "label": "Dhol / DJ / sound",
+          "whyNeeded": "Barat procession energy and Mehndi dance floors.",
+          "bookingTip": "Coordinate volume rules with venue and neighbours for home Mehndis."
+        },
+        {
+          "id": "photographer",
+          "label": "Photography / videography",
+          "whyNeeded": "Coverage across multiple days and rituals (including Rukhsati).",
+          "bookingTip": "Share a full multi-day run-of-show so the team is not only booked for Barat."
+        },
+        {
+          "id": "imam-qazi",
+          "label": "Imam / Qazi",
+          "whyNeeded": "Nikah contract and witnesses.",
+          "bookingTip": "Confirm document requirements early (IDs, wali, witnesses)."
+        },
+        {
+          "id": "venue",
+          "label": "Venue / marquee",
+          "whyNeeded": "Hall capacity for Barat/Walima; lawns for Mehndi.",
+          "bookingTip": "Check outside-caterer and decor load-in rules."
+        }
+      ],
+      "trendsByYear": [
+        {
+          "year": 2024,
+          "summary": "Pastels, earth tones, and monochrome ivory/champagne schemes gained share alongside classic red-gold; jewel tones remained strong for formal days.",
+          "examples": [
+            "Blush, lavender, mint pastel Mehndi or Walima looks",
+            "Terracotta / mustard / olive earth palettes for outdoor events",
+            "Monochrome ivory–champagne minimal stages"
+          ]
+        },
+        {
+          "year": 2025,
+          "summary": "Industry forecasts emphasize 'Mughal meets minimalist': statement arches and jali with restrained florals; dusty rose + emerald and burnt saffron + indigo appear as non-default palettes; sustainability and reusable structures are increasingly mentioned.",
+          "examples": [
+            "Single white/muted-gold Mughal arch instead of heavily layered sets",
+            "Curated linear floral clusters vs overflowing walls",
+            "Reusable structures and locally sourced flowers called out in decor forecasts"
+          ]
+        },
+        {
+          "year": 2025,
+          "summary": "Some couples compress Mayun + Mehndi + Barat + Walima into 2-day or even 1-day formats for cost and logistics.",
+          "examples": [
+            "Mehndi day 1; Barat + Walima day 2",
+            "Combined Barat/Walima same venue"
+          ],
+          "anecdotal": true
+        }
+      ],
+      "notes": "Pakistani timelines vary by family, city, and budget. Nikah may be separate from Barat. Always treat colour and dress guidance as community norms, not religious law. Chatbot must not invent vendor prices or claim a single 'correct' order when families merge events.",
+      "sourceUrls": [
+        {
+          "url": "https://anvaya.love/blog/guide-south-asian-wedding-events",
+          "title": "A Complete Guide to South Asian Wedding Events (Anvaya)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://fashiondiaries.pk/blogs/pakistani-wedding-timeline-what-happens-from-mayun-to-walima",
+          "title": "Pakistani Wedding Timeline: Mayun to Walima (Fashion Diaries)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://libasekhas.co.uk/blogs/news/pakistani-wedding-events-explained",
+          "title": "Pakistani Wedding Events Explained (Libas-e-Khas)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03",
+          "notes": "Strong on guest dress codes per event; commercial bridal retailer blog."
+        },
+        {
+          "url": "https://scrollpakistan.com/pakistani-wedding-traditions-desi-shaadi/",
+          "title": "Pakistani Wedding Guide: Desi Shaadi Traditions (Scroll Pakistan)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://www.ummahcatering.co.uk/blogs/2025-decor-forecast-cultural-fusion-mughal-minimalist-for-asian-weddings/",
+          "title": "2025 Decor Forecast: Mughal Meets Minimalist (Ummah Catering)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://shopgulabo.com/blogs/news/regal-minimal-iconic-south-asian-wedding-trends-taking-over-2025",
+          "title": "South Asian Wedding Trends 2025 (Gulabo)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        }
+      ]
+    },
+    {
+      "id": "sa-north-indian-hindu",
+      "tradition": "south-asian",
+      "region": "North India (and North Indian diaspora)",
+      "community": "Hindu — North Indian ritual sequence (varies by community; not universal across India)",
+      "ceremonyEvents": [
+        {
+          "id": "haldi",
+          "name": "Haldi",
+          "order": 1,
+          "timing": "1–2 days before the wedding",
+          "description": "Turmeric paste applied to bride and/or groom for blessing and glow; playful family atmosphere.",
+          "decorNotes": "Yellow florals and fabrics; often home or garden."
+        },
+        {
+          "id": "mehendi",
+          "name": "Mehendi",
+          "aliases": ["Mehndi"],
+          "order": 2,
+          "timing": "Often the evening before or two days before the wedding",
+          "description": "Henna night with music; bridal designs traditionally hide the groom's name in the pattern.",
+          "typicalGuestScale": "Medium; can combine with Sangeet in modern schedules"
+        },
+        {
+          "id": "sangeet",
+          "name": "Sangeet",
+          "order": 3,
+          "timing": "Night before or shortly before the wedding day",
+          "description": "Music-and-dance celebration; modern Sangeets are often co-ed with choreographed family performances and strong DJ/lighting production.",
+          "typicalGuestScale": "Large party energy",
+          "decorNotes": "Performance stage, dance floor, bold lighting — more 'show' than mandap solemnity."
+        },
+        {
+          "id": "baraat-milni",
+          "name": "Baraat & Milni",
+          "order": 4,
+          "timing": "Wedding day arrival",
+          "description": "Groom's procession with band/dhol; families meet (milni) before ceremony rituals begin."
+        },
+        {
+          "id": "mandap-pheras",
+          "name": "Mandap ceremony & Pheras",
+          "aliases": ["Saat Phere", "Saptapadi"],
+          "order": 5,
+          "timing": "Core wedding ceremony",
+          "description": "Under a four-pillar mandap with sacred fire (Agni) as witness: garland exchange (jai mala), kanyadaan and related rites (community-specific), then seven pheras/vows around the fire. Sindoor and mangalsutra often complete the rite.",
+          "decorNotes": "Mandap is the visual and spiritual centre — pillars, canopy, florals, and fire-safe staging."
+        },
+        {
+          "id": "vidaai",
+          "name": "Vidaai",
+          "aliases": ["Bidai"],
+          "order": 6,
+          "timing": "End of wedding-day host events",
+          "description": "Emotional farewell as the bride leaves her family home/venue with the groom."
+        },
+        {
+          "id": "reception",
+          "name": "Reception",
+          "order": 7,
+          "timing": "Same night or a following day",
+          "description": "Larger social dinner/dance celebration; more Western-reception structure than the mandap rites.",
+          "decorNotes": "Stage, sweetheart or family table, banquet seating, statement florals."
+        }
+      ],
+      "decorThemes": [
+        {
+          "id": "classic-mandap",
+          "name": "Classic floral mandap",
+          "motifs": ["four pillars", "marigold drapes", "sacred fire space", "toran entrance"],
+          "description": "Marigold-forward, four-pillar canopy as ceremony altar — still the recognisable Hindu wedding centrepiece.",
+          "bestForEvents": ["mandap-pheras"]
+        },
+        {
+          "id": "rajasthani-revival",
+          "name": "Regal Rajasthani revival",
+          "motifs": ["embroidered umbrellas", "mirror-work", "jaali", "jewel tones"],
+          "description": "2025 theme language for palace energy — umbrellas, mirror work, rich colour — used for mandaps and entries.",
+          "bestForEvents": ["mandap-pheras", "reception", "sangeet"]
+        },
+        {
+          "id": "south-indian-adjacent-notes",
+          "name": "Temple / jasmine accents (pan-Indian note)",
+          "motifs": ["jasmine", "banana leaf", "brass lamps", "kolam / floor art"],
+          "description": "Not North-Indian-only, but often referenced in pan-India 2025 decor roundups for temple-inspired or South Indian-influenced mandaps; useful when families blend regions.",
+          "bestForEvents": ["mandap-pheras"]
+        }
+      ],
+      "colorPalettes": [
+        {
+          "id": "haldi-yellow",
+          "name": "Haldi yellow",
+          "colors": ["turmeric yellow", "marigold orange", "white"],
+          "typicalEvents": ["haldi"]
+        },
+        {
+          "id": "bridal-red-gold",
+          "name": "Bridal red & gold",
+          "colors": ["red", "maroon", "gold"],
+          "typicalEvents": ["mandap-pheras"],
+          "notes": "Still iconic; many 2025 couples keep this for ceremony even if reception goes pastel or jewel-contrast."
+        },
+        {
+          "id": "jewel-reception",
+          "name": "Jewel reception",
+          "colors": ["emerald", "ruby", "sapphire", "purple", "metallic gold"],
+          "typicalEvents": ["reception", "sangeet"]
+        }
+      ],
+      "floralConventions": [
+        "Marigold garlands and strings remain the classic, budget-friendly mandap and entrance flower.",
+        "Lotus appears for spiritual/regal symbolism in some mandap and water-feature designs.",
+        "Modular / sculptural floral installations and hanging florals are highlighted in 2025 Indian decor trend pieces.",
+        "Jai mala (garland exchange) needs fresh, wearable florals sized for photos."
+      ],
+      "lightingConventions": [
+        "Sangeet: concert-style washes, spotlights on performers, dance-floor colour.",
+        "Mandap: warmer, respectful lighting that photographs skin tones and gold work without washing out the fire area.",
+        "Reception: chandelier / pin-spot / uplight combinations common in banquet halls."
+      ],
+      "seatingSetups": [
+        "Ceremony: chairs or cushioned seating facing the mandap; clear aisle for baraat/bride entry.",
+        "Some community ceremonies use low seating or cushions near the mandap — confirm with priest and elders.",
+        "Reception: round tables or banquet rounds; buffet common for large guest counts."
+      ],
+      "commonVendors": [
+        {
+          "id": "pandit",
+          "label": "Pandit / priest",
+          "whyNeeded": "Mandap rites, timing of pheras, and ritual materials list."
+        },
+        {
+          "id": "decorator",
+          "label": "Mandap & decor designer",
+          "whyNeeded": "Mandap structure, draping, stage, and event-specific looks."
+        },
+        {
+          "id": "florist",
+          "label": "Florist",
+          "whyNeeded": "Mandap florals, jai mala, entrances, centrepieces."
+        },
+        {
+          "id": "choreographer",
+          "label": "Sangeet choreographer",
+          "whyNeeded": "Family dance performances — a frequent modern vendor category."
+        },
+        {
+          "id": "dhol-band",
+          "label": "Dhol / brass band",
+          "whyNeeded": "Baraat procession energy."
+        },
+        {
+          "id": "caterer",
+          "label": "Caterer",
+          "whyNeeded": "Multi-event menus; regional cuisine preferences."
+        },
+        {
+          "id": "mehndi-artist",
+          "label": "Mehendi artist",
+          "whyNeeded": "Bridal and guest henna."
+        },
+        {
+          "id": "photo-video",
+          "label": "Photo / video",
+          "whyNeeded": "Multi-day coverage including baraat and vidaai."
+        }
+      ],
+      "trendsByYear": [
+        {
+          "year": 2025,
+          "summary": "Decor media highlights heritage revival (Rajasthani, Mughal, temple accents) paired with cleaner layouts; red returning strongly even as pastels and jewels stay popular.",
+          "examples": [
+            "Floral chandeliers and large organic floral arches",
+            "Brass / jharokha heritage furniture moments",
+            "Fusion mandaps mixing regional floral languages"
+          ]
+        },
+        {
+          "year": 2026,
+          "summary": "Mandap trend roundups emphasize sustainable materials, floral-heavy but structurally cleaner designs, and fusion of regional motifs.",
+          "examples": [
+            "Sustainable mandap materials",
+            "Temple-inspired carved wood + jasmine for South-influenced looks"
+          ]
+        }
+      ],
+      "notes": "India is not one wedding. South Indian, Gujarati, Bengali Hindu, and other sequences differ. This entry is a North-Indian-leaning template for RAG grounding. Prefer asking the user their community before giving ritual order as fact.",
+      "sourceUrls": [
+        {
+          "url": "https://thenyota.app/blog/order-of-indian-wedding-rituals/",
+          "title": "Order of Indian Wedding Rituals (Nyota)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://paperlust.co/blog/indian-wedding-traditions-guide/",
+          "title": "Indian Wedding Traditions Guide (Paperlust)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://www.theknot.com/content/hindu-wedding-traditions",
+          "title": "Hindu Wedding Traditions (The Knot)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://hitchedindia.com/latest-wedding-decor-trends-for-2025-you-cant-miss/",
+          "title": "2025 Wedding Decor Trends Rooted in Indian Culture (Hitched India)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://www.bridestoday.in/wedding-ideas/story/what-are-couples-choosing-for-wedding-decor-this-season-1132340-2024-12-05",
+          "title": "What couples are choosing for wedding decor (Bride's Today)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://shareurwedding.com/mandap-decoration-trends/",
+          "title": "Mandap Decoration Trends (ShareUrWedding)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        }
+      ]
+    },
+    {
+      "id": "sa-bangladeshi",
+      "tradition": "south-asian",
+      "region": "Bangladesh (and Bangladeshi diaspora)",
+      "community": "Bengali Muslim & cultural Bangladeshi wedding customs",
+      "ceremonyEvents": [
+        {
+          "id": "mehendi-bd",
+          "name": "Mehendi",
+          "order": 1,
+          "timing": "Before Gaye Holud / Biye",
+          "description": "Henna night primarily for the bride and female relatives.",
+          "decorNotes": "Colourful, festive; often paired visually with Holud yellows."
+        },
+        {
+          "id": "gaye-holud",
+          "name": "Gaye Holud",
+          "order": 2,
+          "timing": "Pre-wedding; families may hold separate events",
+          "host": "Traditionally separate bride-side and groom-side Holuds; some urban couples host a joint 'Mega Holud'",
+          "description": "Turmeric paste applied to bride and groom by family — iconic yellow visual language of Bangladeshi weddings.",
+          "decorNotes": "Saturated yellow florals, marigold, turmeric motifs; high visual impact."
+        },
+        {
+          "id": "nikah-bd",
+          "name": "Nikah",
+          "order": 3,
+          "timing": "Around the main wedding period",
+          "description": "Islamic marriage contract signed before a Kazi (registrar) with nikahnama.",
+          "host": "Flexible venue"
+        },
+        {
+          "id": "biye",
+          "name": "Biye",
+          "order": 4,
+          "timing": "Main wedding celebration hosted by bride's family",
+          "host": "Bride's family",
+          "description": "Primary wedding celebration including the groom's grand arrival (bor jatri). Playful gate rituals (e.g. gat-dhora / gate fee) are common with siblings and cousins.",
+          "typicalGuestScale": "Large"
+        },
+        {
+          "id": "bou-bhat-walima",
+          "name": "Bou Bhat / Walima",
+          "aliases": ["Bou Bhat", "Walima"],
+          "order": 5,
+          "timing": "After Biye",
+          "host": "Groom's family",
+          "description": "Reception introducing the bride to the groom's wider circle; hospitality and feast-focused. Bou Bhat is the Bengali cultural framing; Walima the Islamic one — often overlapping in practice.",
+          "decorNotes": "Grand feast staging; formal reception aesthetics."
+        }
+      ],
+      "decorThemes": [
+        {
+          "id": "holud-yellow-spectacle",
+          "name": "Holud yellow spectacle",
+          "motifs": ["turmeric yellow", "marigold", "bright textiles"],
+          "description": "Gaye Holud is often the most photographically distinctive event — lean into saturated yellow rather than muting it.",
+          "bestForEvents": ["gaye-holud", "mehendi-bd"]
+        },
+        {
+          "id": "biye-formal",
+          "name": "Biye formal celebration",
+          "motifs": ["stage backdrop", "entrance reveal", "family sofa seating"],
+          "description": "Hall or tent production for bor jatri arrival and dinner service.",
+          "bestForEvents": ["biye", "bou-bhat-walima"]
+        }
+      ],
+      "colorPalettes": [
+        {
+          "id": "holud-yellow",
+          "name": "Gaye Holud yellow",
+          "colors": ["turmeric yellow", "gold", "orange marigold"],
+          "typicalEvents": ["gaye-holud"]
+        },
+        {
+          "id": "biye-bridal",
+          "name": "Biye bridal rich tones",
+          "colors": ["red", "maroon", "gold", "deep pink"],
+          "typicalEvents": ["biye"]
+        }
+      ],
+      "floralConventions": [
+        "Marigold and yellow florals dominate Holud imagery.",
+        "Biye/Walima stages follow broader South Asian banquet floral language — roses, orchids, draped entrances — scaled to venue."
+      ],
+      "lightingConventions": [
+        "Holud: bright, cheerful washes that read yellow on camera.",
+        "Biye/Bou Bhat: formal banquet uplighting and stage spots for entrances."
+      ],
+      "seatingSetups": [
+        "Holud: flexible party seating with room for ritual paste application moments.",
+        "Biye / Bou Bhat: banquet rounds or mixed buffet + VIP stage seating."
+      ],
+      "commonVendors": [
+        {
+          "id": "decorator",
+          "label": "Decorator",
+          "whyNeeded": "Distinct Holud vs Biye looks across 3–5 days."
+        },
+        {
+          "id": "caterer",
+          "label": "Caterer",
+          "whyNeeded": "Feast-centred Bou Bhat/Walima; multi-event menus."
+        },
+        {
+          "id": "kazi",
+          "label": "Kazi",
+          "whyNeeded": "Nikah registration."
+        },
+        {
+          "id": "mehndi-artist",
+          "label": "Mehendi artist",
+          "whyNeeded": "Bridal henna night."
+        },
+        {
+          "id": "photo-video",
+          "label": "Photo / video",
+          "whyNeeded": "Coverage of Holud colour and Biye arrival rituals."
+        }
+      ],
+      "trendsByYear": [
+        {
+          "year": 2025,
+          "summary": "Urban couples sometimes merge separate Holuds into one joint event to reduce cost and logistics.",
+          "examples": ["Joint Mega Holud"],
+          "anecdotal": true
+        }
+      ],
+      "notes": "Cost customs traditionally split Biye (bride's family) and Walima/Bou Bhat (groom's family), but many modern couples share costs. Confirm with the family rather than stating a rule as absolute.",
+      "sourceUrls": [
+        {
+          "url": "https://ourvows.app/blog/bangladeshi-wedding-traditions",
+          "title": "Bangladeshi Wedding Traditions (OurVows)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03"
+        },
+        {
+          "url": "https://anvaya.love/blog/guide-south-asian-wedding-events",
+          "title": "South Asian Wedding Events overview (Anvaya)",
+          "reliability": "industry",
+          "accessedAt": "2026-08-03",
+          "notes": "Mentions Bangladeshi gaye holud parallel to mayun/ubtan."
+        }
+      ]
+    }
+  ]
+}
