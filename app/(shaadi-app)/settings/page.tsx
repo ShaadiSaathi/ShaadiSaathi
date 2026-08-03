@@ -231,7 +231,7 @@ export default function SettingsPage() {
           <span className="ml-2 text-sm font-normal text-maroon/40">(optional)</span>
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-maroon/60">
-          Add an email if you want payment receipts and booking updates. Phone
+          Add an email if you want payment receipts and dispute updates. Phone
           number stays your login — this is never required.
         </p>
         <ContactEmailForm />

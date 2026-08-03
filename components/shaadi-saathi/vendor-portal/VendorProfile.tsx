@@ -266,7 +266,7 @@ export default function VendorProfile() {
           <span className="ml-2 text-sm font-normal text-maroon/40">(optional)</span>
         </h2>
         <p className="mt-1 text-sm text-maroon/60">
-          Used for booking confirmations and dispute updates. Phone remains your login.
+          Used for dispute outcome notices. Phone remains your login.
         </p>
         <form onSubmit={handleEmailSave} className="mt-4 space-y-3">
           <label htmlFor="vendor-contact-email" className="text-xs font-medium uppercase tracking-wider text-maroon/50">

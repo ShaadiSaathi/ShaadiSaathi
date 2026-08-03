@@ -65,7 +65,7 @@ export interface FirestoreUser {
   role: UserRole
   phone: string
   name: string
-  /** Optional contact email for receipts / booking updates — never used for login */
+  /** Optional contact email for receipts / dispute updates — never used for login */
   email?: string
   weddingId?: string
   vendorId?: string
