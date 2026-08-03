@@ -344,6 +344,14 @@ async function processExpiredDispute(
     })
   } catch (emailErr) {
     console.error("[automation] dispute email skipped:", emailErr)
+    try {
+      const Sentry = await import("@sentry/nextjs")
+      Sentry.captureException(emailErr, {
+        tags: { component: "email", trigger: "automation-dispute" },
+      })
+    } catch {
+      // Sentry unavailable — console already logged
+    }
   }
 }
 

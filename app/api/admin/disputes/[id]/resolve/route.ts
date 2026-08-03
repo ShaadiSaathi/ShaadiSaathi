@@ -123,6 +123,14 @@ export async function POST(
       })
     } catch (emailErr) {
       console.error("[admin/disputes/resolve] email skipped:", emailErr)
+      try {
+        const Sentry = await import("@sentry/nextjs")
+        Sentry.captureException(emailErr, {
+          tags: { component: "email", trigger: "dispute-resolve" },
+        })
+      } catch {
+        // Sentry unavailable — console already logged
+      }
     }
 
     return Response.json({ ok: true })

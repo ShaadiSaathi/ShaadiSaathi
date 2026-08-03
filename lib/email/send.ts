@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs"
 import { Resend } from "resend"
 import {
   EMAIL_NOT_CONFIGURED_MESSAGE,
@@ -55,12 +56,20 @@ export async function sendEmail(input: {
     })
     if (error) {
       console.error("[email] Resend error:", error)
+      Sentry.captureException(new Error(error.message || "Resend API error"), {
+        tags: { component: "email", provider: "resend" },
+        extra: { subject: input.subject, to },
+      })
       return { ok: false, skipped: false, reason: error.message }
     }
     return { ok: true, id: data?.id ?? "sent" }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Email send failed"
     console.error("[email] send failed:", message)
+    Sentry.captureException(err instanceof Error ? err : new Error(message), {
+      tags: { component: "email", provider: "resend" },
+      extra: { subject: input.subject },
+    })
     return { ok: false, skipped: false, reason: message }
   }
 }

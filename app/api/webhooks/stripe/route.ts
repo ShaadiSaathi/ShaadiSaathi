@@ -175,6 +175,14 @@ async function applyPaymentIntentEvent(
         }
       } catch (emailErr) {
         console.error("[webhooks/stripe] balance receipt email skipped:", emailErr)
+        try {
+          const Sentry = await import("@sentry/nextjs")
+          Sentry.captureException(emailErr, {
+            tags: { component: "email", trigger: "stripe-balance" },
+          })
+        } catch {
+          // Sentry unavailable — console already logged
+        }
       }
     }
   }

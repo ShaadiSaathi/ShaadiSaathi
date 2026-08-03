@@ -191,6 +191,14 @@ export async function POST(request: Request) {
       })
     } catch (emailErr) {
       console.error("[payments/deposit/complete] email skipped:", emailErr)
+      try {
+        const Sentry = await import("@sentry/nextjs")
+        Sentry.captureException(emailErr, {
+          tags: { component: "email", trigger: "deposit-complete" },
+        })
+      } catch {
+        // Sentry unavailable — console already logged
+      }
     }
 
     return NextResponse.json({ ok: true, status: intent.status })
