@@ -78,7 +78,7 @@ export default function WeddingAiTestPage() {
     return <p className="p-8 text-sm text-maroon/60">Loading…</p>
   }
 
-  if (!isFamilyLoggedIn || !firebaseUser) {
+  if (!isFamilyLoggedIn) {
     return (
       <main className="mx-auto max-w-xl p-8">
         <h1 className="font-display text-2xl text-maroon-dark">Wedding AI (test)</h1>
@@ -110,6 +110,12 @@ export default function WeddingAiTestPage() {
           </>
         )}
       </p>
+      {!firebaseUser && (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          This session has no Firebase auth token (e.g. tester/demo mode). The
+          API requires a real Firebase sign-in to verify premium.
+        </p>
+      )}
 
       <label className="mt-6 block text-xs font-medium uppercase tracking-wider text-maroon/50">
         Question
