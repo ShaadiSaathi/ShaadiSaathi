@@ -59,6 +59,7 @@ export default function WeddingAiTestPage() {
         reply?: string
         citations?: Citation[]
         retrieved?: RetrievedMeta[]
+        config?: Record<string, unknown>
       }
       if (!res.ok) {
         const detail =
