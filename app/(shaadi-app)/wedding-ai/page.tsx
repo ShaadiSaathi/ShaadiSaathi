@@ -61,7 +61,11 @@ export default function WeddingAiTestPage() {
         retrieved?: RetrievedMeta[]
       }
       if (!res.ok) {
-        setError(data.error || `Request failed (${res.status})`)
+        const detail =
+          typeof data.config === "object" && data.config
+            ? ` | config=${JSON.stringify(data.config)}`
+            : ""
+        setError((data.error || `Request failed (${res.status})`) + detail)
         return
       }
       setReply(data.reply || "")

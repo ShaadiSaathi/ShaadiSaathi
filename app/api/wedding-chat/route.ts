@@ -55,11 +55,33 @@ function collectCitations(chunks: RetrievedChunk[]): {
   return out
 }
 
+const WEDDING_CHAT_MODEL = "claude-sonnet-4-6"
+
+function isStagingFirebase(): boolean {
+  return process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === "shaadisaathistaging"
+}
+
+function configPresence() {
+  const url = process.env.UPSTASH_VECTOR_REST_URL?.trim() ?? ""
+  return {
+    anthropicKeyDefined: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+    upstashUrlDefined: Boolean(url),
+    upstashTokenDefined: Boolean(process.env.UPSTASH_VECTOR_REST_TOKEN?.trim()),
+    upstashHost: url
+      ? url.replace(/^https?:\/\//, "").split("/")[0] ?? null
+      : null,
+    model: WEDDING_CHAT_MODEL,
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     await assertFamilyWeddingPremium(req)
 
-    if (!process.env.ANTHROPIC_API_KEY?.trim()) {
+    const presence = configPresence()
+    console.info("[wedding-chat] config", presence)
+
+    if (!presence.anthropicKeyDefined) {
       return NextResponse.json(
         { error: "Wedding AI is not configured (missing ANTHROPIC_API_KEY)." },
         { status: 503 }
@@ -68,7 +90,10 @@ export async function POST(req: NextRequest) {
 
     if (!isVectorConfigured()) {
       return NextResponse.json(
-        { error: VECTOR_NOT_CONFIGURED_MESSAGE },
+        {
+          error: VECTOR_NOT_CONFIGURED_MESSAGE,
+          ...(isStagingFirebase() ? { config: presence } : {}),
+        },
         { status: 503 }
       )
     }
@@ -93,17 +118,37 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const chunks = await retrieveKnowledgeChunks(userMessage, 6)
+    let chunks: RetrievedChunk[]
+    try {
+      chunks = await retrieveKnowledgeChunks(userMessage, 6)
+    } catch (retrieveErr) {
+      console.error("[wedding-chat] retrieve failed", retrieveErr)
+      throw retrieveErr
+    }
+
     const context = buildContextBlock(chunks)
     const citations = collectCitations(chunks)
-
-    const client = new Anthropic()
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      system: `${SYSTEM_PROMPT}\n\nCONTEXT:\n${context}`,
-      messages: [{ role: "user", content: userMessage }],
+    console.info("[wedding-chat] retrieved", {
+      count: chunks.length,
+      topScore: chunks[0]?.score ?? null,
+      types: chunks.map((c) => c.chunkType),
     })
+
+    const client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY!.trim(),
+    })
+    let response
+    try {
+      response = await client.messages.create({
+        model: WEDDING_CHAT_MODEL,
+        max_tokens: 1024,
+        system: `${SYSTEM_PROMPT}\n\nCONTEXT:\n${context}`,
+        messages: [{ role: "user", content: userMessage }],
+      })
+    } catch (llmErr) {
+      console.error("[wedding-chat] anthropic failed", llmErr)
+      throw llmErr
+    }
 
     const reply = response.content
       .filter((block) => block.type === "text")
@@ -126,9 +171,16 @@ export async function POST(req: NextRequest) {
     if (err instanceof PaymentAuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }
-    console.error("[wedding-chat]", err)
+    const message = err instanceof Error ? err.message : String(err)
+    const name = err instanceof Error ? err.name : typeof err
+    console.error("[wedding-chat]", { name, message, err })
     return NextResponse.json(
-      { error: "Failed to get a wedding AI response. Please try again." },
+      {
+        error: isStagingFirebase()
+          ? `Failed to get a wedding AI response: ${name}: ${message}`
+          : "Failed to get a wedding AI response. Please try again.",
+        ...(isStagingFirebase() ? { config: configPresence() } : {}),
+      },
       { status: 500 }
     )
   }
