@@ -5,6 +5,8 @@ import { assertFamilyWeddingPremium } from "@/lib/server/premium-auth"
 import {
   isVectorConfigured,
   retrieveKnowledgeChunks,
+  getUpstashRestUrl,
+  getUpstashRestToken,
   VECTOR_NOT_CONFIGURED_MESSAGE,
   type RetrievedChunk,
 } from "@/lib/knowledge/vector"
@@ -62,11 +64,11 @@ function isStagingFirebase(): boolean {
 }
 
 function configPresence() {
-  const url = process.env.UPSTASH_VECTOR_REST_URL?.trim() ?? ""
+  const url = getUpstashRestUrl()
   return {
     anthropicKeyDefined: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
     upstashUrlDefined: Boolean(url),
-    upstashTokenDefined: Boolean(process.env.UPSTASH_VECTOR_REST_TOKEN?.trim()),
+    upstashTokenDefined: Boolean(getUpstashRestToken()),
     upstashHost: url
       ? url.replace(/^https?:\/\//, "").split("/")[0] ?? null
       : null,

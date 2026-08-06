@@ -23,6 +23,7 @@ import {
   chunkToUpsertPayload,
   getKnowledgeVectorIndex,
   isVectorConfigured,
+  getUpstashRestUrl,
 } from "../lib/knowledge/vector"
 import type { KnowledgeBaseManifest } from "../lib/knowledge/types"
 

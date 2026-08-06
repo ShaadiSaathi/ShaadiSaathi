@@ -1,7 +1,7 @@
 /**
  * Upstash Vector client for wedding knowledge RAG.
- * Index must be created with a built-in embedding model (e.g. BGE Small EN)
- * so we can upsert/query raw `data` strings without a separate embeddings API.
+ * Index must be created with a built-in embedding model (e.g. BGE Small EN
+ * or text-embedding-3-small) so we can upsert/query raw `data` strings.
  */
 
 import { Index } from "@upstash/vector"
@@ -24,19 +24,36 @@ export type KnowledgeVectorMetadata = {
 
 let indexSingleton: Index<KnowledgeVectorMetadata> | null = null
 
+/** Strip accidental wrapping quotes from Vercel/dashboard env pastes. */
+function envValue(name: string): string {
+  let raw = process.env[name]?.trim() ?? ""
+  if (
+    (raw.startsWith('"') && raw.endsWith('"')) ||
+    (raw.startsWith("'") && raw.endsWith("'"))
+  ) {
+    raw = raw.slice(1, -1).trim()
+  }
+  return raw
+}
+
+export function getUpstashRestUrl(): string {
+  return envValue("UPSTASH_VECTOR_REST_URL").replace(/\/+$/, "")
+}
+
+export function getUpstashRestToken(): string {
+  return envValue("UPSTASH_VECTOR_REST_TOKEN")
+}
+
 export function isVectorConfigured(): boolean {
-  return Boolean(
-    process.env.UPSTASH_VECTOR_REST_URL?.trim() &&
-      process.env.UPSTASH_VECTOR_REST_TOKEN?.trim()
-  )
+  return Boolean(getUpstashRestUrl() && getUpstashRestToken())
 }
 
 export function getKnowledgeVectorIndex(): Index<KnowledgeVectorMetadata> | null {
   if (!isVectorConfigured()) return null
   if (!indexSingleton) {
     indexSingleton = new Index<KnowledgeVectorMetadata>({
-      url: process.env.UPSTASH_VECTOR_REST_URL!.trim(),
-      token: process.env.UPSTASH_VECTOR_REST_TOKEN!.trim(),
+      url: getUpstashRestUrl(),
+      token: getUpstashRestToken(),
     })
   }
   return indexSingleton
