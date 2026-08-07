@@ -17,6 +17,8 @@ import {
 const FEATURE_MESSAGES: Record<string, string> = {
   seating: "Seating Planner is a Premium feature — upgrade to unlock it.",
   themes: "Custom invite themes are a Premium feature — upgrade to unlock them.",
+  "wedding-ai":
+    "Wedding AI is a Premium feature — upgrade to unlock planning guidance grounded in our knowledge base.",
 }
 
 function FamilyUpgradeContent() {
@@ -54,8 +56,8 @@ function FamilyUpgradeContent() {
           {isFamilyPremium && <PremiumBadge />}
         </div>
         <p className="mt-2 max-w-xl text-maroon/60">
-          One unlock for your whole wedding — unlimited guests, beautiful invite themes, and
-          seating planning. No monthly fees.
+          One unlock for your whole wedding — unlimited guests, beautiful invite themes,
+          seating planning, and Wedding AI. No monthly fees.
         </p>
         {featureMessage && !isFamilyPremium && (
           <p className="mt-3 rounded-xl border border-gold/25 bg-gold/10 px-4 py-3 text-sm text-maroon-dark">
@@ -70,14 +72,18 @@ function FamilyUpgradeContent() {
             Premium is active for your wedding
           </p>
           <p className="mt-2 text-sm text-maroon/60">
-            Enjoy unlimited events and guests, custom invite themes, and the seating planner.
+            Enjoy unlimited events and guests, custom invite themes, the seating planner, and
+            Wedding AI.
           </p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <Link href="/wedding-ai">
+              <GoldButton className="min-h-[44px] w-full sm:w-auto">Open Wedding AI</GoldButton>
+            </Link>
             <Link href="/settings#invite-themes">
               <GoldButton variant="ghost" className="min-h-[44px] w-full sm:w-auto">Invite theme settings</GoldButton>
             </Link>
             <Link href="/seating">
-              <GoldButton className="min-h-[44px] w-full sm:w-auto">Open seating planner</GoldButton>
+              <GoldButton variant="ghost" className="min-h-[44px] w-full sm:w-auto">Open seating planner</GoldButton>
             </Link>
           </div>
         </div>

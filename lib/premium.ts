@@ -102,6 +102,7 @@ export const FAMILY_PLAN_ROWS: PlanRow[] = [
   { label: "Family collaborators", free: "2", premium: "Up to 8" },
   { label: "Invite themes", free: "Classic only", premium: "4 custom themes" },
   { label: "Seating planner", free: "—", premium: "Included" },
+  { label: "Wedding AI", free: "—", premium: "Included", highlight: true },
   { label: "Emergency backup priority", free: "Standard", premium: "Priority access" },
   { label: "Invite branding", free: '"Powered by" footer', premium: "Footer removed" },
 ]
