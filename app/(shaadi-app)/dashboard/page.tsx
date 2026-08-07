@@ -196,7 +196,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Quick links — Arc-style pill CTAs */}
-      <section className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 lg:grid-cols-5">
         <Link
           href="/guests"
           className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
@@ -208,6 +208,12 @@ export default function DashboardPage() {
           className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
         >
           Browse vendors →
+        </Link>
+        <Link
+          href="/wedding-ai"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+        >
+          Ask Wedding AI →
         </Link>
         <Link
           href="/tasks"
