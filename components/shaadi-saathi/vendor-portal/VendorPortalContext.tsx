@@ -202,6 +202,7 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
       categoryLabel: category?.label ?? prev.categoryLabel,
       city: vendor.city,
       bio: vendor.bio || prev.bio,
+      email: vendor.email || prev.email,
       verificationStatus: vendor.verificationStatus ?? "unverified",
       verificationCnic: vendor.verificationCnic,
       verificationBusinessName: vendor.verificationBusinessName,

@@ -1,4 +1,5 @@
 import {
+  deleteField,
   doc,
   getDoc,
   setDoc,
@@ -31,6 +32,7 @@ export async function createUserProfile(
     name: string
     weddingId?: string
     vendorId?: string
+    email?: string
   }
 ): Promise<FirestoreUser> {
   const profile: FirestoreUser = {
@@ -39,4 +41,17 @@ export async function createUserProfile(
   }
   await setDoc(doc(db, "users", input.uid), profile)
   return profile
+}
+
+/** Set or clear optional contact email (does not affect phone login). */
+export async function updateUserContactEmail(
+  db: Firestore,
+  uid: string,
+  email: string | null
+): Promise<void> {
+  if (!email) {
+    await setDoc(doc(db, "users", uid), { email: deleteField() }, { merge: true })
+    return
+  }
+  await setDoc(doc(db, "users", uid), { email }, { merge: true })
 }

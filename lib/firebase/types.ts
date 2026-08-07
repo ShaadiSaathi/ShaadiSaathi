@@ -38,10 +38,17 @@ export type FirestoreBookingPayment = {
   balanceStatus: BalanceStatus
   depositPaidAt?: number
   checkInAt?: number
+  /** Epoch ms — scheduled vendor arrival for grace/no-show automation */
+  scheduledArrivalAt?: number
+  /** Epoch ms — arrival + grace hours; past this without check-in → no-show */
+  gracePeriodEndsAt?: number
   balanceMarkedPaidAt?: number
   balanceChargedAt?: number
   refundAmount?: number
   refundConfirmedAt?: number
+  /** Set when automation (or admin) declares a no-show */
+  noShowDeclaredAt?: number
+  noShowAutoDeclared?: boolean
   currency: string
   stripeDepositPaymentIntentId?: string
   stripeBalancePaymentIntentId?: string
@@ -58,6 +65,8 @@ export interface FirestoreUser {
   role: UserRole
   phone: string
   name: string
+  /** Optional contact email for receipts / dispute updates — never used for login */
+  email?: string
   weddingId?: string
   vendorId?: string
   createdAt: number
@@ -139,6 +148,8 @@ export type NotificationType =
   | "extra_work_needed"
   | "dispute_raised"
   | "dispute_vendor_response"
+  | "dispute_auto_resolved"
+  | "no_show_declared"
 
 export type NotificationPriority = "normal" | "urgent"
 
@@ -217,6 +228,8 @@ export interface FirestoreVendor {
   city: string
   phone: string
   bio: string
+  /** Optional contact email (also stored on users/{ownerUid}.email) */
+  email?: string
   ownerUid: string
   subscriptionTier: "basic" | "featured"
   createdAt: number
@@ -253,6 +266,8 @@ export interface FirestoreBookingDispute {
   category?: DisputeCategory
   description: string
   submittedAt: number
+  /** Epoch ms — vendor must respond before this or dispute auto-resolves for family */
+  vendorResponseDeadlineAt?: number
   disputedAmount?: number
   familyReason?: string
   vendorResponse?: string
@@ -262,6 +277,9 @@ export interface FirestoreBookingDispute {
   splitVendorAmount?: number
   resolvedAt?: number
   resolvedByUid?: string
+  /** True when Cloud Function / cron resolved without admin or vendor action */
+  autoResolved?: boolean
+  autoResolvedReason?: string
 }
 
 export interface FirestoreBooking {

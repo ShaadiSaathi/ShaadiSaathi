@@ -14,7 +14,7 @@ import type { Vendor, VendorCategoryId, VendorPackage } from "@/lib/mockVendors"
 import { getFirestoreDb, isFirebaseConfigured } from "./config"
 import { DEMO_VENDOR_ID } from "./seed"
 import type { FirestoreVendor } from "./types"
-import { createUserProfile, getUserProfile, upsertUserProfile } from "./users"
+import { createUserProfile, getUserProfile, upsertUserProfile, updateUserContactEmail } from "./users"
 import {
   isValidCnicInput,
   normalizeVendorVerificationStatus,
@@ -279,4 +279,22 @@ export async function submitVendorVerification(
   })
 
   return "pending"
+}
+
+/** Optional contact email on vendor listing + owner user profile. */
+export async function updateVendorContactEmail(
+  vendorId: string,
+  ownerUid: string,
+  email: string | null
+): Promise<void> {
+  if (!isFirebaseConfigured()) return
+  const db = getFirestoreDb()
+  const vendor = await getVendor(vendorId)
+  if (!vendor || vendor.ownerUid !== ownerUid) {
+    throw new Error("Not authorized to update this vendor")
+  }
+  await updateDoc(doc(db, "vendors", vendorId), {
+    email: email ? email : deleteField(),
+  })
+  await updateUserContactEmail(db, ownerUid, email)
 }

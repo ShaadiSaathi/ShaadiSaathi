@@ -10,6 +10,7 @@ import { fetchAdminMe } from "@/lib/admin/client"
 const NAV_ITEMS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/disputes", label: "Disputes" },
+  { href: "/admin/automation", label: "Automation" },
   { href: "/admin/vendors", label: "Vendors" },
   { href: "/admin/users", label: "Users" },
 ] as const

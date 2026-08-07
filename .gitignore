@@ -37,6 +37,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local Cursor MCP config (may contain auth — never commit)
+.cursor/mcp.json
+
+# local scratch / design compare artifacts
+tmp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

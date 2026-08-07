@@ -105,11 +105,26 @@ export async function POST(request: Request) {
 
     const now = Date.now()
     const prev = booking.payment
+    const {
+      defaultArrivalTimeForEvent,
+      gracePeriodEndsMs,
+      scheduledArrivalMs,
+    } = await import("@/lib/automation/constants")
+    const arrivalMs = scheduledArrivalMs(
+      eventDate,
+      defaultArrivalTimeForEvent(booking.eventId)
+    )
     const payment: FirestoreBookingPayment = {
       ...(prev as FirestoreBookingPayment),
       depositStatus: "held",
       depositPaidAt: now,
       stripeDepositPaymentIntentId: paymentIntentId,
+      ...(Number.isFinite(arrivalMs)
+        ? {
+            scheduledArrivalAt: arrivalMs,
+            gracePeriodEndsAt: gracePeriodEndsMs(arrivalMs),
+          }
+        : {}),
       updatedAt: now,
     }
 
@@ -127,6 +142,40 @@ export async function POST(request: Request) {
         updatedAt: now,
       })
     })
+
+    // Payment receipt email only — never fail the payment confirmation
+    try {
+      const { getWeddingOwnerEmail, sendPaymentReceiptEmail } = await import(
+        "@/lib/email"
+      )
+      const family = await getWeddingOwnerEmail(booking.weddingId)
+      const weddingName =
+        typeof wedding.name === "string" ? wedding.name : undefined
+      const bookingDoc = bookingSnap.data() as {
+        vendorName?: string
+        weddingName?: string
+        eventId?: string
+      }
+      await sendPaymentReceiptEmail({
+        to: family.email,
+        kind: "deposit",
+        amountPkr: payment.depositAmount,
+        bookingId,
+        weddingName: bookingDoc.weddingName ?? weddingName,
+        vendorName: bookingDoc.vendorName,
+        eventLabel: booking.eventId,
+      })
+    } catch (emailErr) {
+      console.error("[payments/deposit/complete] email skipped:", emailErr)
+      try {
+        const Sentry = await import("@sentry/nextjs")
+        Sentry.captureException(emailErr, {
+          tags: { component: "email", trigger: "deposit-complete" },
+        })
+      } catch {
+        // Sentry unavailable — console already logged
+      }
+    }
 
     return NextResponse.json({ ok: true, status: intent.status })
   } catch (error) {

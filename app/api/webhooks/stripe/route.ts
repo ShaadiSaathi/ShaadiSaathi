@@ -148,6 +148,42 @@ async function applyPaymentIntentEvent(
       next.balanceChargedAt = now
       next.stripeBalancePaymentIntentId = intent.id
       await snap.ref.update({ payment: next, updatedAt: now })
+
+      try {
+        const bookingData = snap.data() as {
+          weddingId?: string
+          vendorId?: string
+          weddingName?: string
+          vendorName?: string
+          eventId?: string
+        }
+        if (bookingData.weddingId) {
+          const {
+            getWeddingOwnerEmail,
+            sendPaymentReceiptEmail,
+          } = await import("@/lib/email")
+          const family = await getWeddingOwnerEmail(bookingData.weddingId)
+          await sendPaymentReceiptEmail({
+            to: family.email,
+            kind: "balance",
+            amountPkr: payment.balanceAmount,
+            bookingId: snap.id,
+            weddingName: bookingData.weddingName,
+            vendorName: bookingData.vendorName,
+            eventLabel: bookingData.eventId,
+          })
+        }
+      } catch (emailErr) {
+        console.error("[webhooks/stripe] balance receipt email skipped:", emailErr)
+        try {
+          const Sentry = await import("@sentry/nextjs")
+          Sentry.captureException(emailErr, {
+            tags: { component: "email", trigger: "stripe-balance" },
+          })
+        } catch {
+          // Sentry unavailable — console already logged
+        }
+      }
     }
   }
 }

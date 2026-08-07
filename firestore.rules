@@ -357,7 +357,8 @@ service cloud.firestore {
       return t in [
         'task_assigned', 'task_due_soon',
         'booking_request', 'quote_received', 'quote_accepted', 'quote_rejected',
-        'extra_work_needed', 'dispute_raised', 'dispute_vendor_response'
+        'extra_work_needed', 'dispute_raised', 'dispute_vendor_response',
+        'dispute_auto_resolved', 'no_show_declared'
       ];
     }
 
@@ -430,6 +431,13 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
         && request.resource.data.read is bool;
       allow delete: if false;
+    }
+
+    // Append-only audit trail for scheduled automations (dispute/no-show).
+    // Written only by Admin SDK / Cloud Functions. Readable by platform admins.
+    match /automation_logs/{logId} {
+      allow read: if isPlatformAdmin();
+      allow create, update, delete: if false;
     }
   }
 }

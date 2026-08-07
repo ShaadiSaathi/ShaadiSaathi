@@ -224,3 +224,27 @@ export async function reviewAdminVendorVerification(
     throw new Error(data.message ?? "Could not update verification")
   }
 }
+
+export type AdminAutomationLog = {
+  id: string
+  action: string
+  bookingId: string
+  weddingId?: string
+  vendorId?: string
+  message: string
+  details?: Record<string, string | number | boolean | null>
+  createdAt: number
+  source: string
+}
+
+export async function fetchAdminAutomationLogs(
+  limit = 40
+): Promise<AdminAutomationLog[]> {
+  const res = await adminFetch(`/api/admin/automation-logs?limit=${limit}`)
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { message?: string }
+    throw new Error(data.message ?? "Could not load automation logs")
+  }
+  const data = (await res.json()) as { logs: AdminAutomationLog[] }
+  return data.logs
+}
