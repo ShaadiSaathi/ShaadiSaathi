@@ -40,6 +40,14 @@
         { "fieldPath": "recipientUid", "order": "ASCENDING" },
         { "fieldPath": "type", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "weddingChatHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "weddingId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -439,5 +439,11 @@ service cloud.firestore {
       allow read: if isPlatformAdmin();
       allow create, update, delete: if false;
     }
+
+    // Wedding AI Q&A history — written/read via Admin SDK API routes only
+    // (/api/wedding-chat + /api/wedding-chat/history) with premium membership checks.
+    match /weddingChatHistory/{entryId} {
+      allow read, write: if false;
+    }
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
 import { PaymentAuthError } from "@/lib/server/payment-auth"
 import { assertFamilyWeddingPremium } from "@/lib/server/premium-auth"
+import { saveWeddingChatExchange } from "@/lib/server/wedding-chat-history"
 import {
   isVectorConfigured,
   retrieveKnowledgeChunks,
@@ -78,7 +79,7 @@ function configPresence() {
 
 export async function POST(req: NextRequest) {
   try {
-    await assertFamilyWeddingPremium(req)
+    const { uid, weddingId } = await assertFamilyWeddingPremium(req)
 
     const presence = configPresence()
     console.info("[wedding-chat] config", presence)
@@ -157,6 +158,25 @@ export async function POST(req: NextRequest) {
       .map((block) => (block.type === "text" ? block.text : ""))
       .join("")
 
+    let historyId: string | null = null
+    let historySaved = false
+    try {
+      historyId = await saveWeddingChatExchange({
+        weddingId,
+        userId: uid,
+        question: userMessage,
+        answer: reply,
+        citations,
+      })
+      historySaved = true
+    } catch (historyErr) {
+      console.error("[wedding-chat] history write failed", {
+        weddingId,
+        userId: uid,
+        err: historyErr,
+      })
+    }
+
     return NextResponse.json({
       reply,
       citations,
@@ -168,6 +188,8 @@ export async function POST(req: NextRequest) {
         region: c.region,
       })),
       grounded: chunks.length > 0,
+      historyId,
+      historySaved,
     })
   } catch (err) {
     if (err instanceof PaymentAuthError) {
