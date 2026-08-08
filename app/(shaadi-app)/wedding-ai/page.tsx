@@ -1,11 +1,17 @@
 "use client"
 
 /**
- * Premium wedding AI chat UI — Markdown rendering + conversational layout.
- * Does not change /api/wedding-chat behaviour.
+ * Premium wedding AI chat UI — Markdown rendering + conversational layout
+ * with persisted past Q&A for the signed-in family's wedding.
  */
 
-import { useState, type FormEvent, type ReactNode } from "react"
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react"
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -32,6 +38,14 @@ type ChatTurn =
       citations: Citation[]
       retrieved: RetrievedMeta[]
     }
+
+type HistoryItem = {
+  id: string
+  question: string
+  answer: string
+  citations: Citation[]
+  createdAt: number
+}
 
 const markdownComponents = {
   h2: ({ children }: { children?: ReactNode }) => (
@@ -108,6 +122,17 @@ function AssistantMarkdown({ content }: { content: string }) {
   )
 }
 
+function formatHistoryWhen(createdAt: number): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(createdAt))
+  } catch {
+    return ""
+  }
+}
+
 export default function WeddingAiTestPage() {
   const { firebaseUser, isFamilyLoggedIn, authLoading } = useAuth()
   const { isFamilyPremium } = usePremium()
@@ -117,6 +142,81 @@ export default function WeddingAiTestPage() {
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [historyNextCursor, setHistoryNextCursor] = useState<number | null>(
+    null
+  )
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState("")
+  const [historyOpen, setHistoryOpen] = useState(true)
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(
+    null
+  )
+
+  const loadHistory = useCallback(async (opts?: { append?: boolean; cursor?: number | null }) => {
+    const fbUser = getFirebaseAuth().currentUser
+    if (!fbUser) return
+
+    setHistoryLoading(true)
+    setHistoryError("")
+    try {
+      const token = await fbUser.getIdToken()
+      const params = new URLSearchParams({ limit: "20" })
+      if (opts?.append && opts.cursor != null) {
+        params.set("cursor", String(opts.cursor))
+      }
+      const res = await fetch(`/api/wedding-chat/history?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = (await res.json()) as {
+        error?: string
+        items?: HistoryItem[]
+        nextCursor?: number | null
+      }
+      if (!res.ok) {
+        setHistoryError(data.error || `Could not load history (${res.status})`)
+        return
+      }
+      const items = data.items || []
+      setHistory((prev) => {
+        if (!opts?.append) return items
+        const seen = new Set(prev.map((h) => h.id))
+        return [...prev, ...items.filter((h) => !seen.has(h.id))]
+      })
+      setHistoryNextCursor(
+        typeof data.nextCursor === "number" ? data.nextCursor : null
+      )
+    } catch (err) {
+      setHistoryError(
+        err instanceof Error ? err.message : "Could not load history"
+      )
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isFamilyLoggedIn || !firebaseUser || !isFamilyPremium) return
+    void loadHistory()
+  }, [isFamilyLoggedIn, firebaseUser, isFamilyPremium, loadHistory])
+
+  function showHistoryItem(item: HistoryItem) {
+    setSelectedHistoryId(item.id)
+    setError("")
+    setTurns([
+      { id: `hist-u-${item.id}`, role: "user", content: item.question },
+      {
+        id: `hist-a-${item.id}`,
+        role: "assistant",
+        content: item.answer,
+        citations: item.citations || [],
+        retrieved: [],
+      },
+    ])
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
 
   async function ask(e?: FormEvent) {
     e?.preventDefault()
@@ -125,6 +225,7 @@ export default function WeddingAiTestPage() {
 
     setBusy(true)
     setError("")
+    setSelectedHistoryId(null)
     const userTurnId = `u-${Date.now()}`
     setTurns((prev) => [...prev, { id: userTurnId, role: "user", content: question }])
 
@@ -149,6 +250,8 @@ export default function WeddingAiTestPage() {
         citations?: Citation[]
         retrieved?: RetrievedMeta[]
         config?: Record<string, unknown>
+        historyId?: string | null
+        historySaved?: boolean
       }
       if (!res.ok) {
         const detail =
@@ -158,17 +261,33 @@ export default function WeddingAiTestPage() {
         setError((data.error || `Request failed (${res.status})`) + detail)
         return
       }
+      const reply = data.reply || ""
+      const citations = data.citations || []
       setTurns((prev) => [
         ...prev,
         {
           id: `a-${Date.now()}`,
           role: "assistant",
-          content: data.reply || "",
-          citations: data.citations || [],
+          content: reply,
+          citations,
           retrieved: data.retrieved || [],
         },
       ])
       setDraft("")
+
+      if (data.historySaved && data.historyId) {
+        const entry: HistoryItem = {
+          id: data.historyId,
+          question,
+          answer: reply,
+          citations,
+          createdAt: Date.now(),
+        }
+        setHistory((prev) => [entry, ...prev.filter((h) => h.id !== entry.id)])
+        setSelectedHistoryId(entry.id)
+      } else if (data.historySaved === false) {
+        console.warn("[wedding-ai] answer returned but history was not saved")
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed")
     } finally {
@@ -363,6 +482,89 @@ export default function WeddingAiTestPage() {
           </div>
         </div>
       </form>
+
+      {isFamilyPremium && firebaseUser && (
+        <section className="mt-6 border-t border-maroon/8 pt-5">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 text-left"
+            onClick={() => setHistoryOpen((open) => !open)}
+            aria-expanded={historyOpen}
+          >
+            <span className="font-sans text-sm font-semibold text-maroon-dark">
+              Past questions
+              {history.length > 0 ? (
+                <span className="ml-2 font-normal text-maroon/40">
+                  ({history.length}
+                  {historyNextCursor != null ? "+" : ""})
+                </span>
+              ) : null}
+            </span>
+            <span className="font-sans text-xs text-maroon/40">
+              {historyOpen ? "Hide" : "Show"}
+            </span>
+          </button>
+
+          {historyOpen && (
+            <div className="mt-3 space-y-2">
+              {historyLoading && history.length === 0 && (
+                <p className="font-sans text-sm text-maroon/45">Loading history…</p>
+              )}
+              {historyError && (
+                <p className="rounded-2xl bg-amber-50/90 px-3 py-2 font-sans text-sm text-amber-950/80">
+                  {historyError}
+                </p>
+              )}
+              {!historyLoading && !historyError && history.length === 0 && (
+                <p className="font-sans text-sm text-maroon/45">
+                  No past questions yet. Ask something above and it will show up
+                  here after you reload.
+                </p>
+              )}
+              <ul className="space-y-1.5">
+                {history.map((item) => {
+                  const active = selectedHistoryId === item.id
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => showHistoryItem(item)}
+                        className={`w-full rounded-2xl px-3.5 py-2.5 text-left transition ring-1 ${
+                          active
+                            ? "bg-maroon/5 ring-maroon/20"
+                            : "bg-white/50 ring-maroon/8 hover:bg-white/80 hover:ring-maroon/15"
+                        }`}
+                      >
+                        <p className="line-clamp-2 font-sans text-sm leading-snug text-maroon-dark">
+                          {item.question}
+                        </p>
+                        <p className="mt-1 font-sans text-[11px] text-maroon/40">
+                          {formatHistoryWhen(item.createdAt)}
+                        </p>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+              {historyNextCursor != null && (
+                <button
+                  type="button"
+                  disabled={historyLoading}
+                  onClick={() =>
+                    void loadHistory({
+                      append: true,
+                      cursor: historyNextCursor,
+                    })
+                  }
+                  className="mt-1 font-sans text-sm font-medium text-maroon underline decoration-gold/40 underline-offset-2 disabled:opacity-45"
+                >
+                  {historyLoading ? "Loading…" : "Load older questions"}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
     </main>
   )
 }
