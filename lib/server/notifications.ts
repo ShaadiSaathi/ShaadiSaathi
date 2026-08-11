@@ -17,6 +17,8 @@ export type AdminCreateNotificationInput = {
   message: string
   taskId?: string
   bookingId?: string
+  vendorId?: string
+  threadId?: string
   href?: string
   priority?: NotificationPriority
   actorUid?: string
@@ -42,6 +44,8 @@ export async function createNotificationAdmin(
     createdAt: Date.now(),
     ...(input.taskId ? { taskId: input.taskId } : {}),
     ...(input.bookingId ? { bookingId: input.bookingId } : {}),
+    ...(input.vendorId ? { vendorId: input.vendorId } : {}),
+    ...(input.threadId ? { threadId: input.threadId } : {}),
     ...(input.href ? { href: input.href } : {}),
     ...(input.priority ? { priority: input.priority } : {}),
     ...(input.actorUid ? { actorUid: input.actorUid } : {}),

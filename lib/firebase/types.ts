@@ -150,6 +150,9 @@ export type NotificationType =
   | "dispute_vendor_response"
   | "dispute_auto_resolved"
   | "no_show_declared"
+  | "booking_message"
+  | "vendor_inquiry_message"
+  | "family_consult_message"
 
 export type NotificationPriority = "normal" | "urgent"
 
@@ -167,6 +170,10 @@ export interface FirestoreNotification {
   taskId?: string
   /** Related booking (quotes, disputes, extra work, requests) */
   bookingId?: string
+  /** Related vendor (pre-booking inquiry / family consult) */
+  vendorId?: string
+  /** Related chat thread (inquiry / consult) */
+  threadId?: string
   /** Deep link inside the app (family or vendor path) */
   href?: string
   /** urgent = Extra Work Needed and similar time-sensitive alerts */
@@ -314,17 +321,38 @@ export interface FirestoreBooking {
   lastReadByVendor?: number
 }
 
+export type ChatThreadType = "vendor_inquiry" | "family_consult"
+
+/** Pre-booking vendor chat or family-only consult about a vendor. */
+export interface FirestoreChatThread {
+  id: string
+  type: ChatThreadType
+  weddingId: string
+  vendorId: string
+  vendorName: string
+  createdAt: number
+  updatedAt: number
+  lastMessageAt?: number
+  lastMessagePreview?: string
+}
+
 export interface FirestoreMessage {
   id: string
-  bookingId: string
+  /** Booking-scoped chat (family ↔ vendor after request/confirm). */
+  bookingId?: string
+  /** Thread-scoped chat (inquiry / family consult). */
+  threadId?: string
   senderId: string
   senderType: "family" | "vendor"
+  senderName?: string
   text: string
+  imageUrl?: string
   timestamp: number
 }
 
 export interface FirestoreTypingState {
-  bookingId: string
+  bookingId?: string
+  threadId?: string
   familyTyping?: boolean
   vendorTyping?: boolean
   updatedAt: number

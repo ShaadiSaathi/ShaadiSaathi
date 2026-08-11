@@ -273,22 +273,123 @@ service cloud.firestore {
     }
 
     match /messages/{messageId} {
-      allow read: if isPlatformAdmin() || (isSignedIn() && (
-        isWeddingMember(get(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.weddingId)
-        || isVendorOwner(get(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.vendorId)
-      ));
-      allow create: if isSignedIn()
-        && request.resource.data.text is string
-        && request.resource.data.text.size() > 0
-        && request.resource.data.text.size() <= 2000
-        && (
-          isWeddingMember(get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.weddingId)
-          || isVendorOwner(get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.vendorId)
-        );
+      function messageBookingId() {
+        return resource.data.bookingId;
+      }
+      function messageThreadId() {
+        return resource.data.threadId;
+      }
+      function createBookingId() {
+        return request.resource.data.bookingId;
+      }
+      function createThreadId() {
+        return request.resource.data.threadId;
+      }
+      function threadDoc(threadId) {
+        return get(/databases/$(database)/documents/chatThreads/$(threadId));
+      }
+      function canAccessBookingMessages(bookingId) {
+        return bookingId is string
+          && exists(/databases/$(database)/documents/bookings/$(bookingId))
+          && (
+            isWeddingMember(get(/databases/$(database)/documents/bookings/$(bookingId)).data.weddingId)
+            || isVendorOwner(get(/databases/$(database)/documents/bookings/$(bookingId)).data.vendorId)
+          );
+      }
+      function canAccessThreadMessages(threadId) {
+        return threadId is string
+          && exists(/databases/$(database)/documents/chatThreads/$(threadId))
+          && (
+            isWeddingMember(threadDoc(threadId).data.weddingId)
+            || (
+              threadDoc(threadId).data.type == 'vendor_inquiry'
+              && isVendorOwner(threadDoc(threadId).data.vendorId)
+            )
+          );
+      }
+      function validMessageCreate() {
+        let d = request.resource.data;
+        let hasBooking = d.keys().hasAny(['bookingId']);
+        let hasThread = d.keys().hasAny(['threadId']);
+        let hasText = d.keys().hasAny(['text']) && d.text is string && d.text.size() > 0 && d.text.size() <= 2000;
+        let hasImage = d.keys().hasAny(['imageUrl']) && d.imageUrl is string && d.imageUrl.size() > 0 && d.imageUrl.size() <= 2000;
+        return d.keys().hasOnly([
+            'bookingId', 'threadId', 'senderId', 'senderType', 'senderName',
+            'text', 'imageUrl', 'timestamp'
+          ])
+          && ((hasBooking && !hasThread) || (!hasBooking && hasThread))
+          && d.senderId == request.auth.uid
+          && d.senderType in ['family', 'vendor']
+          && (!d.keys().hasAny(['senderName']) || (d.senderName is string && d.senderName.size() <= 80))
+          && (hasText || hasImage)
+          && (!hasText || (d.text is string && d.text.size() <= 2000))
+          && d.timestamp is number
+          && (
+            (hasBooking && canAccessBookingMessages(createBookingId()))
+            || (hasThread && canAccessThreadMessages(createThreadId()))
+          );
+      }
+
+      allow read: if isPlatformAdmin()
+        || (isSignedIn() && (
+          (resource.data.keys().hasAny(['bookingId']) && canAccessBookingMessages(messageBookingId()))
+          || (resource.data.keys().hasAny(['threadId']) && canAccessThreadMessages(messageThreadId()))
+        ));
+      allow create: if isSignedIn() && validMessageCreate();
       allow update, delete: if false;
     }
 
-    match /typing/{bookingId} {
+    match /chatThreads/{threadId} {
+      function threadReadable() {
+        return isWeddingMember(resource.data.weddingId)
+          || (
+            resource.data.type == 'vendor_inquiry'
+            && isVendorOwner(resource.data.vendorId)
+          );
+      }
+      function validThreadCreate() {
+        let d = request.resource.data;
+        return d.keys().hasOnly([
+            'id', 'type', 'weddingId', 'vendorId', 'vendorName',
+            'createdAt', 'updatedAt', 'lastMessageAt', 'lastMessagePreview'
+          ])
+          && d.id == threadId
+          && d.type in ['vendor_inquiry', 'family_consult']
+          && d.weddingId is string
+          && d.vendorId is string
+          && d.vendorName is string && d.vendorName.size() > 0 && d.vendorName.size() <= 120
+          && d.createdAt is number
+          && d.updatedAt is number
+          && isWeddingMember(d.weddingId)
+          && (
+            d.type == 'family_consult'
+            || exists(/databases/$(database)/documents/vendors/$(d.vendorId))
+          );
+      }
+      function validThreadTouch() {
+        let changed = request.resource.data.diff(resource.data).affectedKeys();
+        return changed.hasOnly(['updatedAt', 'lastMessageAt', 'lastMessagePreview'])
+          && request.resource.data.updatedAt is number
+          && request.resource.data.lastMessageAt is number
+          && request.resource.data.lastMessagePreview is string
+          && request.resource.data.lastMessagePreview.size() <= 140;
+      }
+
+      allow read: if isPlatformAdmin() || (isSignedIn() && threadReadable());
+      allow create: if isSignedIn() && validThreadCreate();
+      allow update: if isSignedIn()
+        && validThreadTouch()
+        && (
+          isWeddingMember(resource.data.weddingId)
+          || (
+            resource.data.type == 'vendor_inquiry'
+            && isVendorOwner(resource.data.vendorId)
+          )
+        );
+      allow delete: if false;
+    }
+
+    match /typing/{scopeId} {
       allow read, write: if isSignedIn();
     }
 
@@ -358,7 +459,8 @@ service cloud.firestore {
         'task_assigned', 'task_due_soon',
         'booking_request', 'quote_received', 'quote_accepted', 'quote_rejected',
         'extra_work_needed', 'dispute_raised', 'dispute_vendor_response',
-        'dispute_auto_resolved', 'no_show_declared'
+        'dispute_auto_resolved', 'no_show_declared',
+        'booking_message', 'vendor_inquiry_message', 'family_consult_message'
       ];
     }
 
@@ -393,11 +495,26 @@ service cloud.firestore {
         && isVendorOwner(bookingDoc(d.bookingId).data.vendorId);
     }
 
+    function notificationRecipientIsInquiryVendor() {
+      let d = request.resource.data;
+      return d.keys().hasAny(['vendorId'])
+        && d.vendorId is string
+        && exists(/databases/$(database)/documents/vendors/$(d.vendorId))
+        && vendorOwnerUid(d.vendorId) == d.recipientUid;
+    }
+
+    function notificationActorIsInquiryVendor() {
+      let d = request.resource.data;
+      return d.keys().hasAny(['vendorId'])
+        && d.vendorId is string
+        && isVendorOwner(d.vendorId);
+    }
+
     function isValidNotificationCreate() {
       let d = request.resource.data;
       return d.keys().hasOnly([
           'id', 'recipientUid', 'weddingId', 'type', 'message',
-          'taskId', 'bookingId', 'href', 'priority',
+          'taskId', 'bookingId', 'vendorId', 'threadId', 'href', 'priority',
           'read', 'createdAt', 'actorUid', 'actorName'
         ])
         && d.id == request.resource.id
@@ -407,6 +524,8 @@ service cloud.firestore {
         && d.message is string && d.message.size() > 0 && d.message.size() <= 500
         && (!d.keys().hasAny(['taskId']) || (d.taskId is string && d.taskId.size() > 0 && d.taskId.size() <= 128))
         && (!d.keys().hasAny(['bookingId']) || (d.bookingId is string && d.bookingId.size() > 0 && d.bookingId.size() <= 128))
+        && (!d.keys().hasAny(['vendorId']) || (d.vendorId is string && d.vendorId.size() > 0 && d.vendorId.size() <= 128))
+        && (!d.keys().hasAny(['threadId']) || (d.threadId is string && d.threadId.size() > 0 && d.threadId.size() <= 160))
         && (!d.keys().hasAny(['href']) || (d.href is string && d.href.size() > 0 && d.href.size() <= 300))
         && (!d.keys().hasAny(['priority']) || d.priority in ['normal', 'urgent'])
         && d.read == false
@@ -414,11 +533,23 @@ service cloud.firestore {
         && (!d.keys().hasAny(['actorUid']) || (d.actorUid is string && d.actorUid.size() <= 128))
         && (!d.keys().hasAny(['actorName']) || (d.actorName is string && d.actorName.size() <= 80))
         && (
-          // Family/collaborator → fellow member (tasks) or booking vendor
+          // Family/collaborator → fellow member (tasks/consult) or booking/inquiry vendor
           (isWeddingMember(d.weddingId)
-            && (notificationRecipientIsWeddingMember() || notificationRecipientIsBookingVendor()))
-          // Vendor → wedding members on their booking
+            && (
+              notificationRecipientIsWeddingMember()
+              || notificationRecipientIsBookingVendor()
+              || (
+                d.type in ['vendor_inquiry_message', 'family_consult_message', 'booking_message']
+                && notificationRecipientIsInquiryVendor()
+              )
+            ))
+          // Vendor → wedding members on their booking or inquiry
           || (notificationActorIsBookingVendor() && notificationRecipientIsWeddingMember())
+          || (
+            notificationActorIsInquiryVendor()
+            && notificationRecipientIsWeddingMember()
+            && d.type == 'vendor_inquiry_message'
+          )
         );
     }
 

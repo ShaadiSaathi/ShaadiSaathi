@@ -1,22 +1,66 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import type { Vendor } from "@/lib/mockVendors"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
+import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
+import { ensureChatThread } from "@/lib/firebase/chat-threads"
+import { isFirebaseConfigured } from "@/lib/firebase/config"
+import { sendMessage } from "@/lib/firebase/messages"
 
 interface MessageModalProps {
   vendor: Vendor
   onClose: () => void
 }
 
-/** Mock contact modal — no real messaging backend */
+/** Pre-booking contact modal — writes a real inquiry thread + first message. */
 export default function MessageModal({ vendor, onClose }: MessageModalProps) {
+  const router = useRouter()
+  const { familyUser, firebaseUser, isFamilyLoggedIn } = useAuth()
+  const { weddingId } = useWedding()
   const [message, setMessage] = useState("")
-  const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSent(true)
+    const trimmed = message.trim()
+    if (!trimmed || sending) return
+
+    if (!isFirebaseConfigured()) {
+      setError("Messaging requires Firebase.")
+      return
+    }
+    if (!isFamilyLoggedIn || !weddingId) {
+      setError("Sign in to your wedding account to message vendors.")
+      return
+    }
+
+    setSending(true)
+    setError(null)
+    try {
+      const threadId = await ensureChatThread({
+        type: "vendor_inquiry",
+        weddingId,
+        vendorId: vendor.id,
+        vendorName: vendor.name,
+      })
+      await sendMessage({
+        threadId,
+        senderId: firebaseUser?.uid ?? familyUser?.uid ?? "family",
+        senderType: "family",
+        senderName: familyUser?.name,
+        text: trimmed,
+      })
+      onClose()
+      router.push(`/vendors/${vendor.id}/messages`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn’t send message")
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -41,50 +85,41 @@ export default function MessageModal({ vendor, onClose }: MessageModalProps) {
           <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
-        {sent ? (
-          <div className="text-center">
-            <h2 id="message-modal-title" className="font-display text-xl font-semibold text-maroon-dark">
-              Message sent
-            </h2>
-            <p className="mt-3 text-sm text-maroon/70">
-              {/* PLACEHOLDER: connect to real messaging when backend exists */}
-              Your message to {vendor.name} has been queued. They typically reply within a day.
-            </p>
-            <GoldButton onClick={onClose} className="mt-6 min-h-[44px] w-full">
-              Close
-            </GoldButton>
-          </div>
-        ) : (
-          <>
-            <h2 id="message-modal-title" className="font-display text-xl font-semibold text-maroon-dark">
-              Message {vendor.name}
-            </h2>
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <div>
-                <label htmlFor="vendor-message" className="block text-sm font-medium text-maroon/70">
-                  Your message
-                </label>
-                <textarea
-                  id="vendor-message"
-                  required
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Hi, we're planning our walima and would love to know..."
-                  className="mt-1 w-full resize-none rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
-                />
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <GoldButton type="submit" className="min-h-[44px] flex-1">
-                  Send
-                </GoldButton>
-                <GoldButton type="button" variant="ghost" onClick={onClose} className="min-h-[44px] flex-1">
-                  Cancel
-                </GoldButton>
-              </div>
-            </form>
-          </>
-        )}
+          <h2 id="message-modal-title" className="font-display text-xl font-semibold text-maroon-dark">
+            Message {vendor.name}
+          </h2>
+          <p className="mt-1 text-sm text-maroon/60">
+            Starts a real chat — they’ll see it in their vendor inbox.
+          </p>
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+            <div>
+              <label htmlFor="vendor-message" className="block text-sm font-medium text-maroon/70">
+                Your message
+              </label>
+              <textarea
+                id="vendor-message"
+                required
+                rows={4}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Hi, we're planning our walima and would love to know..."
+                className="mt-1 w-full resize-none rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+              />
+            </div>
+            {error ? (
+              <p className="text-sm text-red-700" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <GoldButton type="submit" disabled={sending} className="min-h-[44px] flex-1">
+                {sending ? "Sending…" : "Send"}
+              </GoldButton>
+              <GoldButton type="button" variant="ghost" onClick={onClose} className="min-h-[44px] flex-1">
+                Cancel
+              </GoldButton>
+            </div>
+          </form>
         </div>
       </div>
     </div>

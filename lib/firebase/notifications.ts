@@ -36,6 +36,8 @@ export type CreateNotificationInput = {
   message: string
   taskId?: string
   bookingId?: string
+  vendorId?: string
+  threadId?: string
   href?: string
   priority?: NotificationPriority
   actorUid?: string
@@ -53,6 +55,8 @@ function toAppNotification(data: FirestoreNotification): AppNotification {
     createdAt: data.createdAt,
     ...(data.taskId ? { taskId: data.taskId } : {}),
     ...(data.bookingId ? { bookingId: data.bookingId } : {}),
+    ...(data.vendorId ? { vendorId: data.vendorId } : {}),
+    ...(data.threadId ? { threadId: data.threadId } : {}),
     ...(data.href ? { href: data.href } : {}),
     ...(data.priority ? { priority: data.priority } : {}),
     ...(data.actorUid ? { actorUid: data.actorUid } : {}),
@@ -158,6 +162,8 @@ export async function createNotification(input: CreateNotificationInput): Promis
     createdAt: Date.now(),
     ...(input.taskId ? { taskId: input.taskId } : {}),
     ...(input.bookingId ? { bookingId: input.bookingId } : {}),
+    ...(input.vendorId ? { vendorId: input.vendorId } : {}),
+    ...(input.threadId ? { threadId: input.threadId } : {}),
     ...(input.href ? { href: input.href } : {}),
     ...(input.priority ? { priority: input.priority } : {}),
     ...(input.actorUid ? { actorUid: input.actorUid } : {}),
@@ -247,10 +253,17 @@ export function resolveNotificationHref(
 ): string {
   if (item.href) return item.href
   if (item.taskId) return `/tasks#task-${item.taskId}`
+  if (item.threadId) {
+    return portal === "vendor"
+      ? `/vendor/inquiries/${item.threadId}`
+      : item.vendorId
+        ? `/vendors/${item.vendorId}/messages`
+        : "/vendors"
+  }
   if (item.bookingId) {
     return portal === "vendor"
-      ? `/vendor/jobs/${item.bookingId}`
-      : `/vendors/bookings#booking-${item.bookingId}`
+      ? `/vendor/jobs/${item.bookingId}/messages`
+      : `/vendors/bookings/${item.bookingId}/messages`
   }
   return portal === "vendor" ? "/vendor/requests" : "/vendors/bookings"
 }

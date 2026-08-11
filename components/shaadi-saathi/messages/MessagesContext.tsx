@@ -38,7 +38,7 @@ function countUnread(
 ): number {
   let count = 0
   for (const msg of messages) {
-    if (!bookingIds.includes(msg.bookingId)) continue
+    if (!msg.bookingId || !bookingIds.includes(msg.bookingId)) continue
     if (msg.senderType !== fromSender) continue
     const readAt = lastRead[msg.bookingId] ?? 0
     if (msg.timestamp > readAt) count++
