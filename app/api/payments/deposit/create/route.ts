@@ -84,6 +84,30 @@ export async function POST(request: Request) {
 
     await assertWeddingPaymentOwner(weddingId, user.uid)
 
+    if (!/^[a-zA-Z0-9_-]{8,128}$/.test(bookingId)) {
+      return NextResponse.json({ message: "Invalid booking id" }, { status: 400 })
+    }
+
+    const bookingRef = getAdminDb().collection("bookings").doc(bookingId)
+    const existingSnap = await bookingRef.get()
+    if (existingSnap.exists) {
+      const existing = existingSnap.data() as {
+        weddingId?: string
+        createdByUid?: string
+        status?: string
+      }
+      if (
+        existing.weddingId !== weddingId ||
+        existing.createdByUid !== user.uid ||
+        (existing.status && existing.status !== "requested")
+      ) {
+        return NextResponse.json(
+          { message: "Booking id is already in use" },
+          { status: 409 }
+        )
+      }
+    }
+
     const weddingSnap = await getAdminDb().collection("weddings").doc(weddingId).get()
     if (!weddingSnap.exists) {
       return NextResponse.json({ message: "Wedding not found" }, { status: 404 })
@@ -136,32 +160,31 @@ export async function POST(request: Request) {
       // Keep depositStatus held once authorized; until then track via booking status
     }
 
-    await getAdminDb()
-      .collection("bookings")
-      .doc(bookingId)
-      .set(
-        {
-          id: bookingId,
-          weddingId,
-          vendorId,
-          eventId,
-          eventDate,
-          status: "requested",
-          price: totalPrice,
-          paymentPath,
-          familyName: body.familyName ?? "",
-          weddingName: body.weddingName ?? "",
-          vendorName: body.vendorName ?? "Vendor",
-          ...(body.packageName ? { packageName: body.packageName } : {}),
-          ...(body.guestCount != null ? { guestCount: body.guestCount } : {}),
-          ...(body.note ? { note: body.note } : {}),
-          payment: draftPayment,
-          createdByUid: user.uid,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        { merge: true }
-      )
+    await bookingRef.set(
+      {
+        id: bookingId,
+        weddingId,
+        vendorId,
+        eventId,
+        eventDate,
+        status: "requested",
+        price: totalPrice,
+        paymentPath,
+        familyName: body.familyName ?? "",
+        weddingName: body.weddingName ?? "",
+        vendorName: body.vendorName ?? "Vendor",
+        ...(body.packageName ? { packageName: body.packageName } : {}),
+        ...(body.guestCount != null ? { guestCount: body.guestCount } : {}),
+        ...(body.note ? { note: body.note } : {}),
+        payment: draftPayment,
+        createdByUid: user.uid,
+        createdAt: existingSnap.exists
+          ? (existingSnap.data()?.createdAt as number | undefined) ?? Date.now()
+          : Date.now(),
+        updatedAt: Date.now(),
+      },
+      { merge: false }
+    )
 
     return NextResponse.json({
       clientSecret: intent.clientSecret,

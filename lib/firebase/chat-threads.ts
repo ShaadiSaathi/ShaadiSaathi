@@ -6,7 +6,7 @@ import {
   updateDoc,
   type Unsubscribe,
 } from "firebase/firestore"
-import { getFirestoreDb } from "./config"
+import { getFirebaseAuth, getFirestoreDb } from "./config"
 import type { ChatThreadType, FirestoreChatThread } from "./types"
 
 export function inquiryThreadId(weddingId: string, vendorId: string): string {
@@ -39,6 +39,8 @@ export async function ensureChatThread(input: {
   const existing = await getDoc(ref)
   if (existing.exists()) return id
 
+  const uid = getFirebaseAuth().currentUser?.uid
+  if (!uid) throw new Error("Sign in to start a conversation")
   const now = Date.now()
   const thread: FirestoreChatThread = {
     id,
@@ -46,6 +48,7 @@ export async function ensureChatThread(input: {
     weddingId: input.weddingId,
     vendorId: input.vendorId,
     vendorName: input.vendorName,
+    createdByUid: uid,
     createdAt: now,
     updatedAt: now,
   }

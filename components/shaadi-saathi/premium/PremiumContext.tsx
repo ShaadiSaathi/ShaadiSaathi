@@ -18,7 +18,7 @@ import {
   FREE_LIMITS,
 } from "@/lib/premium"
 import type { VendorCategoryId } from "@/lib/mockVendors"
-import { updateWeddingInviteTheme, updateWeddingPremium } from "@/lib/firebase/weddings"
+import { updateWeddingInviteTheme } from "@/lib/firebase/weddings"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 
@@ -154,12 +154,14 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
   const purchaseFamilyPremium = useCallback(async () => {
     await mockPaymentDelay()
-    setIsFamilyPremium(true)
-    if (isFirebaseMode && weddingId) {
-      await updateWeddingPremium(weddingId, true)
+    if (isFirebaseMode) {
+      throw new Error(
+        "Premium is enabled by Shaadi Saathi after payment — it cannot be turned on from the app."
+      )
     }
+    setIsFamilyPremium(true)
     setShowPremiumConfirmation(true)
-  }, [weddingId, isFirebaseMode])
+  }, [isFirebaseMode])
 
   const subscribeVendorFeatured = useCallback(async () => {
     // TODO: real payment integration here (recurring subscription)

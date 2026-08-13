@@ -15,6 +15,7 @@ import { getFirestoreDb, isFirebaseConfigured } from "./config"
 import { DEMO_VENDOR_ID } from "./seed"
 import type { FirestoreVendor } from "./types"
 import { createUserProfile, getUserProfile, upsertUserProfile, updateUserContactEmail } from "./users"
+import { upsertVendorKyc } from "./vendor-kyc"
 import {
   isValidCnicInput,
   normalizeVendorVerificationStatus,
@@ -269,9 +270,18 @@ export async function submitVendorVerification(
   }
 
   const now = Date.now()
+  await upsertVendorKyc({
+    vendorId,
+    ownerUid,
+    verificationCnic: cnic,
+    verificationBusinessName: businessName,
+    verificationCity: city,
+    submittedAt: now,
+    updatedAt: now,
+  })
   await updateDoc(doc(getFirestoreDb(), "vendors", vendorId), {
     verificationStatus: "pending",
-    verificationCnic: cnic,
+    verificationCnic: deleteField(),
     verificationBusinessName: businessName,
     verificationCity: city,
     verificationSubmittedAt: now,

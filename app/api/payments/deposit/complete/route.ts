@@ -73,7 +73,13 @@ export async function POST(request: Request) {
     await assertWeddingPaymentOwner(booking.weddingId, user.uid)
 
     const intent = await retrievePaymentIntent(paymentIntentId)
-    if (intent.metadata?.bookingId && intent.metadata.bookingId !== bookingId) {
+    if (intent.metadata?.bookingId !== bookingId || intent.metadata?.kind !== "deposit") {
+      return NextResponse.json({ message: "Payment does not match booking" }, { status: 400 })
+    }
+    if (
+      booking.payment?.stripeDepositPaymentIntentId &&
+      booking.payment.stripeDepositPaymentIntentId !== paymentIntentId
+    ) {
       return NextResponse.json({ message: "Payment does not match booking" }, { status: 400 })
     }
 

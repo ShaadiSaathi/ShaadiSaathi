@@ -73,11 +73,8 @@ export async function POST(request: Request) {
   const authUser = await getAdminAuth().getUser(uid)
   const authPhone = authUser.phoneNumber ?? ""
   const profileSnap = await db.collection("users").doc(uid).get()
-  const profilePhone =
-    typeof profileSnap.data()?.phone === "string" ? profileSnap.data()!.phone : ""
 
-  const userPhone = authPhone || profilePhone
-  if (!phonesMatch(userPhone, invite.phone as string)) {
+  if (!authPhone || !phonesMatch(authPhone, invite.phone as string)) {
     return NextResponse.json(
       {
         error:

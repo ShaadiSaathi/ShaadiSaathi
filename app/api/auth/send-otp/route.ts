@@ -11,6 +11,7 @@ import { otpErrorResponse, otpJson, readJsonBody } from "@/lib/server/request"
 import { isFirebaseAdminConfigured } from "@/lib/server/firebase-admin"
 import { isTwilioConfigured, sendTwilioOtp } from "@/lib/server/twilio"
 import { logOtpError, logOtpSuccess } from "@/lib/server/verification-log"
+import { assertOtpSendAllowed } from "@/lib/server/otp-rate-limit"
 
 export const runtime = "nodejs"
 
@@ -52,6 +53,26 @@ export async function POST(request: Request) {
 
     if (body.flow !== undefined && body.flow !== null && isOtpFlow(body.flow)) {
       flow = body.flow
+    }
+
+    try {
+      await assertOtpSendAllowed(phone)
+    } catch (rateErr) {
+      const code =
+        typeof rateErr === "object" &&
+        rateErr !== null &&
+        "code" in rateErr &&
+        (rateErr as { code: unknown }).code === "otp/too-many-requests"
+          ? "otp/too-many-requests"
+          : ""
+      if (code) {
+        throw new OtpApiError(
+          "otp/too-many-requests",
+          OTP_FRIENDLY["otp/too-many-requests"]!,
+          429
+        )
+      }
+      throw rateErr
     }
 
     const result = await sendTwilioOtp(phone, channel)

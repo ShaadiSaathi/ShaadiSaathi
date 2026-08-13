@@ -38,11 +38,21 @@ export async function GET(request: Request) {
       .where("verificationStatus", "==", "pending")
       .get()
 
-    const vendors: AdminPendingVendor[] = snap.docs
-      .map((docSnap) => {
+    const db = getAdminDb()
+    const vendors: AdminPendingVendor[] = (
+      await Promise.all(
+        snap.docs.map(async (docSnap) => {
         const data = docSnap.data()
         const status = normalizeVendorVerificationStatus(data.verificationStatus)
         if (status !== "pending") return null
+        const kycSnap = await db.collection("vendor_kyc").doc(docSnap.id).get()
+        const kyc = kycSnap.data() ?? {}
+        const cnic =
+          typeof kyc.verificationCnic === "string"
+            ? kyc.verificationCnic
+            : typeof data.verificationCnic === "string"
+              ? data.verificationCnic
+              : "—"
         return {
           id: docSnap.id,
           businessName:
@@ -51,8 +61,7 @@ export async function GET(request: Request) {
           phone: typeof data.phone === "string" ? data.phone : "—",
           ownerUid: typeof data.ownerUid === "string" ? data.ownerUid : "",
           verificationStatus: "pending" as const,
-          verificationCnic:
-            typeof data.verificationCnic === "string" ? data.verificationCnic : "—",
+          verificationCnic: cnic,
           verificationBusinessName:
             typeof data.verificationBusinessName === "string"
               ? data.verificationBusinessName
@@ -72,6 +81,8 @@ export async function GET(request: Request) {
           createdAt: typeof data.createdAt === "number" ? data.createdAt : 0,
         }
       })
+      )
+    )
       .filter((row): row is AdminPendingVendor => row !== null)
       .sort(
         (a, b) =>

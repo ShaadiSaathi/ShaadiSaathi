@@ -17,7 +17,7 @@ import { getInviteTheme, type InviteThemeId } from "@/lib/premium"
 import { isFirebaseConfigured } from "@/lib/firebase/config"
 import { claimGuestOnWeddingInvite } from "@/lib/firebase/guests"
 import { updateGuestRsvpBulkByGuestViaApi } from "@/lib/firebase/guest-rsvp-client"
-import { getWedding, subscribeWedding } from "@/lib/firebase/weddings"
+import { fetchPublicWedding } from "@/lib/firebase/public-wedding"
 
 interface WeddingInvitePageProps {
   token: string
@@ -54,12 +54,11 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
       return
     }
 
-    let unsub: (() => void) | undefined
     let cancelled = false
 
     ;(async () => {
       try {
-        const wedding = await getWedding(token)
+        const wedding = await fetchPublicWedding(token)
         if (cancelled) return
         if (!wedding) {
           setInvalid(true)
@@ -71,13 +70,6 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
         setInviteTheme(wedding.inviteTheme)
         setIsPremium(wedding.isPremium)
         setLoading(false)
-        unsub = subscribeWedding(wedding.id, (w) => {
-          if (!w) return
-          setCoupleName(w.couple)
-          setWeddingName(w.name)
-          setInviteTheme(w.inviteTheme)
-          setIsPremium(w.isPremium)
-        })
       } catch {
         if (!cancelled) {
           setInvalid(true)
@@ -88,7 +80,6 @@ export default function WeddingInvitePage({ token }: WeddingInvitePageProps) {
 
     return () => {
       cancelled = true
-      unsub?.()
     }
   }, [token, isMockToken])
 

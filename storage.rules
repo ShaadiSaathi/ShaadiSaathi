@@ -6,14 +6,39 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function canAccessBooking(scopeId) {
+      return isSignedIn()
+        && firestore.exists(/databases/(default)/documents/bookings/$(scopeId))
+        && (
+          request.auth.uid in firestore.get(/databases/(default)/documents/weddings/$(firestore.get(/databases/(default)/documents/bookings/$(scopeId)).data.weddingId)).data.memberUids
+          || firestore.get(/databases/(default)/documents/vendors/$(firestore.get(/databases/(default)/documents/bookings/$(scopeId)).data.vendorId)).data.ownerUid == request.auth.uid
+        );
+    }
+
+    function canAccessThread(scopeId) {
+      return isSignedIn()
+        && firestore.exists(/databases/(default)/documents/chatThreads/$(scopeId))
+        && (
+          request.auth.uid in firestore.get(/databases/(default)/documents/weddings/$(firestore.get(/databases/(default)/documents/chatThreads/$(scopeId)).data.weddingId)).data.memberUids
+          || (
+            firestore.get(/databases/(default)/documents/chatThreads/$(scopeId)).data.type == 'vendor_inquiry'
+            && firestore.get(/databases/(default)/documents/vendors/$(firestore.get(/databases/(default)/documents/chatThreads/$(scopeId)).data.vendorId)).data.ownerUid == request.auth.uid
+          )
+        );
+    }
+
+    function canAccessChat(scopeId) {
+      return canAccessBooking(scopeId) || canAccessThread(scopeId);
+    }
+
     // Chat images: chat/{bookingOrThreadId}/{uid}/{filename}
     match /chat/{scopeId}/{userId}/{fileName} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn()
+      allow read: if canAccessChat(scopeId);
+      allow write: if canAccessChat(scopeId)
         && request.auth.uid == userId
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
-      allow delete: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if isSignedIn() && request.auth.uid == userId && canAccessChat(scopeId);
     }
   }
 }

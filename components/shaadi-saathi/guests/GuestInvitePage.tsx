@@ -31,7 +31,7 @@ import {
   updateGuestRsvpBulkByGuestViaApi,
   updateGuestRsvpByGuestViaApi,
 } from "@/lib/firebase/guest-rsvp-client"
-import { getWedding, subscribeWedding } from "@/lib/firebase/weddings"
+import { fetchPublicWedding } from "@/lib/firebase/public-wedding"
 
 interface GuestInvitePageProps {
   guestToken: string
@@ -136,8 +136,6 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
   useEffect(() => {
     if (!isFirebaseConfigured()) return
 
-    let weddingUnsub: (() => void) | undefined
-
     const guestUnsub = subscribeGuestByToken(
       guestToken,
       async (g) => {
@@ -167,22 +165,13 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
             const weddingId =
               (loaded as Guest & { weddingId?: string }).weddingId ??
               (await getGuestDocWeddingId(guestToken))
-            const wedding = await getWedding(weddingId)
+            const wedding = await fetchPublicWedding(weddingId)
             if (wedding) {
               setCoupleName(wedding.couple)
               setInviteTheme(wedding.inviteTheme)
               setIsPremium(wedding.isPremium)
               setEventOverrides(wedding.eventOverrides ?? {})
               setWeddingTimeZone(wedding.timezone ?? DEFAULT_WEDDING_TIMEZONE)
-              weddingUnsub = subscribeWedding(wedding.id, (w) => {
-                if (w) {
-                  setCoupleName(w.couple)
-                  setInviteTheme(w.inviteTheme)
-                  setIsPremium(w.isPremium)
-                  setEventOverrides(w.eventOverrides ?? {})
-                  setWeddingTimeZone(w.timezone ?? DEFAULT_WEDDING_TIMEZONE)
-                }
-              })
             }
             // Wedding read may fail under older rules; RSVP still works from the guest doc.
           } catch {
@@ -200,7 +189,6 @@ export default function GuestInvitePage({ guestToken }: GuestInvitePageProps) {
 
     return () => {
       guestUnsub()
-      weddingUnsub?.()
     }
   }, [guestToken])
 

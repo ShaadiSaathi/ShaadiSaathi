@@ -1,5 +1,5 @@
 import { normalizeE164 } from "@/lib/auth/otp-types"
-import { getAdminAuth, getAdminDb, isFirebaseAdminConfigured } from "./firebase-admin"
+import { getAdminAuth, isFirebaseAdminConfigured } from "./firebase-admin"
 
 export class AdminAuthError extends Error {
   readonly status: number
@@ -29,14 +29,8 @@ export function isAdminPhoneConfigured(): boolean {
   return getAdminPhoneAllowlist().length > 0
 }
 
-async function resolveUserPhone(uid: string, tokenPhone?: string): Promise<string | null> {
-  const fromToken = tokenPhone ? normalizeE164(tokenPhone) : null
-  if (fromToken) return fromToken
-
-  const snap = await getAdminDb().collection("users").doc(uid).get()
-  const profilePhone =
-    typeof snap.data()?.phone === "string" ? snap.data()!.phone : ""
-  return normalizeE164(profilePhone)
+async function resolveUserPhone(tokenPhone?: string): Promise<string | null> {
+  return tokenPhone ? normalizeE164(tokenPhone) : null
 }
 
 export async function verifyAdminRequest(
@@ -66,7 +60,7 @@ export async function verifyAdminRequest(
     throw new AdminAuthError(401, "Invalid session")
   }
 
-  const phone = await resolveUserPhone(decoded.uid, decoded.phone_number)
+  const phone = await resolveUserPhone(decoded.phone_number)
   const allowlist = getAdminPhoneAllowlist()
   if (!phone || !allowlist.includes(phone)) {
     throw new AdminAuthError(403, "Forbidden")

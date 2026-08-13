@@ -677,12 +677,9 @@ export const triggerBookingAutomations = onRequest(
   async (req, res) => {
     const secret =
       process.env.AUTOMATION_TRIGGER_SECRET || process.env.REMINDER_TRIGGER_SECRET
-    if (secret) {
-      const provided = req.get("x-automation-secret")
-      if (provided !== secret) {
-        res.status(401).json({ error: "Unauthorized" })
-        return
-      }
+    if (!secret || req.get("x-automation-secret") !== secret) {
+      res.status(401).json({ error: "Unauthorized" })
+      return
     }
     try {
       const result = await runBookingAutomationSweep({ source: "manual_trigger" })
@@ -704,12 +701,9 @@ export const triggerDueSoonReminders = onRequest(
   },
   async (req, res) => {
     const secret = process.env.REMINDER_TRIGGER_SECRET
-    if (secret) {
-      const provided = req.get("x-reminder-secret")
-      if (provided !== secret) {
-        res.status(401).json({ error: "Unauthorized" })
-        return
-      }
+    if (!secret || req.get("x-reminder-secret") !== secret) {
+      res.status(401).json({ error: "Unauthorized" })
+      return
     }
     try {
       const result = await runDueSoonReminders()

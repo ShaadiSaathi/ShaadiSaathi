@@ -3,8 +3,8 @@
  *
  * Context
  * -------
- * Shaadi Saathi already uses Anthropic (`app/api/chat`) for Refine Max and
- * gates family paid features via `usePremium().isFamilyPremium`. There is no
+ * Shaadi Saathi uses Anthropic via `POST /api/wedding-chat` (premium-gated)
+ * and gates family paid features via `usePremium().isFamilyPremium`. There is no
  * embedding or vector dependency yet; Firestore has no vector indexes.
  *
  * Recommended stack (compatible with Firebase + current Anthropic chat)
@@ -34,7 +34,7 @@
  *      than we need for a static cultural KB.
  *
  * 5. Query path (premium-gated):
- *    Client → `POST /api/wedding-chat` (new; do not overload Refine `/api/chat`)
+ *    Client → `POST /api/wedding-chat`
  *      → require Firebase Auth + `wedding.isPremium` (same source as PremiumContext)
  *      → embed question → top-k chunks → build system prompt:
  *         "Answer only from CONTEXT. If missing, say you don't know.

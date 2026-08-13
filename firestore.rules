@@ -30,16 +30,130 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/vendors/$(vendorId)).data.ownerUid == request.auth.uid;
     }
 
-    /** Collaborators may not rewrite ownership; owner may (future transfer). */
+    /** Ownership and premium are Admin SDK only after create. */
     function weddingOwnershipFieldsUnchanged() {
       return request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.memberUids == resource.data.memberUids;
+    }
+
+    function weddingPremiumUnchanged() {
+      return request.resource.data.isPremium == resource.data.isPremium;
+    }
+
+    function isValidWeddingCreate(weddingId) {
+      let d = request.resource.data;
+      return d.ownerId == request.auth.uid
+        && d.id == weddingId
+        && d.memberUids is list
+        && d.memberUids.size() == 1
+        && request.auth.uid in d.memberUids
+        && d.isPremium == false
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 120;
     }
 
     /** Non-financial booking touch (message read receipts). */
     function bookingFamilyReadReceiptOnly() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['lastReadByFamily']);
+    }
+
+    function bookingImmutableFieldsUnchanged() {
+      return request.resource.data.weddingId == resource.data.weddingId
+        && request.resource.data.vendorId == resource.data.vendorId
+        && request.resource.data.get('createdByUid', '') == resource.data.get('createdByUid', '')
+        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0)
+        && request.resource.data.get('payment', null) == resource.data.get('payment', null);
+    }
+
+    function bookingClientStatusAllowed() {
+      return request.resource.data.status in ['requested', 'confirmed', 'declined', 'disputed'];
+    }
+
+    function bookingDisputeClientOk() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return !changed.hasAny(['dispute'])
+        || (
+          request.resource.data.dispute is map
+          && request.resource.data.dispute.status == 'under_review'
+          && !request.resource.data.dispute.keys().hasAny([
+            'resolution', 'resolvedAt', 'resolvedByUid', 'autoResolved'
+          ])
+        );
+    }
+
+    function bookingNonPaymentUpdateKeys() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return bookingImmutableFieldsUnchanged()
+        && bookingClientStatusAllowed()
+        && bookingDisputeClientOk()
+        && !changed.hasAny(['payment', 'weddingId', 'vendorId', 'createdByUid', 'createdAt', 'id'])
+        && changed.hasOnly([
+          'status', 'price', 'packageName', 'guestCount', 'note',
+          'counterOffer', 'dispute', 'extraWorkRequest',
+          'lastReadByFamily', 'lastReadByVendor', 'updatedAt', 'eventDate'
+        ]);
+    }
+
+    function canAccessBooking(bookingId) {
+      return isSignedIn()
+        && bookingId is string
+        && exists(/databases/$(database)/documents/bookings/$(bookingId))
+        && (
+          isWeddingMember(get(/databases/$(database)/documents/bookings/$(bookingId)).data.weddingId)
+          || isVendorOwner(get(/databases/$(database)/documents/bookings/$(bookingId)).data.vendorId)
+        );
+    }
+
+    function canAccessThread(threadId) {
+      return isSignedIn()
+        && threadId is string
+        && exists(/databases/$(database)/documents/chatThreads/$(threadId))
+        && (
+          isWeddingMember(get(/databases/$(database)/documents/chatThreads/$(threadId)).data.weddingId)
+          || (
+            get(/databases/$(database)/documents/chatThreads/$(threadId)).data.type == 'vendor_inquiry'
+            && isVendorOwner(get(/databases/$(database)/documents/chatThreads/$(threadId)).data.vendorId)
+          )
+        );
+    }
+
+    function userIdentityLinksOk(d) {
+      return d.role in ['family', 'vendor']
+        && d.phone is string && d.phone.size() >= 8 && d.phone.size() <= 40
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 80
+        && (!d.keys().hasAny(['email']) || (d.email is string && d.email.size() <= 120))
+        && (!d.keys().hasAny(['weddingId']) || (
+          d.weddingId is string
+          && d.weddingId.size() > 0
+          && d.weddingId.size() <= 128
+          && isWeddingMember(d.weddingId)
+        ))
+        && (!d.keys().hasAny(['vendorId']) || (
+          d.vendorId is string
+          && d.vendorId.size() > 0
+          && d.vendorId.size() <= 128
+          && isVendorOwner(d.vendorId)
+        ));
+    }
+
+    function isValidUserCreate(userId) {
+      let d = request.resource.data;
+      return isSignedIn()
+        && request.auth.uid == userId
+        && d.keys().hasOnly(['uid', 'role', 'phone', 'name', 'createdAt', 'weddingId', 'vendorId', 'email'])
+        && d.uid == userId
+        && d.createdAt is number
+        && userIdentityLinksOk(d);
+    }
+
+    function isValidUserUpdate(userId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && changed.hasOnly(['name', 'email', 'phone', 'role', 'weddingId', 'vendorId'])
+        && userIdentityLinksOk(request.resource.data);
     }
 
     function isPlatformAdmin() {
@@ -54,7 +168,6 @@ service cloud.firestore {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return changed.hasOnly([
           'verificationStatus',
-          'verificationCnic',
           'verificationBusinessName',
           'verificationCity',
           'verificationSubmittedAt',
@@ -62,9 +175,7 @@ service cloud.firestore {
         ])
         && request.resource.data.verificationStatus == 'pending'
         && resource.data.get('verificationStatus', 'unverified') in ['unverified', 'rejected']
-        && request.resource.data.verificationCnic is string
-        && request.resource.data.verificationCnic.size() >= 5
-        && request.resource.data.verificationCnic.size() <= 20
+        && !request.resource.data.keys().hasAny(['verificationCnic'])
         && request.resource.data.verificationBusinessName is string
         && request.resource.data.verificationBusinessName.size() >= 2
         && request.resource.data.verificationCity is string
@@ -154,19 +265,23 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isPlatformAdmin() || (isSignedIn() && request.auth.uid == userId);
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isValidUserCreate(userId);
+      allow update: if isValidUserUpdate(userId);
+      allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 
     match /weddings/{weddingId} {
-      // Public guest invite pages need couple name + theme without auth.
-      allow get: if true;
+      // Invite pages use /api/invite/wedding/[id] for public fields.
+      // Full docs (organiserPhone, memberUids, shareCode) are members/admin only.
+      allow get: if isWeddingMember(weddingId) || isPlatformAdmin();
       allow list: if isWeddingMember(weddingId) || isPlatformAdmin();
-      allow create: if isSignedIn();
-      // Owner: full update (incl. future ownerId transfer). Collaborators: anything
-      // except ownerId/memberUids (those change via Admin SDK on invite accept).
+      allow create: if isSignedIn() && isValidWeddingCreate(weddingId);
       allow update: if isPlatformAdmin()
-        || isWeddingOwner(weddingId)
-        || (isWeddingMember(weddingId) && weddingOwnershipFieldsUnchanged());
+        || (
+          (isWeddingOwner(weddingId) || isWeddingMember(weddingId))
+          && weddingOwnershipFieldsUnchanged()
+          && weddingPremiumUnchanged()
+        );
       allow delete: if isWeddingOwner(weddingId) || isPlatformAdmin();
     }
 
@@ -196,7 +311,9 @@ service cloud.firestore {
       allow read: if true;
       // New vendors must start unverified — they cannot self-approve for payments.
       allow create: if isSignedIn()
-        && request.resource.data.verificationStatus == 'unverified';
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.verificationStatus == 'unverified'
+        && !request.resource.data.keys().hasAny(['verificationCnic']);
       allow update: if isPlatformAdmin()
         || (isVendorOwner(vendorId) && vendorOwnerUpdateAllowed());
       allow delete: if isVendorOwner(vendorId) || isPlatformAdmin();
@@ -253,10 +370,15 @@ service cloud.firestore {
         || (isSignedIn()
           && isWeddingOwner(request.resource.data.weddingId)
           && request.resource.data.status == 'requested');
-      // Payment/status/dispute writes: owner or vendor. Collaborators: read receipts only.
+      // Payment fields are Admin SDK only (Stripe webhook / payment APIs).
+      // Owner/vendor may update status, quotes, disputes — not payment.
       allow update: if isPlatformAdmin()
-        || (isSignedIn() && isVendorOwner(resource.data.vendorId))
-        || (isSignedIn() && isWeddingOwner(resource.data.weddingId))
+        || (isSignedIn()
+          && isVendorOwner(resource.data.vendorId)
+          && bookingNonPaymentUpdateKeys())
+        || (isSignedIn()
+          && isWeddingOwner(resource.data.weddingId)
+          && bookingNonPaymentUpdateKeys())
         || (isSignedIn()
           && isWeddingMember(resource.data.weddingId)
           && bookingFamilyReadReceiptOnly());
@@ -273,40 +395,6 @@ service cloud.firestore {
     }
 
     match /messages/{messageId} {
-      function messageBookingId() {
-        return resource.data.bookingId;
-      }
-      function messageThreadId() {
-        return resource.data.threadId;
-      }
-      function createBookingId() {
-        return request.resource.data.bookingId;
-      }
-      function createThreadId() {
-        return request.resource.data.threadId;
-      }
-      function threadDoc(threadId) {
-        return get(/databases/$(database)/documents/chatThreads/$(threadId));
-      }
-      function canAccessBookingMessages(bookingId) {
-        return bookingId is string
-          && exists(/databases/$(database)/documents/bookings/$(bookingId))
-          && (
-            isWeddingMember(get(/databases/$(database)/documents/bookings/$(bookingId)).data.weddingId)
-            || isVendorOwner(get(/databases/$(database)/documents/bookings/$(bookingId)).data.vendorId)
-          );
-      }
-      function canAccessThreadMessages(threadId) {
-        return threadId is string
-          && exists(/databases/$(database)/documents/chatThreads/$(threadId))
-          && (
-            isWeddingMember(threadDoc(threadId).data.weddingId)
-            || (
-              threadDoc(threadId).data.type == 'vendor_inquiry'
-              && isVendorOwner(threadDoc(threadId).data.vendorId)
-            )
-          );
-      }
       function validMessageCreate() {
         let d = request.resource.data;
         let hasBooking = d.keys().hasAny(['bookingId']);
@@ -325,15 +413,15 @@ service cloud.firestore {
           && (!hasText || (d.text is string && d.text.size() <= 2000))
           && d.timestamp is number
           && (
-            (hasBooking && canAccessBookingMessages(createBookingId()))
-            || (hasThread && canAccessThreadMessages(createThreadId()))
+            (hasBooking && canAccessBooking(d.bookingId))
+            || (hasThread && canAccessThread(d.threadId))
           );
       }
 
       allow read: if isPlatformAdmin()
         || (isSignedIn() && (
-          (resource.data.keys().hasAny(['bookingId']) && canAccessBookingMessages(messageBookingId()))
-          || (resource.data.keys().hasAny(['threadId']) && canAccessThreadMessages(messageThreadId()))
+          (resource.data.keys().hasAny(['bookingId']) && canAccessBooking(resource.data.bookingId))
+          || (resource.data.keys().hasAny(['threadId']) && canAccessThread(resource.data.threadId))
         ));
       allow create: if isSignedIn() && validMessageCreate();
       allow update, delete: if false;
@@ -351,7 +439,8 @@ service cloud.firestore {
         let d = request.resource.data;
         return d.keys().hasOnly([
             'id', 'type', 'weddingId', 'vendorId', 'vendorName',
-            'createdAt', 'updatedAt', 'lastMessageAt', 'lastMessagePreview'
+            'createdAt', 'updatedAt', 'lastMessageAt', 'lastMessagePreview',
+            'createdByUid'
           ])
           && d.id == threadId
           && d.type in ['vendor_inquiry', 'family_consult']
@@ -360,6 +449,7 @@ service cloud.firestore {
           && d.vendorName is string && d.vendorName.size() > 0 && d.vendorName.size() <= 120
           && d.createdAt is number
           && d.updatedAt is number
+          && d.createdByUid == request.auth.uid
           && isWeddingMember(d.weddingId)
           && (
             d.type == 'family_consult'
@@ -390,13 +480,17 @@ service cloud.firestore {
     }
 
     match /typing/{scopeId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if canAccessBooking(scopeId) || canAccessThread(scopeId);
     }
 
     match /events/{eventId} {
-      allow read: if true;
-      allow write: if isSignedIn()
-        && isWeddingMember(request.resource.data.weddingId);
+      allow read: if isPlatformAdmin()
+        || (isSignedIn() && isWeddingMember(resource.data.weddingId));
+      allow create: if isSignedIn() && isWeddingMember(request.resource.data.weddingId);
+      allow update: if isSignedIn()
+        && isWeddingMember(resource.data.weddingId)
+        && request.resource.data.weddingId == resource.data.weddingId;
+      allow delete: if isSignedIn() && isWeddingMember(resource.data.weddingId);
     }
 
     // OTP audit logs: clients may create (pre-auth) with strict validation;
@@ -575,6 +669,55 @@ service cloud.firestore {
     // (/api/wedding-chat + /api/wedding-chat/history) with premium membership checks.
     match /weddingChatHistory/{entryId} {
       allow read, write: if false;
+    }
+
+    match /healthChecks/{checkId} {
+      allow read, write: if false;
+    }
+
+    match /otp_rate_limits/{limitId} {
+      allow read, write: if false;
+    }
+
+    // CNIC / national ID — never on the public vendors listing.
+    function isValidVendorKycWrite(vendorId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'vendorId', 'ownerUid', 'verificationCnic',
+          'verificationBusinessName', 'verificationCity',
+          'submittedAt', 'updatedAt'
+        ])
+        && d.vendorId == vendorId
+        && d.ownerUid == request.auth.uid
+        && d.verificationCnic is string
+        && d.verificationCnic.size() >= 5
+        && d.verificationCnic.size() <= 20
+        && d.verificationBusinessName is string
+        && d.verificationBusinessName.size() >= 2
+        && d.verificationBusinessName.size() <= 120
+        && d.verificationCity is string
+        && d.verificationCity.size() >= 2
+        && d.verificationCity.size() <= 80
+        && d.submittedAt is number
+        && d.updatedAt is number;
+    }
+
+    match /vendor_kyc/{vendorId} {
+      allow read: if isPlatformAdmin()
+        || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create: if isSignedIn()
+        && isVendorOwner(vendorId)
+        && isValidVendorKycWrite(vendorId);
+      allow update: if isPlatformAdmin()
+        || (isSignedIn()
+          && isVendorOwner(vendorId)
+          && resource.data.ownerUid == request.auth.uid
+          && isValidVendorKycWrite(vendorId)
+          && request.resource.data.ownerUid == resource.data.ownerUid);
+      allow delete: if isPlatformAdmin()
+        || (isSignedIn()
+          && isVendorOwner(vendorId)
+          && resource.data.ownerUid == request.auth.uid);
     }
   }
 }

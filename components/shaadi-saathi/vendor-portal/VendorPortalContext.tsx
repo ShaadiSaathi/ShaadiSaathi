@@ -27,7 +27,7 @@ import {
 } from "@/lib/mockVendorPortal"
 import { subscribeBookingsByVendor, setBookingCounterOffer, setBookingExtraWorkRequest, updateBookingFields, updateBookingStatus } from "@/lib/firebase/bookings"
 import { getVendor, submitVendorVerification } from "@/lib/firebase/vendors"
-import { getWedding } from "@/lib/firebase/weddings"
+import { getVendorKyc } from "@/lib/firebase/vendor-kyc"
 import {
   createNotification,
   formatDisputeVendorResponseMessage,
@@ -193,6 +193,7 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
     if (!isFirebaseMode || !vendorId) return
     const vendor = await getVendor(vendorId)
     if (!vendor) return
+    const kyc = await getVendorKyc(vendorId)
     const category = getCategoryById(vendor.categoryId)
     setBusiness((prev) => ({
       ...prev,
@@ -204,9 +205,10 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
       bio: vendor.bio || prev.bio,
       email: vendor.email || prev.email,
       verificationStatus: vendor.verificationStatus ?? "unverified",
-      verificationCnic: vendor.verificationCnic,
-      verificationBusinessName: vendor.verificationBusinessName,
-      verificationCity: vendor.verificationCity,
+      verificationCnic: kyc?.verificationCnic ?? vendor.verificationCnic,
+      verificationBusinessName:
+        kyc?.verificationBusinessName ?? vendor.verificationBusinessName,
+      verificationCity: kyc?.verificationCity ?? vendor.verificationCity,
       verificationSubmittedAt: vendor.verificationSubmittedAt,
       verificationRejectionReason: vendor.verificationRejectionReason,
       completedJobsCount: vendor.completedJobsCount ?? prev.completedJobsCount,
@@ -314,8 +316,7 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
           },
           "requested"
         )
-        const wedding = await getWedding(booking.weddingId)
-        const recipientUid = wedding?.ownerId
+        const recipientUid = booking.createdByUid
         if (recipientUid && recipientUid !== firebaseUser.uid) {
           await createNotification({
             recipientUid,
@@ -416,8 +417,7 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
           vendorResponse: response.trim(),
         }
         await updateBookingFields(jobId, { dispute: nextDispute })
-        const wedding = await getWedding(booking.weddingId)
-        const recipientUid = wedding?.ownerId
+        const recipientUid = booking.createdByUid
         const event = EVENTS.find((e) => e.id === booking.eventId)
         if (recipientUid && recipientUid !== firebaseUser.uid) {
           await createNotification({
@@ -464,8 +464,7 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
         requestedAt: Date.now(),
         requestedByUid: firebaseUser.uid,
       })
-      const wedding = await getWedding(booking.weddingId)
-      const recipientUid = wedding?.ownerId
+      const recipientUid = booking.createdByUid
       const event = EVENTS.find((e) => e.id === booking.eventId)
       if (recipientUid && recipientUid !== firebaseUser.uid) {
         await createNotification({

@@ -17,12 +17,9 @@ export async function POST(request: Request) {
     )
   }
 
-  const secret = process.env.REMINDER_TRIGGER_SECRET
-  if (secret) {
-    const provided = request.headers.get("x-reminder-secret")
-    if (provided !== secret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+  const secret = process.env.REMINDER_TRIGGER_SECRET?.trim()
+  if (!secret || request.headers.get("x-reminder-secret") !== secret) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {

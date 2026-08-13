@@ -110,11 +110,11 @@ async function notifyBookingMessage(input: {
     return
   }
 
-  const wedding = await getWedding(booking.weddingId)
-  const members = wedding?.memberUids ?? []
+  const recipients = [booking.createdByUid].filter(
+    (uid): uid is string => Boolean(uid) && uid !== input.senderId
+  )
   await Promise.all(
-    members
-      .filter((uid) => uid && uid !== input.senderId)
+    recipients
       .map((uid) =>
         createNotification({
           recipientUid: uid,
@@ -160,11 +160,11 @@ async function notifyThreadMessage(input: {
       return
     }
 
-    const wedding = await getWedding(thread.weddingId)
-    const members = wedding?.memberUids ?? []
+    const recipients = [thread.createdByUid].filter(
+      (uid): uid is string => Boolean(uid) && uid !== input.senderId
+    )
     await Promise.all(
-      members
-        .filter((uid) => uid && uid !== input.senderId)
+      recipients
         .map((uid) =>
           createNotification({
             recipientUid: uid,

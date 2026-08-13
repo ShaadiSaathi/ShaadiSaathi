@@ -327,6 +327,8 @@ export type ChatThreadType = "vendor_inquiry" | "family_consult"
 export interface FirestoreChatThread {
   id: string
   type: ChatThreadType
+  /** Family uid that opened the thread — used so vendors can notify without reading the wedding doc. */
+  createdByUid?: string
   weddingId: string
   vendorId: string
   vendorName: string

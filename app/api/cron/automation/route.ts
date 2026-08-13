@@ -16,11 +16,7 @@ function assertSecret(request: Request): boolean {
   const expected =
     process.env.AUTOMATION_TRIGGER_SECRET?.trim() ||
     process.env.REMINDER_TRIGGER_SECRET?.trim()
-  if (!expected) {
-    // Fail closed outside local/staging convenience: require a secret in production.
-    if (process.env.VERCEL_ENV === "production") return false
-    return true
-  }
+  if (!expected) return false
   return request.headers.get("x-automation-secret") === expected
 }
 
