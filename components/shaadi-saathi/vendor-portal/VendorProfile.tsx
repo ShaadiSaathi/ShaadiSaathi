@@ -331,13 +331,21 @@ export default function VendorProfile() {
         ) : null}
 
         {status === "pending" ? (
-          <p className="mt-4 text-sm text-amber-900/90">
-            Your details are under review. You can’t receive real payments until an admin
-            approves verification.
-            {business.verificationSubmittedAt
-              ? ` Submitted ${new Date(business.verificationSubmittedAt).toLocaleString()}.`
-              : null}
-          </p>
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-amber-900/90">
+              Your details are under review. You can’t receive real payments until an admin
+              approves verification.
+              {business.verificationSubmittedAt
+                ? ` Submitted ${new Date(business.verificationSubmittedAt).toLocaleString()}.`
+                : null}
+            </p>
+            <Link
+              href="/vendor/onboarding"
+              className="inline-flex min-h-[44px] items-center text-sm font-semibold text-amber-950 underline-offset-2 hover:underline"
+            >
+              Edit submission →
+            </Link>
+          </div>
         ) : null}
 
         {status === "rejected" ? (

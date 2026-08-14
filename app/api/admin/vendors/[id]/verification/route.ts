@@ -7,8 +7,12 @@ import { FieldValue } from "firebase-admin/firestore"
 import { AdminAuthError, verifyAdminRequest } from "@/lib/server/admin-auth"
 import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin"
 import { normalizeVendorVerificationStatus } from "@/lib/firebase/vendor-verification"
+import { createNotificationAdmin } from "@/lib/server/notifications"
 
 export const runtime = "nodejs"
+
+/** Sentinel weddingId for platform → vendor notifications (Admin SDK bypasses rules). */
+const PLATFORM_NOTIFICATION_WEDDING_ID = "platform"
 
 type Body = {
   action?: "approve" | "reject"
@@ -58,14 +62,31 @@ export async function POST(
       )
     }
 
+    const ownerUid = typeof data.ownerUid === "string" ? data.ownerUid : ""
+    const businessName =
+      typeof data.businessName === "string" ? data.businessName : "your business"
     const now = Date.now()
+
     if (body.action === "approve") {
       await vendorRef.update({
         verificationStatus: "verified",
+        onboardingStatus: "active",
         verificationReviewedAt: now,
         verificationRejectionReason: FieldValue.delete(),
         verifiedByUid: admin.uid,
       })
+      if (ownerUid) {
+        await createNotificationAdmin({
+          recipientUid: ownerUid,
+          weddingId: PLATFORM_NOTIFICATION_WEDDING_ID,
+          type: "vendor_verification_approved",
+          message: `${businessName} was approved. You’re verified and can receive deposits and payouts.`,
+          vendorId: vendorId.trim(),
+          href: "/vendor/dashboard",
+          actorUid: admin.uid,
+          actorName: "Shaadi Saathi",
+        })
+      }
       return NextResponse.json({ ok: true, verificationStatus: "verified" })
     }
 
@@ -76,10 +97,24 @@ export async function POST(
 
     await vendorRef.update({
       verificationStatus: "rejected",
+      onboardingStatus: "rejected",
       verificationReviewedAt: now,
       verificationRejectionReason: reason,
       verifiedByUid: FieldValue.delete(),
     })
+    if (ownerUid) {
+      await createNotificationAdmin({
+        recipientUid: ownerUid,
+        weddingId: PLATFORM_NOTIFICATION_WEDDING_ID,
+        type: "vendor_verification_rejected",
+        message: reason.slice(0, 500),
+        vendorId: vendorId.trim(),
+        href: "/vendor/onboarding",
+        priority: "urgent",
+        actorUid: admin.uid,
+        actorName: "Shaadi Saathi",
+      })
+    }
 
     return NextResponse.json({
       ok: true,

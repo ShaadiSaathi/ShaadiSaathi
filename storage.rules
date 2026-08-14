@@ -40,5 +40,20 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
       allow delete: if isSignedIn() && request.auth.uid == userId && canAccessChat(scopeId);
     }
+
+    // Vendor portfolio / cover: vendors/{vendorId}/{uid}/{filename}
+    match /vendors/{vendorId}/{userId}/{fileName} {
+      function isVendorDocOwner() {
+        return isSignedIn()
+          && firestore.exists(/databases/(default)/documents/vendors/$(vendorId))
+          && firestore.get(/databases/(default)/documents/vendors/$(vendorId)).data.ownerUid == request.auth.uid;
+      }
+      allow read: if true;
+      allow write: if isVendorDocOwner()
+        && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isVendorDocOwner() && request.auth.uid == userId;
+    }
   }
 }

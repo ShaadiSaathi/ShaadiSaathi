@@ -205,6 +205,12 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
       bio: vendor.bio || prev.bio,
       email: vendor.email || prev.email,
       verificationStatus: vendor.verificationStatus ?? "unverified",
+      onboardingStatus: vendor.onboardingStatus,
+      onboardingStep: vendor.onboardingStep,
+      startingPrice: vendor.startingPrice,
+      pricingNotes: vendor.pricingNotes,
+      photoUrls: vendor.photoUrls,
+      availableFor: vendor.availableFor,
       verificationCnic: kyc?.verificationCnic ?? vendor.verificationCnic,
       verificationBusinessName:
         kyc?.verificationBusinessName ?? vendor.verificationBusinessName,

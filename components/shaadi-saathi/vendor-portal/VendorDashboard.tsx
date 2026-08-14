@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import StatCard from "@/components/shaadi-saathi/app/StatCard"
 import FeaturedBadge from "@/components/shaadi-saathi/premium/FeaturedBadge"
@@ -10,12 +12,35 @@ import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/Vendor
 import { formatEventDate } from "@/lib/mockData"
 import { formatPrice } from "@/lib/mockVendors"
 import { getMonthlyEarnings, isNewVendor } from "@/lib/mockVendorPortal"
+import {
+  normalizeVendorOnboardingStatus,
+  vendorNeedsOnboarding,
+  vendorOnboardingIsPending,
+} from "@/lib/firebase/vendor-onboarding"
 
 /** Vendor dashboard — overview, upcoming jobs, pending requests prompt */
 export default function VendorDashboard() {
+  const router = useRouter()
   const { business, requests, jobs } = useVendorPortal()
   const { vendorTier, nextBillingDate } = usePremium()
   const isFeatured = vendorTier === "featured"
+
+  const onboardingStatus = normalizeVendorOnboardingStatus(
+    business.onboardingStatus,
+    business.verificationStatus
+  )
+  const needsOnboarding = vendorNeedsOnboarding(business.onboardingStatus)
+  const isPendingReview = vendorOnboardingIsPending(
+    business.onboardingStatus,
+    business.verificationStatus
+  )
+  const isRejected = onboardingStatus === "rejected"
+
+  useEffect(() => {
+    if (needsOnboarding) {
+      router.replace("/vendor/onboarding")
+    }
+  }, [needsOnboarding, router])
 
   const pendingCount = requests.length
   const upcomingJobs = jobs
@@ -24,6 +49,14 @@ export default function VendorDashboard() {
   const upcomingThisMonth = upcomingJobs.filter((j) => j.eventDate.startsWith("2026-08")).length
   const monthlyEarnings = getMonthlyEarnings(jobs)
   const nextJobs = upcomingJobs.slice(0, 3)
+
+  if (needsOnboarding) {
+    return (
+      <PageTransition>
+        <p className="text-sm text-maroon/60">Redirecting to onboarding…</p>
+      </PageTransition>
+    )
+  }
 
   return (
     <PageTransition>
@@ -37,6 +70,57 @@ export default function VendorDashboard() {
           {isFeatured && <FeaturedBadge />}
         </p>
       </header>
+
+      {isPendingReview ? (
+        <section
+          aria-labelledby="pending-review-heading"
+          className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5"
+        >
+          <h2
+            id="pending-review-heading"
+            className="font-display text-lg font-semibold text-amber-950"
+          >
+            Pending review
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
+            Your listing is with our team. You can still edit your business info,
+            portfolio, and services while you wait.
+            {business.verificationSubmittedAt
+              ? ` Submitted ${new Date(business.verificationSubmittedAt).toLocaleString()}.`
+              : null}
+          </p>
+          <Link
+            href="/vendor/onboarding"
+            className="mt-4 inline-flex min-h-[44px] items-center text-sm font-semibold text-amber-950 underline-offset-2 hover:underline"
+          >
+            View or edit submission →
+          </Link>
+        </section>
+      ) : null}
+
+      {isRejected ? (
+        <section
+          aria-labelledby="rejected-review-heading"
+          className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-5"
+        >
+          <h2
+            id="rejected-review-heading"
+            className="font-display text-lg font-semibold text-rose-950"
+          >
+            Submission not approved
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-rose-900/90">
+            {business.verificationRejectionReason ||
+              "Please update your details and resubmit for review."}
+          </p>
+          <Link
+            href="/vendor/onboarding"
+            className="mt-4 inline-flex min-h-[44px] items-center text-sm font-semibold text-rose-950 underline-offset-2 hover:underline"
+          >
+            Fix and resubmit →
+          </Link>
+        </section>
+      ) : null}
 
       {/* Subscription status */}
       <section

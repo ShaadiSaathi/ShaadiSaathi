@@ -8,9 +8,10 @@ import type {
   InPersonMethod,
   PaymentPath,
 } from "@/lib/mockPayments"
+import type { VendorOnboardingStatus } from "./vendor-onboarding"
 import type { VendorVerificationStatus } from "./vendor-verification"
 
-export type { VendorVerificationStatus }
+export type { VendorOnboardingStatus, VendorVerificationStatus }
 
 export type UserRole = "family" | "vendor"
 
@@ -153,6 +154,8 @@ export type NotificationType =
   | "booking_message"
   | "vendor_inquiry_message"
   | "family_consult_message"
+  | "vendor_verification_approved"
+  | "vendor_verification_rejected"
 
 export type NotificationPriority = "normal" | "urgent"
 
@@ -240,11 +243,14 @@ export interface FirestoreVendor {
   ownerUid: string
   subscriptionTier: "basic" | "featured"
   createdAt: number
-  /** Optional listing fields — filled later in vendor profile */
+  /** Optional listing fields — filled later in vendor profile / onboarding */
   startingPrice?: number
+  /** Free-text pricing structure (packages, per-head, etc.) */
+  pricingNotes?: string
   coverGradient?: string
   galleryGradients?: string[]
   coverPhotoUrl?: string
+  /** Portfolio images from guided onboarding (also used as directory gallery) */
   photoUrls?: string[]
   packages?: FirestoreVendorPackage[]
   availableFor?: EventId[]
@@ -257,6 +263,13 @@ export interface FirestoreVendor {
   featuredBoost?: number
   rating?: number
   reviewCount?: number
+  /**
+   * Guided signup progress. Independent of payment KYC fields but kept in sync
+   * with verificationStatus on submit / admin review.
+   */
+  onboardingStatus?: VendorOnboardingStatus
+  /** Last completed wizard step (1–4) while drafting */
+  onboardingStep?: number
   /** Identity check for payments — defaults to unverified on signup */
   verificationStatus?: VendorVerificationStatus
   /** Submitted CNIC / national ID number (text only — no document upload yet) */

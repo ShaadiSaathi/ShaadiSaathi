@@ -161,42 +161,19 @@ service cloud.firestore {
     }
 
     /**
-     * Vendor owners may edit listing fields and submit KYC for review (pending),
-     * but cannot set themselves to verified/rejected or clear admin review fields.
+     * Vendor owners may edit listing / onboarding fields and submit KYC for review
+     * (pending), but cannot self-approve, self-reject, or write CNIC on the public doc.
      */
-    function vendorVerificationSubmitOnly() {
-      let changed = request.resource.data.diff(resource.data).affectedKeys();
-      return changed.hasOnly([
-          'verificationStatus',
-          'verificationBusinessName',
-          'verificationCity',
-          'verificationSubmittedAt',
-          'verificationRejectionReason',
-        ])
-        && request.resource.data.verificationStatus == 'pending'
-        && resource.data.get('verificationStatus', 'unverified') in ['unverified', 'rejected']
-        && !request.resource.data.keys().hasAny(['verificationCnic'])
-        && request.resource.data.verificationBusinessName is string
-        && request.resource.data.verificationBusinessName.size() >= 2
-        && request.resource.data.verificationCity is string
-        && request.resource.data.verificationCity.size() >= 2;
-    }
-
     function vendorOwnerUpdateAllowed() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
-      return vendorVerificationSubmitOnly()
-        || (
-          !changed.hasAny([
-            'verificationStatus',
-            'verificationCnic',
-            'verificationBusinessName',
-            'verificationCity',
-            'verificationSubmittedAt',
-            'verificationReviewedAt',
-            'verificationRejectionReason',
-            'ownerUid',
-          ])
-        );
+      let prevStatus = resource.data.get('verificationStatus', 'unverified');
+      let nextStatus = request.resource.data.get('verificationStatus', 'unverified');
+      let statusOk = nextStatus == prevStatus
+        || (nextStatus == 'pending'
+          && prevStatus in ['unverified', 'rejected', 'pending']);
+      return statusOk
+        && !changed.hasAny(['ownerUid', 'verificationReviewedAt', 'verifiedByUid'])
+        && !request.resource.data.keys().hasAny(['verificationCnic']);
     }
 
     function guestRsvpOnlyUpdate() {
@@ -554,7 +531,8 @@ service cloud.firestore {
         'booking_request', 'quote_received', 'quote_accepted', 'quote_rejected',
         'extra_work_needed', 'dispute_raised', 'dispute_vendor_response',
         'dispute_auto_resolved', 'no_show_declared',
-        'booking_message', 'vendor_inquiry_message', 'family_consult_message'
+        'booking_message', 'vendor_inquiry_message', 'family_consult_message',
+        'vendor_verification_approved', 'vendor_verification_rejected'
       ];
     }
 

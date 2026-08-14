@@ -17,6 +17,10 @@ import type { FirestoreVendor } from "./types"
 import { createUserProfile, getUserProfile, upsertUserProfile, updateUserContactEmail } from "./users"
 import { upsertVendorKyc } from "./vendor-kyc"
 import {
+  normalizeVendorOnboardingStatus,
+  type VendorOnboardingStatus,
+} from "./vendor-onboarding"
+import {
   isValidCnicInput,
   normalizeVendorVerificationStatus,
   sanitizeCnic,
@@ -38,7 +42,15 @@ export type CreateVendorInput = {
   categoryId: VendorCategoryId
   city: string
   phone: string
-  bio: string
+  bio?: string
+  email?: string
+  startingPrice?: number
+  pricingNotes?: string
+  availableFor?: EventId[]
+  photoUrls?: string[]
+  coverPhotoUrl?: string
+  onboardingStatus?: VendorOnboardingStatus
+  onboardingStep?: number
 }
 
 /** Fresh never-reused auto-ID for a new vendor document. */
@@ -55,6 +67,7 @@ function coverGradientForId(id: string): string {
 }
 
 function normalizeVendor(raw: FirestoreVendor): FirestoreVendor {
+  const verificationStatus = normalizeVendorVerificationStatus(raw.verificationStatus)
   return {
     ...raw,
     id: raw.id,
@@ -68,7 +81,14 @@ function normalizeVendor(raw: FirestoreVendor): FirestoreVendor {
     acceptsCardInPerson: raw.acceptsCardInPerson ?? false,
     featuredBoost:
       raw.featuredBoost ?? (raw.subscriptionTier === "featured" ? 10 : 0),
-    verificationStatus: normalizeVendorVerificationStatus(raw.verificationStatus),
+    verificationStatus,
+    onboardingStatus: normalizeVendorOnboardingStatus(
+      raw.onboardingStatus,
+      verificationStatus
+    ),
+    photoUrls: Array.isArray(raw.photoUrls)
+      ? raw.photoUrls.filter((u): u is string => typeof u === "string" && u.length > 0)
+      : [],
   }
 }
 
@@ -182,10 +202,10 @@ export async function createVendorForUser(
     categoryId: input.categoryId,
     city: input.city.trim(),
     phone: input.phone.trim(),
-    bio: input.bio.trim(),
+    bio: (input.bio ?? "").trim(),
     ownerUid: uid,
     subscriptionTier: "basic",
-    availableFor: ALL_EVENTS,
+    availableFor: input.availableFor?.length ? input.availableFor : ALL_EVENTS,
     completedJobsCount: 0,
     emergencyAvailable: false,
     reliabilityScore: 90,
@@ -195,8 +215,17 @@ export async function createVendorForUser(
     featuredBoost: 0,
     coverGradient: coverGradientForId(vendorId),
     verificationStatus: "unverified",
+    onboardingStatus: input.onboardingStatus ?? "draft",
+    onboardingStep: input.onboardingStep ?? 1,
     createdAt: Date.now(),
   }
+  if (input.email?.trim()) vendor.email = input.email.trim()
+  if (typeof input.startingPrice === "number" && Number.isFinite(input.startingPrice)) {
+    vendor.startingPrice = Math.max(0, Math.round(input.startingPrice))
+  }
+  if (input.pricingNotes?.trim()) vendor.pricingNotes = input.pricingNotes.trim()
+  if (input.photoUrls?.length) vendor.photoUrls = input.photoUrls
+  if (input.coverPhotoUrl?.trim()) vendor.coverPhotoUrl = input.coverPhotoUrl.trim()
 
   await setDoc(doc(db, "vendors", vendorId), vendor)
 
@@ -222,6 +251,210 @@ export async function createVendorForUser(
   return vendorId
 }
 
+export type VendorOnboardingDraftInput = {
+  businessName?: string
+  categoryId?: VendorCategoryId
+  city?: string
+  phone?: string
+  email?: string | null
+  bio?: string
+  startingPrice?: number
+  pricingNotes?: string | null
+  availableFor?: EventId[]
+  photoUrls?: string[]
+  coverPhotoUrl?: string | null
+  onboardingStep?: number
+}
+
+/**
+ * Save guided-onboarding fields while draft or pending review.
+ * Does not change verificationStatus / onboarding submit state.
+ */
+export async function updateVendorOnboardingDraft(
+  vendorId: string,
+  ownerUid: string,
+  input: VendorOnboardingDraftInput
+): Promise<void> {
+  if (!isFirebaseConfigured()) return
+
+  const vendor = await getVendor(vendorId)
+  if (!vendor) throw new Error("Vendor profile not found")
+  if (vendor.ownerUid !== ownerUid) {
+    throw new Error("Not authorized to update this vendor")
+  }
+  if (vendor.verificationStatus === "verified") {
+    throw new Error("Verified vendors edit listing details from Profile")
+  }
+
+  const patch: Record<string, unknown> = {}
+  if (input.businessName !== undefined) {
+    const name = input.businessName.trim()
+    if (name.length < 2) throw new Error("Business name is required")
+    patch.businessName = name
+  }
+  if (input.categoryId !== undefined) patch.categoryId = input.categoryId
+  if (input.city !== undefined) {
+    const city = input.city.trim()
+    if (city.length < 2) throw new Error("City is required")
+    patch.city = city
+  }
+  if (input.phone !== undefined) patch.phone = input.phone.trim()
+  if (input.email !== undefined) {
+    patch.email = input.email?.trim() ? input.email.trim() : deleteField()
+  }
+  if (input.bio !== undefined) patch.bio = input.bio.trim()
+  if (input.startingPrice !== undefined) {
+    if (!Number.isFinite(input.startingPrice) || input.startingPrice < 0) {
+      throw new Error("Enter a valid starting price")
+    }
+    patch.startingPrice = Math.round(input.startingPrice)
+  }
+  if (input.pricingNotes !== undefined) {
+    patch.pricingNotes = input.pricingNotes?.trim()
+      ? input.pricingNotes.trim().slice(0, 1000)
+      : deleteField()
+  }
+  if (input.availableFor !== undefined) {
+    const events = input.availableFor.filter((e) => ALL_EVENTS.includes(e))
+    if (events.length === 0) throw new Error("Select at least one event type")
+    patch.availableFor = events
+  }
+  if (input.photoUrls !== undefined) {
+    patch.photoUrls = input.photoUrls.filter(
+      (u) => typeof u === "string" && u.length > 0
+    ).slice(0, 8)
+  }
+  if (input.coverPhotoUrl !== undefined) {
+    patch.coverPhotoUrl = input.coverPhotoUrl?.trim()
+      ? input.coverPhotoUrl.trim()
+      : deleteField()
+  }
+  if (input.onboardingStep !== undefined) {
+    const step = Math.min(4, Math.max(1, Math.round(input.onboardingStep)))
+    patch.onboardingStep = step
+  }
+
+  if (Object.keys(patch).length === 0) return
+  await updateDoc(doc(getFirestoreDb(), "vendors", vendorId), patch)
+
+  if (input.email !== undefined) {
+    await updateUserContactEmail(
+      getFirestoreDb(),
+      ownerUid,
+      input.email?.trim() ? input.email.trim() : null
+    )
+  }
+}
+
+export type SubmitVendorOnboardingInput = {
+  cnic: string
+  businessName: string
+  city: string
+  categoryId: VendorCategoryId
+  phone: string
+  email?: string
+  bio: string
+  startingPrice: number
+  pricingNotes?: string
+  availableFor: EventId[]
+  photoUrls: string[]
+  coverPhotoUrl?: string
+}
+
+/**
+ * Final onboarding submit — saves listing fields, writes KYC, sets pending review.
+ * Allowed from draft/unverified, rejected, or already-pending (refresh submission).
+ */
+export async function submitVendorOnboarding(
+  vendorId: string,
+  ownerUid: string,
+  input: SubmitVendorOnboardingInput
+): Promise<VendorVerificationStatus> {
+  if (!isFirebaseConfigured()) {
+    throw new Error("Firebase is not configured")
+  }
+
+  const cnic = sanitizeCnic(input.cnic)
+  const businessName = input.businessName.trim()
+  const city = input.city.trim()
+  const bio = input.bio.trim()
+  const events = input.availableFor.filter((e) => ALL_EVENTS.includes(e))
+
+  if (!isValidCnicInput(cnic)) {
+    throw new Error("Enter a valid CNIC / ID number (5–20 characters)")
+  }
+  if (businessName.length < 2) throw new Error("Business name is required")
+  if (city.length < 2) throw new Error("City is required")
+  if (bio.length < 20) {
+    throw new Error("Add a short description (at least 20 characters)")
+  }
+  if (!Number.isFinite(input.startingPrice) || input.startingPrice < 0) {
+    throw new Error("Enter a valid starting price")
+  }
+  if (events.length === 0) throw new Error("Select at least one event type")
+  if (input.photoUrls.length < 1) {
+    throw new Error("Upload at least one portfolio photo")
+  }
+
+  const vendor = await getVendor(vendorId)
+  if (!vendor) throw new Error("Vendor profile not found")
+  if (vendor.ownerUid !== ownerUid) {
+    throw new Error("Not authorized to update this vendor")
+  }
+  if (vendor.verificationStatus === "verified") {
+    throw new Error("This vendor is already verified")
+  }
+
+  const now = Date.now()
+  const photoUrls = input.photoUrls.filter((u) => u.length > 0).slice(0, 8)
+
+  await upsertVendorKyc({
+    vendorId,
+    ownerUid,
+    verificationCnic: cnic,
+    verificationBusinessName: businessName,
+    verificationCity: city,
+    submittedAt: now,
+    updatedAt: now,
+  })
+
+  await updateDoc(doc(getFirestoreDb(), "vendors", vendorId), {
+    businessName,
+    categoryId: input.categoryId,
+    city,
+    phone: input.phone.trim(),
+    bio,
+    startingPrice: Math.round(input.startingPrice),
+    pricingNotes: input.pricingNotes?.trim()
+      ? input.pricingNotes.trim().slice(0, 1000)
+      : deleteField(),
+    availableFor: events,
+    photoUrls,
+    coverPhotoUrl: input.coverPhotoUrl?.trim()
+      ? input.coverPhotoUrl.trim()
+      : photoUrls[0] ?? deleteField(),
+    email: input.email?.trim() ? input.email.trim() : deleteField(),
+    onboardingStatus: "pending_review",
+    onboardingStep: 4,
+    verificationStatus: "pending",
+    verificationCnic: deleteField(),
+    verificationBusinessName: businessName,
+    verificationCity: city,
+    verificationSubmittedAt: now,
+    verificationRejectionReason: deleteField(),
+  })
+
+  if (input.email !== undefined) {
+    await updateUserContactEmail(
+      getFirestoreDb(),
+      ownerUid,
+      input.email?.trim() ? input.email.trim() : null
+    )
+  }
+
+  return "pending"
+}
+
 export type SubmitVendorVerificationInput = {
   cnic: string
   businessName: string
@@ -231,6 +464,7 @@ export type SubmitVendorVerificationInput = {
 /**
  * Vendor submits / resubmits identity details for manual admin review.
  * Sets status to pending; cannot self-approve.
+ * Allowed while pending so vendors can correct details flagged in review.
  */
 export async function submitVendorVerification(
   vendorId: string,
@@ -265,9 +499,6 @@ export async function submitVendorVerification(
   if (vendor.verificationStatus === "verified") {
     throw new Error("This vendor is already verified")
   }
-  if (vendor.verificationStatus === "pending") {
-    throw new Error("Verification is already under review")
-  }
 
   const now = Date.now()
   await upsertVendorKyc({
@@ -281,6 +512,7 @@ export async function submitVendorVerification(
   })
   await updateDoc(doc(getFirestoreDb(), "vendors", vendorId), {
     verificationStatus: "pending",
+    onboardingStatus: "pending_review",
     verificationCnic: deleteField(),
     verificationBusinessName: businessName,
     verificationCity: city,

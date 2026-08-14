@@ -21,6 +21,13 @@ export type AdminPendingVendor = {
   verificationCity: string
   verificationSubmittedAt: number
   createdAt: number
+  categoryId?: string
+  bio?: string
+  startingPrice?: number
+  pricingNotes?: string
+  photoUrls?: string[]
+  availableFor?: string[]
+  email?: string
 }
 
 export async function GET(request: Request) {
@@ -39,9 +46,8 @@ export async function GET(request: Request) {
       .get()
 
     const db = getAdminDb()
-    const vendors: AdminPendingVendor[] = (
-      await Promise.all(
-        snap.docs.map(async (docSnap) => {
+    const rows = await Promise.all(
+      snap.docs.map(async (docSnap): Promise<AdminPendingVendor | null> => {
         const data = docSnap.data()
         const status = normalizeVendorVerificationStatus(data.verificationStatus)
         if (status !== "pending") return null
@@ -53,14 +59,14 @@ export async function GET(request: Request) {
             : typeof data.verificationCnic === "string"
               ? data.verificationCnic
               : "—"
-        return {
+        const row: AdminPendingVendor = {
           id: docSnap.id,
           businessName:
             typeof data.businessName === "string" ? data.businessName : "—",
           city: typeof data.city === "string" ? data.city : "—",
           phone: typeof data.phone === "string" ? data.phone : "—",
           ownerUid: typeof data.ownerUid === "string" ? data.ownerUid : "",
-          verificationStatus: "pending" as const,
+          verificationStatus: "pending",
           verificationCnic: cnic,
           verificationBusinessName:
             typeof data.verificationBusinessName === "string"
@@ -80,9 +86,29 @@ export async function GET(request: Request) {
               : 0,
           createdAt: typeof data.createdAt === "number" ? data.createdAt : 0,
         }
+        if (typeof data.categoryId === "string") row.categoryId = data.categoryId
+        if (typeof data.bio === "string") row.bio = data.bio
+        if (typeof data.startingPrice === "number") {
+          row.startingPrice = data.startingPrice
+        }
+        if (typeof data.pricingNotes === "string") {
+          row.pricingNotes = data.pricingNotes
+        }
+        if (Array.isArray(data.photoUrls)) {
+          row.photoUrls = data.photoUrls.filter(
+            (u: unknown): u is string => typeof u === "string"
+          )
+        }
+        if (Array.isArray(data.availableFor)) {
+          row.availableFor = data.availableFor.filter(
+            (u: unknown): u is string => typeof u === "string"
+          )
+        }
+        if (typeof data.email === "string") row.email = data.email
+        return row
       })
-      )
     )
+    const vendors = rows
       .filter((row): row is AdminPendingVendor => row !== null)
       .sort(
         (a, b) =>

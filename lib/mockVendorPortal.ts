@@ -4,6 +4,7 @@
  */
 
 import type { EventId } from "./mockData"
+import type { VendorOnboardingStatus } from "./firebase/vendor-onboarding"
 import type { VendorVerificationStatus } from "./firebase/vendor-verification"
 import type {
   BalanceStatus,
@@ -68,6 +69,12 @@ export interface VendorBusiness {
   flaggedIncidents: FlaggedIncident[]
   subscriptionTier?: "basic" | "featured"
   verificationStatus?: VendorVerificationStatus
+  onboardingStatus?: VendorOnboardingStatus
+  onboardingStep?: number
+  startingPrice?: number
+  pricingNotes?: string
+  photoUrls?: string[]
+  availableFor?: EventId[]
   verificationCnic?: string
   verificationBusinessName?: string
   verificationCity?: string
@@ -153,6 +160,8 @@ export const CURRENT_VENDOR: VendorBusiness = {
   completedJobsCount: 3,
   flaggedIncidents: [],
   subscriptionTier: "basic",
+  verificationStatus: "verified",
+  onboardingStatus: "active",
 }
 
 export const INITIAL_BOOKING_REQUESTS: BookingRequest[] = [

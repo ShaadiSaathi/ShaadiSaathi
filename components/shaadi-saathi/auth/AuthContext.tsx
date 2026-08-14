@@ -30,7 +30,9 @@ import {
   ensureFamilyWedding as ensureFamilyWeddingRecord,
   getWeddingForUser,
 } from "@/lib/firebase/seed"
-import { createVendorForUser, getVendor, getVendorForUser } from "@/lib/firebase/vendors"
+import { createVendorForUser, getVendor, getVendorForUser, submitVendorOnboarding, updateVendorOnboardingDraft } from "@/lib/firebase/vendors"
+import type { EventId } from "@/lib/mockData"
+import type { VendorOnboardingFormState } from "@/components/shaadi-saathi/auth/VendorOnboardingWizard"
 import { clearExistingAuthSession } from "@/lib/firebase/clear-auth-session"
 import { getPendingInvitesForPhone } from "@/lib/firebase/collaborators"
 import { acceptCollaboratorInviteApi } from "@/lib/firebase/collaborators-client"
@@ -117,6 +119,16 @@ interface AuthContextValue {
   verifyOtp: (code: string) => boolean
   confirmOtp: (code: string) => Promise<void>
   completeFamilyOnboarding: (weddingName: string, firstEventDate: string) => Promise<string>
+  /** Create / return draft vendor doc during guided onboarding (step 1). */
+  ensureVendorOnboardingDraft: (
+    data: VendorOnboardingFormState,
+    step: number
+  ) => Promise<string>
+  /** Final guided onboarding submit → pending review. */
+  completeVendorOnboardingSubmit: (
+    data: VendorOnboardingFormState
+  ) => Promise<void>
+  /** @deprecated Prefer completeVendorOnboardingSubmit — kept for thin bio fallback */
   completeVendorOnboarding: (bio: string, coverPhotoPreview?: string) => Promise<void>
   completePasswordReset: (password: string) => void
   /** Create/relink a wedding when invite link is missing, then return its id. */
@@ -672,6 +684,126 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return id
   }, [isFirebaseMode, firebaseUser, familyUser])
 
+  const ensureVendorOnboardingDraft = useCallback(
+    async (data: VendorOnboardingFormState, step: number): Promise<string> => {
+      const seed = pending?.vendor
+      if (!seed && !vendorId) {
+        throw new Error("Signup session expired. Please start again.")
+      }
+
+      if (!isFirebaseMode) {
+        const id = vendorId || DEMO_VENDOR_ID
+        setVendorId(id)
+        setVendorUser({
+          businessName: data.businessName.trim(),
+          categoryId: data.categoryId,
+          city: data.city.trim(),
+          phone: data.phone.trim() || seed?.phone || "",
+          bio: data.bio.trim(),
+        })
+        return id
+      }
+
+      const authUser = firebaseUser ?? getFirebaseAuth().currentUser
+      if (!authUser) {
+        throw new Error("Sign-in expired. Please verify your phone again.")
+      }
+
+      let id = vendorId
+      if (!id) {
+        const existing = await getVendorForUser(authUser.uid)
+        id = existing?.id ?? null
+      }
+      if (!id) {
+        id = await createVendorForUser(authUser.uid, {
+          businessName: data.businessName.trim(),
+          categoryId: data.categoryId,
+          city: data.city.trim(),
+          phone: data.phone.trim() || seed?.phone || "",
+          bio: data.bio.trim(),
+          email: data.email.trim() || undefined,
+          onboardingStatus: "draft",
+          onboardingStep: step,
+        })
+      } else {
+        await updateVendorOnboardingDraft(id, authUser.uid, {
+          businessName: data.businessName,
+          categoryId: data.categoryId,
+          city: data.city,
+          phone: data.phone.trim() || seed?.phone,
+          email: data.email.trim() || null,
+          bio: data.bio,
+          startingPrice: data.startingPrice
+            ? Number(data.startingPrice)
+            : undefined,
+          pricingNotes: data.pricingNotes.trim() || null,
+          availableFor: data.availableFor as EventId[],
+          photoUrls: data.photoUrls,
+          coverPhotoUrl: data.coverPhotoUrl || null,
+          onboardingStep: step,
+        })
+      }
+
+      setVendorId(id)
+      setVendorUser({
+        businessName: data.businessName.trim(),
+        categoryId: data.categoryId,
+        city: data.city.trim(),
+        phone: data.phone.trim() || seed?.phone || "",
+        bio: data.bio.trim(),
+        uid: authUser.uid,
+      })
+      return id
+    },
+    [pending, vendorId, isFirebaseMode, firebaseUser]
+  )
+
+  const completeVendorOnboardingSubmit = useCallback(
+    async (data: VendorOnboardingFormState) => {
+      if (isFirebaseMode) {
+        const authUser = firebaseUser ?? getFirebaseAuth().currentUser
+        if (!authUser) {
+          throw new Error("Sign-in expired. Please verify your phone again.")
+        }
+        const id = await ensureVendorOnboardingDraft(data, 4)
+        await submitVendorOnboarding(id, authUser.uid, {
+          cnic: data.cnic,
+          businessName: data.businessName,
+          city: data.city,
+          categoryId: data.categoryId,
+          phone: data.phone.trim() || pending?.vendor?.phone || "",
+          email: data.email.trim() || undefined,
+          bio: data.bio,
+          startingPrice: Number(data.startingPrice),
+          pricingNotes: data.pricingNotes.trim() || undefined,
+          availableFor: data.availableFor as EventId[],
+          photoUrls: data.photoUrls,
+          coverPhotoUrl: data.coverPhotoUrl || undefined,
+        })
+        setVendorId(id)
+        setVendorUser({
+          businessName: data.businessName.trim(),
+          categoryId: data.categoryId,
+          city: data.city.trim(),
+          phone: data.phone.trim() || pending?.vendor?.phone || "",
+          bio: data.bio.trim(),
+          uid: authUser.uid,
+        })
+      } else {
+        setVendorUser({
+          businessName: data.businessName.trim(),
+          categoryId: data.categoryId,
+          city: data.city.trim(),
+          phone: data.phone.trim(),
+          bio: data.bio.trim(),
+        })
+        setVendorId(DEMO_VENDOR_ID)
+      }
+      setPending(null)
+    },
+    [isFirebaseMode, firebaseUser, ensureVendorOnboardingDraft, pending]
+  )
+
   const completeVendorOnboarding = useCallback(
     async (bio: string, coverPhotoPreview?: string) => {
       if (!pending?.vendor) {
@@ -686,6 +818,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const id = await createVendorForUser(authUser.uid, {
           ...pending.vendor,
           bio: bio.trim(),
+          onboardingStatus: "draft",
+          onboardingStep: 1,
         })
         setVendorId(id)
         setVendorUser({
@@ -777,6 +911,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyOtp,
       confirmOtp,
       completeFamilyOnboarding,
+      ensureVendorOnboardingDraft,
+      completeVendorOnboardingSubmit,
       completeVendorOnboarding,
       completePasswordReset,
       ensureFamilyWedding,
@@ -813,6 +949,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyOtp,
       confirmOtp,
       completeFamilyOnboarding,
+      ensureVendorOnboardingDraft,
+      completeVendorOnboardingSubmit,
       completeVendorOnboarding,
       completePasswordReset,
       ensureFamilyWedding,

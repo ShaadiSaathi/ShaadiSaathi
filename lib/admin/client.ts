@@ -199,6 +199,13 @@ export type AdminPendingVendor = {
   verificationCity: string
   verificationSubmittedAt: number
   createdAt: number
+  categoryId?: string
+  bio?: string
+  startingPrice?: number
+  pricingNotes?: string
+  photoUrls?: string[]
+  availableFor?: string[]
+  email?: string
 }
 
 export async function fetchAdminPendingVendors(): Promise<AdminPendingVendor[]> {
