@@ -4,6 +4,12 @@ import { PaymentAuthError } from "@/lib/server/payment-auth"
 import { assertFamilyWeddingPremium } from "@/lib/server/premium-auth"
 import { saveWeddingChatExchange } from "@/lib/server/wedding-chat-history"
 import {
+  releaseWeddingAiUsageSlot,
+  reserveWeddingAiUsageSlot,
+  WeddingAiLimitError,
+  type WeddingAiUsageSnapshot,
+} from "@/lib/server/wedding-ai-usage"
+import {
   isVectorConfigured,
   retrieveKnowledgeChunks,
   getUpstashRestUrl,
@@ -77,7 +83,20 @@ function configPresence() {
   }
 }
 
+function limitReachedResponse(usage: WeddingAiUsageSnapshot) {
+  return NextResponse.json(
+    {
+      error: `You've used all ${usage.limit} Wedding AI questions for today.`,
+      code: "DAILY_LIMIT",
+      usage,
+    },
+    { status: 429 }
+  )
+}
+
 export async function POST(req: NextRequest) {
+  let reservedWeddingId: string | null = null
+
   try {
     const { uid, weddingId } = await assertFamilyWeddingPremium(req)
 
@@ -121,6 +140,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Enforce quota before any retrieval or Anthropic call.
+    let usage: WeddingAiUsageSnapshot
+    try {
+      usage = await reserveWeddingAiUsageSlot(weddingId)
+      reservedWeddingId = weddingId
+    } catch (limitErr) {
+      if (limitErr instanceof WeddingAiLimitError) {
+        return limitReachedResponse(limitErr.usage)
+      }
+      throw limitErr
+    }
+
     let chunks: RetrievedChunk[]
     try {
       chunks = await retrieveKnowledgeChunks(userMessage, 6)
@@ -152,6 +183,9 @@ export async function POST(req: NextRequest) {
       console.error("[wedding-chat] anthropic failed", llmErr)
       throw llmErr
     }
+
+    // Successful Anthropic response — keep the reserved slot.
+    reservedWeddingId = null
 
     const reply = response.content
       .filter((block) => block.type === "text")
@@ -190,8 +224,19 @@ export async function POST(req: NextRequest) {
       grounded: chunks.length > 0,
       historyId,
       historySaved,
+      usage,
     })
   } catch (err) {
+    if (reservedWeddingId) {
+      try {
+        await releaseWeddingAiUsageSlot(reservedWeddingId)
+      } catch (releaseErr) {
+        console.error("[wedding-chat] usage release failed", releaseErr)
+      }
+    }
+    if (err instanceof WeddingAiLimitError) {
+      return limitReachedResponse(err.usage)
+    }
     if (err instanceof PaymentAuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }

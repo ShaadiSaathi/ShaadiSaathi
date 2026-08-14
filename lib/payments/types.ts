@@ -69,6 +69,27 @@ export type CollectBalanceResult = {
   status: string
 }
 
+export type CollectAiTopUpInput = {
+  weddingId: string
+  userId: string
+  dateKey: string
+  /** Major currency units (e.g. 2 for £2). */
+  amountMajor: number
+  currency: string
+  questions: number
+  customerEmail?: string
+  description?: string
+}
+
+export type CollectAiTopUpResult = {
+  paymentIntentId: string
+  clientSecret: string
+  amountMajor: number
+  currency: string
+  questions: number
+  status: string
+}
+
 export type CaptureDepositInput = {
   paymentIntentId: string
   bookingId: string

@@ -117,6 +117,62 @@ export async function createBalanceIntent(body: {
   return data as CreateDepositIntentResponse
 }
 
+export type CreateAiTopUpIntentResponse = {
+  clientSecret: string
+  paymentIntentId: string
+  publishableKey: string
+  currency: string
+  amountMajor: number
+  questions: number
+}
+
+export type WeddingAiUsageClient = {
+  weddingId: string
+  dateKey: string
+  used: number
+  baseLimit: number
+  bonusAllowance: number
+  limit: number
+  remaining: number
+}
+
+export async function createAiTopUpIntent(): Promise<CreateAiTopUpIntentResponse> {
+  const res = await paymentFetch("/api/payments/ai-topup/create", {
+    method: "POST",
+    body: JSON.stringify({}),
+  })
+  const data = (await res.json().catch(() => ({}))) as {
+    message?: string
+  } & Partial<CreateAiTopUpIntentResponse>
+  if (!res.ok) {
+    throw new Error(data.message ?? PAYMENTS_UNAVAILABLE_MESSAGE)
+  }
+  if (!data.clientSecret || !data.paymentIntentId || !data.publishableKey) {
+    throw new Error(PAYMENTS_UNAVAILABLE_MESSAGE)
+  }
+  return data as CreateAiTopUpIntentResponse
+}
+
+export async function completeAiTopUp(body: {
+  paymentIntentId: string
+}): Promise<WeddingAiUsageClient> {
+  const res = await paymentFetch("/api/payments/ai-topup/complete", {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
+  const data = (await res.json().catch(() => ({}))) as {
+    message?: string
+    usage?: WeddingAiUsageClient
+  }
+  if (!res.ok) {
+    throw new Error(data.message ?? "Could not confirm Wedding AI top-up")
+  }
+  if (!data.usage) {
+    throw new Error("Top-up succeeded but usage was not returned")
+  }
+  return data.usage
+}
+
 export async function captureBookingDeposit(bookingId: string): Promise<void> {
   const res = await paymentFetch("/api/payments/deposit/capture", {
     method: "POST",

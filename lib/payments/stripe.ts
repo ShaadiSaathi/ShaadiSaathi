@@ -18,6 +18,8 @@ import {
 import type {
   CaptureDepositInput,
   CaptureDepositResult,
+  CollectAiTopUpInput,
+  CollectAiTopUpResult,
   CollectBalanceInput,
   CollectBalanceResult,
   CollectDepositInput,
@@ -236,6 +238,51 @@ export async function cancelDepositAuthorization(
   }
 
   throw new Error(`Cannot refund deposit PaymentIntent in status "${existing.status}"`)
+}
+
+/**
+ * One-time Wedding AI daily top-up (automatic capture).
+ * Uses a fixed GBP amount by default — independent of booking PKR currency.
+ */
+export async function createAiTopUpPaymentIntent(
+  input: CollectAiTopUpInput
+): Promise<CollectAiTopUpResult> {
+  const stripe = getStripe()
+  const currency = input.currency.toLowerCase()
+  const amount = toStripeAmountUnits(input.amountMajor, currency)
+
+  const intent = await stripe.paymentIntents.create({
+    amount,
+    currency,
+    capture_method: "automatic",
+    confirm: false,
+    automatic_payment_methods: { enabled: true },
+    description:
+      input.description ??
+      `Shaadi Saathi Wedding AI +${input.questions} questions`,
+    metadata: {
+      kind: "ai_topup",
+      weddingId: input.weddingId,
+      userId: input.userId,
+      dateKey: input.dateKey,
+      questions: String(input.questions),
+      app: "shaadi-saathi",
+    },
+    ...(input.customerEmail ? { receipt_email: input.customerEmail } : {}),
+  })
+
+  if (!intent.client_secret) {
+    throw new Error("Stripe did not return a client secret for the AI top-up PaymentIntent")
+  }
+
+  return {
+    paymentIntentId: intent.id,
+    clientSecret: intent.client_secret,
+    amountMajor: input.amountMajor,
+    currency,
+    questions: input.questions,
+    status: intent.status,
+  }
 }
 
 export async function retrievePaymentIntent(paymentIntentId: string) {

@@ -29,6 +29,8 @@ export {
 export type {
   CaptureDepositInput,
   CaptureDepositResult,
+  CollectAiTopUpInput,
+  CollectAiTopUpResult,
   CollectBalanceInput,
   CollectBalanceResult,
   CollectDepositInput,
@@ -42,12 +44,18 @@ export type {
   SafepayPayoutStatus,
 } from "./types"
 
-import { createBalancePaymentIntent, createDepositPaymentIntent } from "./stripe"
+import {
+  createAiTopUpPaymentIntent,
+  createBalancePaymentIntent,
+  createDepositPaymentIntent,
+} from "./stripe"
 import { cancelDepositAuthorization, captureDepositPaymentIntent } from "./stripe"
 import { createVendorPayout } from "./safepay"
 import type {
   CaptureDepositInput,
   CaptureDepositResult,
+  CollectAiTopUpInput,
+  CollectAiTopUpResult,
   CollectBalanceInput,
   CollectBalanceResult,
   CollectDepositInput,
@@ -70,6 +78,13 @@ export async function collectBalance(
   input: CollectBalanceInput
 ): Promise<CollectBalanceResult> {
   return createBalancePaymentIntent(input)
+}
+
+/** One-time Wedding AI daily question top-up (Stripe PaymentIntent). */
+export async function collectAiTopUp(
+  input: CollectAiTopUpInput
+): Promise<CollectAiTopUpResult> {
+  return createAiTopUpPaymentIntent(input)
 }
 
 /** Capture held deposit after vendor check-in. */

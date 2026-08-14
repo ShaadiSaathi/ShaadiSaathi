@@ -17,7 +17,14 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
+import WeddingAiTopUpPayment from "@/components/shaadi-saathi/premium/WeddingAiTopUpPayment"
 import { getFirebaseAuth } from "@/lib/firebase/config"
+import type { WeddingAiUsageClient } from "@/lib/payments/client"
+import {
+  WEDDING_AI_BASE_DAILY_LIMIT,
+  WEDDING_AI_TOPUP_AMOUNT_MAJOR,
+  WEDDING_AI_TOPUP_QUESTIONS,
+} from "@/lib/wedding-ai-limits"
 
 type Citation = { url: string; title: string }
 
@@ -133,6 +140,13 @@ function formatHistoryWhen(createdAt: number): string {
   }
 }
 
+function usageLabel(usage: WeddingAiUsageClient): string {
+  if (usage.bonusAllowance > 0) {
+    return `${usage.used} of ${usage.limit} questions used today (includes +${usage.bonusAllowance} top-up)`
+  }
+  return `${usage.used} of ${usage.baseLimit} questions used today`
+}
+
 export default function WeddingAiTestPage() {
   const { firebaseUser, isFamilyLoggedIn, authLoading } = useAuth()
   const { isFamilyPremium } = usePremium()
@@ -141,6 +155,9 @@ export default function WeddingAiTestPage() {
   )
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [error, setError] = useState("")
+  const [limitReached, setLimitReached] = useState(false)
+  const [showTopUp, setShowTopUp] = useState(false)
+  const [usage, setUsage] = useState<WeddingAiUsageClient | null>(null)
   const [busy, setBusy] = useState(false)
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [historyNextCursor, setHistoryNextCursor] = useState<number | null>(
@@ -152,6 +169,27 @@ export default function WeddingAiTestPage() {
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(
     null
   )
+
+  const loadUsage = useCallback(async () => {
+    const fbUser = getFirebaseAuth().currentUser
+    if (!fbUser) return
+    try {
+      const token = await fbUser.getIdToken()
+      const res = await fetch("/api/wedding-chat/usage", {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      })
+      const data = (await res.json()) as {
+        error?: string
+        usage?: WeddingAiUsageClient
+      }
+      if (!res.ok || !data.usage) return
+      setUsage(data.usage)
+      setLimitReached(data.usage.remaining <= 0)
+    } catch {
+      // Non-fatal — counter stays hidden until next successful load
+    }
+  }, [])
 
   const loadHistory = useCallback(async (opts?: { append?: boolean; cursor?: number | null }) => {
     const fbUser = getFirebaseAuth().currentUser
@@ -198,7 +236,17 @@ export default function WeddingAiTestPage() {
   useEffect(() => {
     if (!isFamilyLoggedIn || !firebaseUser || !isFamilyPremium) return
     void loadHistory()
-  }, [isFamilyLoggedIn, firebaseUser, isFamilyPremium, loadHistory])
+    void loadUsage()
+  }, [isFamilyLoggedIn, firebaseUser, isFamilyPremium, loadHistory, loadUsage])
+
+  function applyUsage(next: WeddingAiUsageClient) {
+    setUsage(next)
+    setLimitReached(next.remaining <= 0)
+    if (next.remaining > 0) {
+      setShowTopUp(false)
+      setError("")
+    }
+  }
 
   function showHistoryItem(item: HistoryItem) {
     setSelectedHistoryId(item.id)
@@ -222,6 +270,13 @@ export default function WeddingAiTestPage() {
     e?.preventDefault()
     const question = draft.trim()
     if (!question || busy) return
+    if (limitReached) {
+      setShowTopUp(true)
+      setError(
+        `You've used all ${usage?.limit ?? WEDDING_AI_BASE_DAILY_LIMIT} questions for today.`
+      )
+      return
+    }
 
     setBusy(true)
     setError("")
@@ -246,19 +301,35 @@ export default function WeddingAiTestPage() {
       })
       const data = (await res.json()) as {
         error?: string
+        code?: string
         reply?: string
         citations?: Citation[]
         retrieved?: RetrievedMeta[]
         config?: Record<string, unknown>
         historyId?: string | null
         historySaved?: boolean
+        usage?: WeddingAiUsageClient
+      }
+      if (data.usage) {
+        applyUsage(data.usage)
       }
       if (!res.ok) {
+        if (res.status === 429 || data.code === "DAILY_LIMIT") {
+          setLimitReached(true)
+          setShowTopUp(true)
+          setError(
+            data.error ||
+              `You've used all ${data.usage?.limit ?? WEDDING_AI_BASE_DAILY_LIMIT} questions for today.`
+          )
+          setTurns((prev) => prev.filter((t) => t.id !== userTurnId))
+          return
+        }
         const detail =
           typeof data.config === "object" && data.config
             ? ` | config=${JSON.stringify(data.config)}`
             : ""
         setError((data.error || `Request failed (${res.status})`) + detail)
+        setTurns((prev) => prev.filter((t) => t.id !== userTurnId))
         return
       }
       const reply = data.reply || ""
@@ -290,6 +361,13 @@ export default function WeddingAiTestPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed")
+      setTurns((prev) => {
+        const last = prev[prev.length - 1]
+        if (last?.role === "user" && last.content === question) {
+          return prev.slice(0, -1)
+        }
+        return prev
+      })
     } finally {
       setBusy(false)
     }
@@ -348,6 +426,11 @@ export default function WeddingAiTestPage() {
             </>
           )}
         </p>
+        {isFamilyPremium && usage && (
+          <p className="mt-3 font-sans text-sm text-maroon/60">
+            {usageLabel(usage)}
+          </p>
+        )}
         {!firebaseUser && (
           <p className="mt-3 rounded-2xl bg-amber-50/90 px-4 py-3 font-sans text-sm text-amber-950/80 shadow-sm shadow-amber-900/5">
             This session has no Firebase auth token (e.g. tester mode). The API
@@ -443,7 +526,39 @@ export default function WeddingAiTestPage() {
           </div>
         )}
 
-        {error && (
+        {limitReached && isFamilyPremium && (
+          <div className="rounded-2xl bg-maroon/[0.04] px-4 py-4 ring-1 ring-maroon/10">
+            <p className="font-sans text-sm font-medium text-maroon-dark">
+              Daily limit reached
+            </p>
+            <p className="mt-1 font-sans text-sm leading-relaxed text-maroon/65">
+              You&apos;ve used all {usage?.limit ?? WEDDING_AI_BASE_DAILY_LIMIT}{" "}
+              questions for today. Buy +{WEDDING_AI_TOPUP_QUESTIONS} more for £
+              {WEDDING_AI_TOPUP_AMOUNT_MAJOR}, or come back after midnight UTC.
+            </p>
+            {!showTopUp ? (
+              <button
+                type="button"
+                onClick={() => setShowTopUp(true)}
+                className="mt-3 rounded-full bg-maroon px-5 py-2 font-sans text-sm font-medium text-ivory shadow-sm transition hover:bg-maroon-dark"
+              >
+                Buy more
+              </button>
+            ) : (
+              <div className="mt-4">
+                <WeddingAiTopUpPayment
+                  onPaid={(next) => {
+                    applyUsage(next)
+                    setShowTopUp(false)
+                  }}
+                  onCancel={() => setShowTopUp(false)}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {error && !limitReached && (
           <p className="rounded-2xl bg-red-50/90 px-4 py-3 font-sans text-sm leading-relaxed text-red-900/80 shadow-sm">
             {error}
           </p>
@@ -456,10 +571,15 @@ export default function WeddingAiTestPage() {
       >
         <div className="rounded-3xl bg-white/90 p-2 shadow-lg shadow-maroon/8 ring-1 ring-maroon/8">
           <textarea
-            className="max-h-40 min-h-[72px] w-full resize-none bg-transparent px-3 py-2.5 font-sans text-[15px] leading-[1.6] text-maroon-dark outline-none placeholder:text-maroon/35"
+            className="max-h-40 min-h-[72px] w-full resize-none bg-transparent px-3 py-2.5 font-sans text-[15px] leading-[1.6] text-maroon-dark outline-none placeholder:text-maroon/35 disabled:opacity-50"
             rows={2}
             value={draft}
-            placeholder="Ask about colours, ceremonies, décor…"
+            placeholder={
+              limitReached
+                ? "Daily limit reached — buy more questions above"
+                : "Ask about colours, ceremonies, décor…"
+            }
+            disabled={limitReached}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -470,11 +590,13 @@ export default function WeddingAiTestPage() {
           />
           <div className="flex items-center justify-between gap-3 px-2 pb-1">
             <p className="font-sans text-[11px] text-maroon/35">
-              Enter to send · Shift+Enter for new line
+              {usage
+                ? usageLabel(usage)
+                : "Enter to send · Shift+Enter for new line"}
             </p>
             <button
               type="submit"
-              disabled={busy || !draft.trim()}
+              disabled={busy || !draft.trim() || limitReached}
               className="rounded-full bg-maroon px-5 py-2 font-sans text-sm font-medium text-ivory shadow-sm transition hover:bg-maroon-dark disabled:cursor-not-allowed disabled:opacity-45"
             >
               {busy ? "Sending…" : "Send"}

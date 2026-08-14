@@ -15,6 +15,11 @@ import type Stripe from "stripe"
 import { constructStripeWebhookEvent } from "@/lib/payments/stripe"
 import type { FirestoreBookingPayment } from "@/lib/payments/types"
 import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin"
+import {
+  applyWeddingAiTopUp,
+  WEDDING_AI_TOPUP_QUESTIONS,
+  weddingAiUtcDateKey,
+} from "@/lib/server/wedding-ai-usage"
 
 export const runtime = "nodejs"
 
@@ -44,6 +49,13 @@ export async function POST(request: Request) {
       case "payment_intent.canceled":
       case "payment_intent.payment_failed": {
         const intent = event.data.object as Stripe.PaymentIntent
+        if (
+          event.type === "payment_intent.succeeded" &&
+          intent.metadata?.kind === "ai_topup"
+        ) {
+          await applyAiTopUpFromIntent(intent)
+          break
+        }
         await applyPaymentIntentEvent(intent, event.type)
         break
       }
@@ -67,6 +79,31 @@ export async function POST(request: Request) {
     console.error("[webhooks/stripe] handler error", error)
     return NextResponse.json({ message: "Webhook handler failed" }, { status: 500 })
   }
+}
+
+async function applyAiTopUpFromIntent(intent: Stripe.PaymentIntent) {
+  const weddingId = intent.metadata?.weddingId
+  if (!weddingId) {
+    console.warn("[webhooks/stripe] ai_topup missing weddingId", intent.id)
+    return
+  }
+  const questionsRaw = Number(intent.metadata?.questions)
+  const questions =
+    Number.isFinite(questionsRaw) && questionsRaw > 0
+      ? Math.min(Math.floor(questionsRaw), 500)
+      : WEDDING_AI_TOPUP_QUESTIONS
+  const dateKey =
+    typeof intent.metadata?.dateKey === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(intent.metadata.dateKey)
+      ? intent.metadata.dateKey
+      : weddingAiUtcDateKey()
+
+  await applyWeddingAiTopUp({
+    weddingId,
+    paymentIntentId: intent.id,
+    questions,
+    dateKey,
+  })
 }
 
 async function findBookingByPaymentIntent(

@@ -671,6 +671,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Daily Wedding AI quotas + top-ups — Admin SDK only.
+    match /weddingAiUsage/{usageId} {
+      allow read, write: if false;
+    }
+
     match /healthChecks/{checkId} {
       allow read, write: if false;
     }
