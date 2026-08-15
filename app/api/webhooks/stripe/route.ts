@@ -145,7 +145,14 @@ async function applyPaymentIntentEvent(
     return
   }
 
-  const data = snap.data() as { payment?: FirestoreBookingPayment; status?: string }
+  const data = snap.data() as {
+    payment?: FirestoreBookingPayment
+    status?: string
+    vendorId?: string
+    weddingId?: string
+    eventId?: string
+    eventDate?: string
+  }
   const payment = data.payment
   if (!payment) return
 
@@ -163,9 +170,75 @@ async function applyPaymentIntentEvent(
       next.depositStatus = "held"
       next.depositPaidAt = next.depositPaidAt ?? now
       next.stripeDepositPaymentIntentId = intent.id
+
+      if (data.status === "requested" && data.vendorId && data.weddingId) {
+        const {
+          claimVendorDateLockInTransaction,
+          resolveEventDateForWedding,
+          VendorAvailabilityError,
+        } = await import("@/lib/server/vendor-availability")
+
+        let eventDate = data.eventDate?.trim() || ""
+        if (!eventDate && data.eventId) {
+          const weddingSnap = await getAdminDb()
+            .collection("weddings")
+            .doc(data.weddingId)
+            .get()
+          if (weddingSnap.exists) {
+            const wedding = weddingSnap.data()!
+            eventDate = resolveEventDateForWedding(
+              {
+                eventOverrides: wedding.eventOverrides,
+                firstEventDate: wedding.firstEventDate,
+              },
+              data.eventId as "mehndi" | "baraat" | "walima"
+            )
+          }
+        }
+
+        if (!eventDate) {
+          console.error(
+            "[webhooks/stripe] deposit succeeded but booking has no eventDate",
+            snap.id
+          )
+          await snap.ref.update({ payment: next, updatedAt: now })
+          return
+        }
+
+        try {
+          await getAdminDb().runTransaction(async (tx) => {
+            await claimVendorDateLockInTransaction(tx, {
+              vendorId: data.vendorId!,
+              eventDate,
+              weddingId: data.weddingId!,
+              bookingId: snap.id,
+            })
+            tx.update(snap.ref, {
+              payment: next,
+              status: "confirmed",
+              eventDate,
+              updatedAt: now,
+            })
+          })
+        } catch (err) {
+          if (err instanceof VendorAvailabilityError) {
+            // Payment succeeded but date already taken — keep funds held on
+            // requested booking; ops can refund. Do not confirm.
+            console.error(
+              "[webhooks/stripe] deposit paid but date conflict; not confirming",
+              snap.id,
+              err.message
+            )
+            await snap.ref.update({ payment: next, updatedAt: now })
+            return
+          }
+          throw err
+        }
+        return
+      }
+
       await snap.ref.update({
         payment: next,
-        status: data.status === "requested" ? "confirmed" : data.status,
         updatedAt: now,
       })
       return

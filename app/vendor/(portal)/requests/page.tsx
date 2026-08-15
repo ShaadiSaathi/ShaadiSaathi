@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence } from "framer-motion"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import BookingRequestCard from "@/components/shaadi-saathi/vendor-portal/BookingRequestCard"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
@@ -13,18 +13,41 @@ export default function VendorRequestsPage() {
   const isFeatured = vendorTier === "featured"
   const [acceptedRequest, setAcceptedRequest] = useState<typeof requests[0] | null>(null)
   const [decliningId, setDecliningId] = useState<string | null>(null)
+  const [acceptingId, setAcceptingId] = useState<string | null>(null)
   const [messageToast, setMessageToast] = useState<string | null>(null)
 
-  function handleAccept(id: string) {
+  const competingByDate = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const r of requests) {
+      if (!r.eventDate) continue
+      counts.set(r.eventDate, (counts.get(r.eventDate) ?? 0) + 1)
+    }
+    return counts
+  }, [requests])
+
+  async function handleAccept(id: string) {
     const req = requests.find((r) => r.id === id)
-    if (req) setAcceptedRequest(req)
-    acceptRequest(id)
+    if (!req) return
+    setAcceptingId(id)
+    setMessageToast(null)
+    try {
+      await acceptRequest(id)
+      setAcceptedRequest(req)
+    } catch (err) {
+      setMessageToast(
+        err instanceof Error
+          ? err.message
+          : "Could not accept this booking — the date may already be taken."
+      )
+    } finally {
+      setAcceptingId(null)
+    }
   }
 
   function handleDecline(id: string) {
     setDecliningId(id)
     setTimeout(() => {
-      declineRequest(id)
+      void declineRequest(id)
       setDecliningId(null)
     }, 300)
   }
@@ -79,17 +102,22 @@ export default function VendorRequestsPage() {
                 accepted
               />
             )}
-            {requests.map((req) => (
-              <BookingRequestCard
-                key={req.id}
-                request={req}
-                onAccept={() => handleAccept(req.id)}
-                onDecline={() => handleDecline(req.id)}
-                onProposeChanges={(data) => proposeCounterOffer(req.id, data)}
-                onMessage={() => handleMessage(req.familyName)}
-                declining={decliningId === req.id}
-              />
-            ))}
+            {requests.map((req) => {
+              const sameDate = competingByDate.get(req.eventDate) ?? 0
+              const competingCount = Math.max(0, sameDate - 1)
+              return (
+                <BookingRequestCard
+                  key={req.id}
+                  request={req}
+                  onAccept={() => void handleAccept(req.id)}
+                  onDecline={() => handleDecline(req.id)}
+                  onProposeChanges={(data) => proposeCounterOffer(req.id, data)}
+                  onMessage={() => handleMessage(req.familyName)}
+                  declining={decliningId === req.id || acceptingId === req.id}
+                  competingCount={competingCount}
+                />
+              )
+            })}
           </AnimatePresence>
         </div>
       )}

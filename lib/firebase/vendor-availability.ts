@@ -10,7 +10,14 @@
  * - Requested/pending bookings from other families do NOT block — soft warn only.
  */
 
-import { doc, getDoc } from "firebase/firestore"
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore"
 import type { EventId } from "@/lib/mockData"
 import type { BookingStatus } from "@/lib/mockVendors"
 import { getFirestoreDb } from "./config"
@@ -68,14 +75,77 @@ export async function checkVendorDateAvailability(options: {
   eventDate: string
   weddingId?: string | null
 }): Promise<VendorDateAvailability> {
-  const lock = await getVendorDateLock(options.vendorId, options.eventDate)
-  if (!lock) return { state: "open" }
-  return {
-    state: "blocked",
-    bookingId: lock.bookingId,
-    weddingId: lock.weddingId,
-    isOwnWedding: Boolean(options.weddingId && lock.weddingId === options.weddingId),
+  if (!options.vendorId || !isValidEventDate(options.eventDate)) {
+    return { state: "open" }
   }
+
+  const lock = await getVendorDateLock(options.vendorId, options.eventDate)
+  if (lock) {
+    return {
+      state: "blocked",
+      bookingId: lock.bookingId,
+      weddingId: lock.weddingId,
+      isOwnWedding: Boolean(
+        options.weddingId && lock.weddingId === options.weddingId
+      ),
+    }
+  }
+
+  // Fallback: bookings that predate locks, plus pending soft-warns.
+  const snap = await getDocs(
+    query(
+      collection(getFirestoreDb(), "bookings"),
+      where("vendorId", "==", options.vendorId),
+      where("eventDate", "==", options.eventDate)
+    )
+  )
+
+  let pendingElsewhere: { bookingId: string; weddingId: string } | null = null
+
+  for (const bookingDoc of snap.docs) {
+    const data = bookingDoc.data() as {
+      weddingId?: string
+      status?: BookingStatus
+    }
+    const weddingId = typeof data.weddingId === "string" ? data.weddingId : ""
+    const status = data.status
+
+    if (status && BLOCKING_BOOKING_STATUSES.has(status)) {
+      return {
+        state: "blocked",
+        bookingId: bookingDoc.id,
+        weddingId,
+        isOwnWedding: Boolean(options.weddingId && weddingId === options.weddingId),
+      }
+    }
+
+    if (
+      status === "requested" &&
+      weddingId &&
+      options.weddingId &&
+      weddingId !== options.weddingId &&
+      !pendingElsewhere
+    ) {
+      pendingElsewhere = { bookingId: bookingDoc.id, weddingId }
+    } else if (
+      status === "requested" &&
+      weddingId &&
+      !options.weddingId &&
+      !pendingElsewhere
+    ) {
+      pendingElsewhere = { bookingId: bookingDoc.id, weddingId }
+    }
+  }
+
+  if (pendingElsewhere) {
+    return {
+      state: "pending_elsewhere",
+      bookingId: pendingElsewhere.bookingId,
+      weddingId: pendingElsewhere.weddingId,
+    }
+  }
+
+  return { state: "open" }
 }
 
 export function formatUnavailableDateLabel(

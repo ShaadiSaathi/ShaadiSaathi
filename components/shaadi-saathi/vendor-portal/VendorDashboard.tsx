@@ -8,6 +8,7 @@ import StatCard from "@/components/shaadi-saathi/app/StatCard"
 import FeaturedBadge from "@/components/shaadi-saathi/premium/FeaturedBadge"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { JobStatusBadge } from "@/components/shaadi-saathi/vendor-portal/JobStatusBadge"
+import VendorBookingCalendar from "@/components/shaadi-saathi/vendor-portal/VendorBookingCalendar"
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
 import { formatEventDate } from "@/lib/mockData"
 import { formatPrice } from "@/lib/mockVendors"
@@ -502,6 +503,19 @@ export default function VendorDashboard() {
             ))}
           </ul>
         )}
+      </section>
+
+      {/* Month calendar — confirmed + pending */}
+      <section className="mt-8 md:mt-10" aria-label="Booking calendar">
+        <VendorBookingCalendar jobs={jobs} requests={requests} compact />
+        <p className="mt-2 text-right">
+          <Link
+            href="/vendor/jobs?view=calendar"
+            className="inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
+          >
+            Open full calendar →
+          </Link>
+        </p>
       </section>
 
       {/* Quick links — match family pill CTAs */}

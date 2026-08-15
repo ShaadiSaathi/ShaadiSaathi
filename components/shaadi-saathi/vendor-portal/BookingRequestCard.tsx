@@ -15,6 +15,8 @@ interface BookingRequestCardProps {
   onMessage?: () => void
   accepted?: boolean
   declining?: boolean
+  /** Other pending requests for the same event date (cross-family). */
+  competingCount?: number
 }
 
 /** Incoming booking request — accept / decline / propose changes */
@@ -26,6 +28,7 @@ export default function BookingRequestCard({
   onMessage,
   accepted,
   declining,
+  competingCount = 0,
 }: BookingRequestCardProps) {
   const [showPropose, setShowPropose] = useState(false)
   const [proposedPrice, setProposedPrice] = useState(request.proposedPrice)
@@ -95,10 +98,24 @@ export default function BookingRequestCard({
           </h3>
           <p className="text-sm text-maroon/60">{request.weddingName}</p>
         </div>
-        <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-maroon">
-          {request.eventName}
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {competingCount > 0 ? (
+            <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-800">
+              {competingCount} other request{competingCount === 1 ? "" : "s"} same date
+            </span>
+          ) : null}
+          <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-maroon">
+            {request.eventName}
+          </span>
+        </div>
       </div>
+
+      {competingCount > 0 ? (
+        <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-sm text-amber-950">
+          Competing requests for this date — accepting one will block the others
+          from confirming the same day.
+        </p>
+      ) : null}
 
       <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
         <div>

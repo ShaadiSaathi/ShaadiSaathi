@@ -25,6 +25,7 @@ import {
   type VendorJob,
   type VendorJobStatus,
 } from "@/lib/mockVendorPortal"
+import { confirmBookingApi } from "@/lib/firebase/bookings-client"
 import { subscribeBookingsByVendor, setBookingCounterOffer, setBookingExtraWorkRequest, updateBookingFields, updateBookingStatus } from "@/lib/firebase/bookings"
 import { getVendor, submitVendorVerification } from "@/lib/firebase/vendors"
 import { getVendorKyc } from "@/lib/firebase/vendor-kyc"
@@ -43,8 +44,8 @@ interface VendorPortalContextValue {
   requests: BookingRequest[]
   jobs: VendorJob[]
   earnings: ReturnType<typeof buildEarningsFromJobs>
-  acceptRequest: (id: string) => void
-  declineRequest: (id: string) => void
+  acceptRequest: (id: string) => void | Promise<void>
+  declineRequest: (id: string) => void | Promise<void>
   proposeCounterOffer: (
     id: string,
     data: { price: number; packageName?: string; note?: string }
@@ -280,7 +281,8 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
   const acceptRequest = useCallback(
     async (id: string) => {
       if (isFirebaseMode) {
-        await updateBookingStatus(id, "confirmed")
+        // Admin API claims vendor_date_locks so two families cannot confirm the same date.
+        await confirmBookingApi(id)
         return
       }
       setRequests((prev) => {

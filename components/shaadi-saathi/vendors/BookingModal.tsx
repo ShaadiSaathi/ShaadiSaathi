@@ -49,17 +49,16 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
   const [inPersonMethod, setInPersonMethod] = useState<InPersonMethod>("cash")
   const [bookingError, setBookingError] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const { rows: availabilityRows } = useVendorEventAvailability(vendor)
+  const { rows: availabilityRows, loading: availabilityLoading } =
+    useVendorEventAvailability(vendor)
 
-  const availableEvents = EVENTS.filter((e) => {
-    if (!vendor.availableFor.includes(e.id)) return false
-    const row = availabilityRows.find((r) => r.eventId === e.id)
-    // While loading, still show service-available events; create API enforces.
-    if (!row) return true
-    return row.available
-  })
+  const serviceEvents = EVENTS.filter((e) => vendor.availableFor.includes(e.id))
 
   const selectedAvailability = availabilityRows.find((r) => r.eventId === eventId)
+  const selectedBlocked =
+    selectedAvailability != null && !selectedAvailability.available
+  const selectedPendingElsewhere =
+    selectedAvailability?.kind === "pending_elsewhere"
 
   function handleEventChange(id: EventId) {
     setEventId(id)
@@ -85,7 +84,7 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
       setBookingError(selectedAvailability.label)
       return
     }
-    if (availableEvents.length === 0) {
+    if (serviceEvents.length === 0) {
       setBookingError(
         "This vendor has no open dates for your wedding events right now."
       )
@@ -287,12 +286,42 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
                   onChange={(e) => handleEventChange(e.target.value as EventId)}
                   className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
                 >
-                  {availableEvents.map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.name} — {ev.date}
-                    </option>
-                  ))}
+                  {serviceEvents.map((ev) => {
+                    const row = availabilityRows.find((r) => r.eventId === ev.id)
+                    const suffix =
+                      row?.kind === "date_blocked" || row?.kind === "date_blocked_own"
+                        ? " — not available"
+                        : row?.kind === "pending_elsewhere"
+                          ? " — another request pending"
+                          : ""
+                    return (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name} — {row?.eventDate ?? ev.date}
+                        {suffix}
+                      </option>
+                    )
+                  })}
                 </select>
+                {availabilityLoading ? (
+                  <p className="mt-2 text-xs text-maroon/45">Checking availability…</p>
+                ) : selectedBlocked ? (
+                  <p
+                    className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800"
+                    role="alert"
+                  >
+                    {selectedAvailability?.label ??
+                      "This vendor is already booked on that date."}
+                  </p>
+                ) : selectedPendingElsewhere ? (
+                  <p
+                    className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                    role="status"
+                  >
+                    {selectedAvailability?.label}
+                  </p>
+                ) : selectedAvailability?.kind === "open" ? (
+                  <p className="mt-2 text-xs text-emerald-700">{selectedAvailability.label}</p>
+                ) : null}
               </div>
 
               {vendor.packages && vendor.packages.length > 0 && (
@@ -359,7 +388,11 @@ export default function BookingModal({ vendor, onClose }: BookingModalProps) {
               </p>
 
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-                <GoldButton type="submit" className="min-h-[44px] flex-1">
+                <GoldButton
+                  type="submit"
+                  className="min-h-[44px] flex-1"
+                  disabled={selectedBlocked || serviceEvents.length === 0}
+                >
                   Continue
                 </GoldButton>
                 <GoldButton type="button" variant="ghost" onClick={onClose} className="min-h-[44px] flex-1">

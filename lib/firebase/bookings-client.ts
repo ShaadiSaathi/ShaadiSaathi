@@ -66,3 +66,59 @@ export async function createBookingApi(
     status: data.status ?? "confirmed",
   }
 }
+
+export interface ConfirmBookingApiInput {
+  price?: number
+  packageName?: string
+  clearCounterOffer?: boolean
+}
+
+export interface ConfirmBookingApiResult {
+  bookingId: string
+  eventDate: string
+  status: "confirmed"
+  alreadyConfirmed?: boolean
+}
+
+/** Confirm a requested booking and claim the vendor date lock (Admin API). */
+export async function confirmBookingApi(
+  bookingId: string,
+  input: ConfirmBookingApiInput = {}
+): Promise<ConfirmBookingApiResult> {
+  const user = getFirebaseAuth().currentUser
+  if (!user) throw new Error("Sign in to confirm this booking.")
+
+  const token = await user.getIdToken()
+  const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/confirm`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  })
+
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: string
+    code?: string
+    bookingId?: string
+    eventDate?: string
+    status?: BookingStatus
+    alreadyConfirmed?: boolean
+  }
+
+  if (!res.ok) {
+    throw new Error(data.error ?? "Could not confirm booking. Please try again.")
+  }
+
+  if (!data.bookingId || !data.eventDate) {
+    throw new Error("Booking confirmed but response was incomplete.")
+  }
+
+  return {
+    bookingId: data.bookingId,
+    eventDate: data.eventDate,
+    status: "confirmed",
+    alreadyConfirmed: data.alreadyConfirmed,
+  }
+}

@@ -11,6 +11,7 @@ import {
 import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin"
 import {
   VendorAvailabilityError,
+  assertVendorDateOpen,
   claimVendorDateLockInTransaction,
   resolveEventDateForWedding,
 } from "@/lib/server/vendor-availability"
@@ -152,6 +153,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Reject create when the date is already confirmed (lock or legacy booking).
+    // Confirmed creates also re-check inside the transaction via claim.
+    await assertVendorDateOpen({ vendorId, eventDate, weddingId })
+
     await db.runTransaction(async (tx) => {
       // Only confirmed bookings claim the calendar lock.
       if (status === "confirmed") {
@@ -162,7 +167,7 @@ export async function POST(request: Request) {
           bookingId,
         })
       } else {
-        // Still reject if a confirmed lock already exists for this date.
+        // Re-check lock inside the transaction so a concurrent confirm cannot race.
         const lockRef = db
           .collection("vendor_date_locks")
           .doc(`${vendorId}_${eventDate}`)
@@ -192,7 +197,7 @@ export async function POST(request: Request) {
           "A booking with this id already exists."
         )
       }
-  tx.set(bookingRef, booking)
+      tx.set(bookingRef, booking)
     })
   } catch (err) {
     if (err instanceof VendorAvailabilityError) {

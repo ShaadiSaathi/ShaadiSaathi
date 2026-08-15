@@ -25,7 +25,7 @@ import {
   getVendorById as getMockVendorById,
 } from "@/lib/mockVendors"
 import { subscribeBookingsByWedding, setBookingCounterOffer, setBookingDispute, clearBookingCounterOffer, updateBookingFields } from "@/lib/firebase/bookings"
-import { createBookingApi } from "@/lib/firebase/bookings-client"
+import { confirmBookingApi, createBookingApi } from "@/lib/firebase/bookings-client"
 import { getVendor } from "@/lib/firebase/vendors"
 import { disputeVendorResponseDeadlineAt } from "@/lib/automation/constants"
 import {
@@ -407,8 +407,8 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
       if (useFirestore && weddingId && firebaseUser) {
         const booking = bookings.find((b) => b.id === bookingId)
         const price = booking?.counterOffer?.price ?? booking?.price
-        await clearBookingCounterOffer(bookingId, {
-          status: "confirmed",
+        await confirmBookingApi(bookingId, {
+          clearCounterOffer: true,
           ...(price != null ? { price } : {}),
           ...(booking?.counterOffer?.packageName
             ? { packageName: booking.counterOffer.packageName }

@@ -65,8 +65,14 @@ service cloud.firestore {
         && request.resource.data.get('payment', null) == resource.data.get('payment', null);
     }
 
+    // Clients may keep an already-confirmed booking confirmed, or move to
+    // declined/disputed/requested — but must not transition INTO confirmed.
+    // Confirmations claim vendor_date_locks via Admin API only.
     function bookingClientStatusAllowed() {
-      return request.resource.data.status in ['requested', 'confirmed', 'declined', 'disputed'];
+      let prev = resource.data.status;
+      let next = request.resource.data.status;
+      return next in ['requested', 'confirmed', 'declined', 'disputed']
+        && !(prev != 'confirmed' && next == 'confirmed');
     }
 
     function bookingDisputeClientOk() {
