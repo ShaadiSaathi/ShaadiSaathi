@@ -65,9 +65,19 @@ export interface Vendor {
   reviewCount: number
   startingPrice: number
   bio: string
-  /** PLACEHOLDER: replace with real image URLs */
+  /** PLACEHOLDER gradients when no real photos */
   coverGradient: string
   galleryGradients: string[]
+  /** Real past-work image URLs (preferred over gradients when present) */
+  photoUrls?: string[]
+  coverPhotoUrl?: string
+  portfolioItems?: Array<{
+    id: string
+    url: string
+    caption?: string
+    eventId?: EventId
+    createdAt: number
+  }>
   packages?: VendorPackage[]
   reviews: VendorReview[]
   /** Event IDs where vendor is available; others show unavailable */

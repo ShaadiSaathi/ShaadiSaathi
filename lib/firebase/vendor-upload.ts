@@ -13,7 +13,7 @@ import { getFirebaseStorage, isFirebaseStorageConfigured } from "./config"
 
 export const VENDOR_IMAGE_ACCEPT = CHAT_IMAGE_ACCEPT
 export const VENDOR_IMAGE_MAX_BYTES = CHAT_IMAGE_MAX_BYTES
-export const VENDOR_PORTFOLIO_MAX_IMAGES = 8
+export { VENDOR_PORTFOLIO_MAX_IMAGES } from "./vendor-portfolio"
 
 function assertImageFile(file: File): void {
   if (!file.type.startsWith("image/")) {

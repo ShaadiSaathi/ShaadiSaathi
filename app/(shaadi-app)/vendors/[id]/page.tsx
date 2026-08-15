@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { notFound, useSearchParams } from "next/navigation"
-import { use, useEffect, useState } from "react"
+import { use, useEffect, useMemo, useState } from "react"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import BookingModal from "@/components/shaadi-saathi/vendors/BookingModal"
 import CategoryIcon from "@/components/shaadi-saathi/vendors/CategoryIcon"
 import FamilyConsultThread from "@/components/shaadi-saathi/vendors/FamilyConsultThread"
 import MessageModal from "@/components/shaadi-saathi/vendors/MessageModal"
+import VendorPastWorkGallery from "@/components/shaadi-saathi/vendors/VendorPastWorkGallery"
 import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 import { NewVendorBadge, VerifiedVendorBadge } from "@/components/shaadi-saathi/shared/StatusBadge"
 import { isNewVendor } from "@/lib/mockVendorPortal"
@@ -19,6 +20,7 @@ import {
   getCategoryById,
   getEventAvailability,
 } from "@/lib/mockVendors"
+import { normalizePortfolioItems } from "@/lib/firebase/vendor-portfolio"
 
 interface VendorDetailPageProps {
   params: Promise<{ id: string }>
@@ -29,13 +31,17 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
   const searchParams = useSearchParams()
   const { getVendorById, loading } = useVendorsDirectory()
   const vendor = getVendorById(id)
-  const [galleryIndex, setGalleryIndex] = useState(0)
   const [showBooking, setShowBooking] = useState(false)
   const [showMessage, setShowMessage] = useState(false)
 
   useEffect(() => {
     if (searchParams.get("rebook") === "1") setShowBooking(true)
   }, [searchParams])
+
+  const pastWork = useMemo(() => {
+    if (!vendor) return []
+    return normalizePortfolioItems(vendor.portfolioItems, vendor.photoUrls)
+  }, [vendor])
 
   if (loading && !vendor) {
     return (
@@ -50,8 +56,8 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
   }
 
   const category = getCategoryById(vendor.categoryId)
-  const images = [vendor.coverGradient, ...vendor.galleryGradients]
   const hasPackages = Boolean(vendor.packages && vendor.packages.length > 0)
+  const coverUrl = vendor.coverPhotoUrl || vendor.photoUrls?.[0]
 
   return (
     <PageTransition>
@@ -62,58 +68,24 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
         ← Back to vendors
       </Link>
 
-      {/* VSCO-style gallery: image-first, generous whitespace, no chrome border */}
-      <section aria-label="Vendor gallery" className="mb-10 md:hidden">
-        <div className="-mx-4 flex snap-x snap-mandatory overflow-x-auto scrollbar-none">
-          {images.map((gradient, i) => (
-            <div
-              key={i}
-              className={`h-64 min-w-full shrink-0 snap-center bg-gradient-to-br ${gradient}`}
-              role="img"
-              aria-label={`${vendor.name} photo ${i + 1} of ${images.length}`}
-            />
-          ))}
-        </div>
-        {images.length > 1 && (
-          <div className="mt-4 flex justify-center gap-2" aria-hidden="true">
-            {images.map((_, i) => (
-              <span key={i} className="h-1.5 w-1.5 rounded-full bg-maroon/25" />
-            ))}
-          </div>
-        )}
-        <p className="mt-4 px-1 text-center text-xs text-maroon/40">
-          Photos coming soon — this vendor is still completing their gallery.
-        </p>
-      </section>
-
-      <section aria-label="Vendor gallery" className="mb-10 hidden md:block">
-        <div className="overflow-hidden rounded-[1.25rem] shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-          <div className={`relative h-80 bg-gradient-to-br ${images[galleryIndex]}`}>
-            {images.length > 1 && (
-              <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1 pb-4">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    aria-label={`View image ${i + 1}`}
-                    onClick={() => setGalleryIndex(i)}
-                    className="flex h-11 w-11 items-end justify-center pb-1"
-                  >
-                    <span
-                      className={`h-2 w-2 rounded-full transition-colors ${
-                        i === galleryIndex ? "bg-white" : "bg-white/50"
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        <p className="mt-4 text-center text-xs text-maroon/40">
-          Photos coming soon — ask the vendor for recent work when you message them.
-        </p>
-      </section>
+      {coverUrl ? (
+        <section aria-label="Cover photo" className="mb-8 overflow-hidden rounded-[1.25rem]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={coverUrl}
+            alt={`${vendor.name} cover`}
+            className="h-56 w-full object-cover sm:h-72 md:h-80"
+          />
+        </section>
+      ) : (
+        <section aria-label="Cover" className="mb-8 overflow-hidden rounded-[1.25rem]">
+          <div
+            className={`h-56 bg-gradient-to-br sm:h-72 md:h-80 ${vendor.coverGradient}`}
+            role="img"
+            aria-label={vendor.name}
+          />
+        </section>
+      )}
 
       <header className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -155,6 +127,12 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
           {formatStartingPriceLabel(vendor.startingPrice)}
         </p>
       </header>
+
+      <VendorPastWorkGallery
+        vendorName={vendor.name}
+        photos={pastWork}
+        fallbackGradients={vendor.galleryGradients}
+      />
 
       <section aria-labelledby="availability-heading" className="mb-6">
         <h2 id="availability-heading" className="mb-3 font-display text-lg font-semibold text-maroon-dark">

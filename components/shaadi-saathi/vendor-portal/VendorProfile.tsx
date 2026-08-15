@@ -8,6 +8,7 @@ import FeaturedBadge from "@/components/shaadi-saathi/premium/FeaturedBadge"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { NewVendorBadge } from "@/components/shaadi-saathi/shared/StatusBadge"
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
+import VendorPortfolioManager from "@/components/shaadi-saathi/vendor-portal/VendorPortfolioManager"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { isNewVendor } from "@/lib/mockVendorPortal"
 import { VENDOR_CATEGORIES } from "@/lib/mockVendors"
@@ -21,18 +22,12 @@ import {
 import { getFirestoreDb, isFirebaseConfigured } from "@/lib/firebase/config"
 import { getUserProfile } from "@/lib/firebase/users"
 import { updateVendorContactEmail } from "@/lib/firebase/vendors"
+import { normalizePortfolioItems } from "@/lib/firebase/vendor-portfolio"
 import { normalizeEmail } from "@/lib/email/config"
-
-const MOCK_GALLERY = [
-  { id: "g1", label: "Walima spread" },
-  { id: "g2", label: "Live BBQ counter" },
-  { id: "g3", label: "Mehndi high tea" },
-  { id: "g4", label: "Dessert station" },
-]
 
 /** Vendor profile — business info, reliability, verification, payout bank details */
 export default function VendorProfile() {
-  const { business, updateBusiness, updateIncidentResponse, submitVerification } =
+  const { business, updateBusiness, updateIncidentResponse, submitVerification, refreshBusiness } =
     useVendorPortal()
   const { vendorId, firebaseUser, isFirebaseMode } = useAuth()
   const { vendorTier, vendorCategories, setVendorCategories } = usePremium()
@@ -691,29 +686,15 @@ export default function VendorProfile() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-gold/25 bg-white p-5">
-          <h3 className="font-display text-lg font-semibold text-maroon-dark">Photo gallery</h3>
-          <p className="mt-1 text-sm text-maroon/60">Mock upload — photos shown to families browsing vendors</p>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {MOCK_GALLERY.map((photo) => (
-              <div
-                key={photo.id}
-                className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed border-gold/30 bg-ivory text-center text-xs text-maroon/50"
-              >
-                <svg className="mb-1 h-6 w-6 text-gold/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-                </svg>
-                {photo.label}
-              </div>
-            ))}
-            <button
-              type="button"
-              className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed border-gold/40 bg-gold/5 text-xs font-medium text-maroon/60 hover:bg-gold/10"
-            >
-              + Add photo
-            </button>
-          </div>
-        </section>
+        <VendorPortfolioManager
+          initialItems={normalizePortfolioItems(
+            business.portfolioItems,
+            business.photoUrls
+          )}
+          onSaved={() => {
+            void refreshBusiness()
+          }}
+        />
 
         <section className="rounded-2xl border border-gold/25 bg-white p-5">
           <div className="flex items-center justify-between gap-4">

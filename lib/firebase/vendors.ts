@@ -17,6 +17,13 @@ import type { FirestoreVendor } from "./types"
 import { createUserProfile, getUserProfile, upsertUserProfile, updateUserContactEmail } from "./users"
 import { upsertVendorKyc } from "./vendor-kyc"
 import {
+  normalizePortfolioItems,
+  photoUrlsFromPortfolio,
+  validatePortfolioItems,
+  VENDOR_PORTFOLIO_MAX_IMAGES,
+  type VendorPortfolioItem,
+} from "./vendor-portfolio"
+import {
   normalizeVendorOnboardingStatus,
   type VendorOnboardingStatus,
 } from "./vendor-onboarding"
@@ -68,6 +75,10 @@ function coverGradientForId(id: string): string {
 
 function normalizeVendor(raw: FirestoreVendor): FirestoreVendor {
   const verificationStatus = normalizeVendorVerificationStatus(raw.verificationStatus)
+  const portfolioItems = normalizePortfolioItems(
+    raw.portfolioItems,
+    raw.photoUrls
+  )
   return {
     ...raw,
     id: raw.id,
@@ -86,9 +97,8 @@ function normalizeVendor(raw: FirestoreVendor): FirestoreVendor {
       raw.onboardingStatus,
       verificationStatus
     ),
-    photoUrls: Array.isArray(raw.photoUrls)
-      ? raw.photoUrls.filter((u): u is string => typeof u === "string" && u.length > 0)
-      : [],
+    portfolioItems,
+    photoUrls: photoUrlsFromPortfolio(portfolioItems),
   }
 }
 
@@ -111,6 +121,8 @@ export function toDirectoryVendor(raw: FirestoreVendor): Vendor {
     description: p.description,
   }))
   const isFeatured = v.subscriptionTier === "featured"
+  const photoUrls = v.photoUrls ?? []
+  const coverPhotoUrl = v.coverPhotoUrl || photoUrls[0]
 
   return {
     id: v.id,
@@ -123,6 +135,9 @@ export function toDirectoryVendor(raw: FirestoreVendor): Vendor {
     bio: v.bio || "",
     coverGradient: cover,
     galleryGradients: gallery,
+    photoUrls,
+    coverPhotoUrl,
+    portfolioItems: v.portfolioItems,
     packages,
     reviews: [],
     availableFor: v.availableFor ?? ALL_EVENTS,
@@ -320,9 +335,21 @@ export async function updateVendorOnboardingDraft(
     patch.availableFor = events
   }
   if (input.photoUrls !== undefined) {
-    patch.photoUrls = input.photoUrls.filter(
-      (u) => typeof u === "string" && u.length > 0
-    ).slice(0, 8)
+    const urls = input.photoUrls
+      .filter((u) => typeof u === "string" && u.length > 0)
+      .slice(0, VENDOR_PORTFOLIO_MAX_IMAGES)
+    patch.photoUrls = urls
+    const byUrl = new Map(
+      (vendor.portfolioItems ?? []).map((i) => [i.url, i])
+    )
+    patch.portfolioItems = urls.map(
+      (url) =>
+        byUrl.get(url) ?? {
+          id: `url_${url.slice(-20)}`,
+          url,
+          createdAt: Date.now(),
+        }
+    )
   }
   if (input.coverPhotoUrl !== undefined) {
     patch.coverPhotoUrl = input.coverPhotoUrl?.trim()
@@ -406,7 +433,22 @@ export async function submitVendorOnboarding(
   }
 
   const now = Date.now()
-  const photoUrls = input.photoUrls.filter((u) => u.length > 0).slice(0, 8)
+  const photoUrls = input.photoUrls
+    .filter((u) => u.length > 0)
+    .slice(0, VENDOR_PORTFOLIO_MAX_IMAGES)
+  const existingItems = normalizePortfolioItems(
+    vendor.portfolioItems,
+    vendor.photoUrls
+  )
+  const byUrl = new Map(existingItems.map((i) => [i.url, i]))
+  const portfolioItems: VendorPortfolioItem[] = photoUrls.map(
+    (url) =>
+      byUrl.get(url) ?? {
+        id: `ob_${Date.now()}_${url.slice(-16)}`,
+        url,
+        createdAt: now,
+      }
+  )
 
   await upsertVendorKyc({
     vendorId,
@@ -430,6 +472,7 @@ export async function submitVendorOnboarding(
       : deleteField(),
     availableFor: events,
     photoUrls,
+    portfolioItems,
     coverPhotoUrl: input.coverPhotoUrl?.trim()
       ? input.coverPhotoUrl.trim()
       : photoUrls[0] ?? deleteField(),
@@ -453,6 +496,36 @@ export async function submitVendorOnboarding(
   }
 
   return "pending"
+}
+
+/**
+ * Replace the vendor past-work portfolio (order = array order).
+ * Syncs photoUrls + coverPhotoUrl. Validated for size/shape.
+ */
+export async function saveVendorPortfolio(
+  vendorId: string,
+  ownerUid: string,
+  items: VendorPortfolioItem[]
+): Promise<VendorPortfolioItem[]> {
+  if (!isFirebaseConfigured()) {
+    throw new Error("Firebase is not configured")
+  }
+  const checked = validatePortfolioItems(items)
+  if (!checked.ok) throw new Error(checked.message)
+
+  const vendor = await getVendor(vendorId)
+  if (!vendor) throw new Error("Vendor profile not found")
+  if (vendor.ownerUid !== ownerUid) {
+    throw new Error("Not authorized to update this vendor")
+  }
+
+  const photoUrls = photoUrlsFromPortfolio(checked.items)
+  await updateDoc(doc(getFirestoreDb(), "vendors", vendorId), {
+    portfolioItems: checked.items,
+    photoUrls,
+    coverPhotoUrl: photoUrls[0] ?? deleteField(),
+  })
+  return checked.items
 }
 
 export type SubmitVendorVerificationInput = {

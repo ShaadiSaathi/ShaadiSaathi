@@ -9,9 +9,10 @@ import type {
   PaymentPath,
 } from "@/lib/mockPayments"
 import type { VendorOnboardingStatus } from "./vendor-onboarding"
+import type { VendorPortfolioItem } from "./vendor-portfolio"
 import type { VendorVerificationStatus } from "./vendor-verification"
 
-export type { VendorOnboardingStatus, VendorVerificationStatus }
+export type { VendorOnboardingStatus, VendorPortfolioItem, VendorVerificationStatus }
 
 export type UserRole = "family" | "vendor"
 
@@ -252,6 +253,11 @@ export interface FirestoreVendor {
   coverPhotoUrl?: string
   /** Portfolio images from guided onboarding (also used as directory gallery) */
   photoUrls?: string[]
+  /**
+   * Past-work gallery with optional captions and event tags.
+   * Prefer this over photoUrls when present; photoUrls is kept in sync.
+   */
+  portfolioItems?: VendorPortfolioItem[]
   packages?: FirestoreVendorPackage[]
   availableFor?: EventId[]
   emergencyAvailable?: boolean

@@ -211,6 +211,7 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
       pricingNotes: vendor.pricingNotes,
       photoUrls: vendor.photoUrls,
       availableFor: vendor.availableFor,
+      portfolioItems: vendor.portfolioItems,
       verificationCnic: kyc?.verificationCnic ?? vendor.verificationCnic,
       verificationBusinessName:
         kyc?.verificationBusinessName ?? vendor.verificationBusinessName,

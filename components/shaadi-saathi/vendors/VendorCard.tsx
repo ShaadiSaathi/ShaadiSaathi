@@ -8,20 +8,27 @@ interface VendorCardProps {
   vendor: Vendor
 }
 
-/** Elegant vendor directory card — PLACEHOLDER cover uses gradient until real photos added */
+/** Elegant vendor directory card — real cover photo when available */
 export default function VendorCard({ vendor }: VendorCardProps) {
   const category = getCategoryById(vendor.categoryId)
+  const coverUrl = vendor.coverPhotoUrl || vendor.photoUrls?.[0]
 
   return (
     <Link
       href={`/vendors/${vendor.id}`}
       className="group overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm transition-all hover:border-gold/35 hover:shadow-md"
     >
-      <div
-        className={`relative h-36 bg-gradient-to-br ${vendor.coverGradient}`}
-        aria-hidden="true"
-      >
-        {/* PLACEHOLDER: <Image src={vendor.coverUrl} alt="" fill className="object-cover" /> */}
+      <div className="relative h-36 overflow-hidden" aria-hidden="true">
+        {coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverUrl}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className={`h-full w-full bg-gradient-to-br ${vendor.coverGradient}`} />
+        )}
         {vendor.subscriptionTier === "featured" || vendor.featured ? (
           <FeaturedBadge className="absolute left-3 top-3" />
         ) : null}

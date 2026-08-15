@@ -75,6 +75,13 @@ export interface VendorBusiness {
   pricingNotes?: string
   photoUrls?: string[]
   availableFor?: EventId[]
+  portfolioItems?: Array<{
+    id: string
+    url: string
+    caption?: string
+    eventId?: EventId
+    createdAt: number
+  }>
   verificationCnic?: string
   verificationBusinessName?: string
   verificationCity?: string
