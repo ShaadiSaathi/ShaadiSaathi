@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import StatCard from "@/components/shaadi-saathi/app/StatCard"
@@ -11,14 +11,29 @@ import { JobStatusBadge } from "@/components/shaadi-saathi/vendor-portal/JobStat
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
 import { formatEventDate } from "@/lib/mockData"
 import { formatPrice } from "@/lib/mockVendors"
-import { getMonthlyEarnings, isNewVendor } from "@/lib/mockVendorPortal"
+import {
+  getCurrentMonthKey,
+  getMonthlyEarnings,
+  isNewVendor,
+} from "@/lib/mockVendorPortal"
 import {
   normalizeVendorOnboardingStatus,
   vendorNeedsOnboarding,
   vendorOnboardingIsPending,
 } from "@/lib/firebase/vendor-onboarding"
 
-/** Vendor dashboard — overview, upcoming jobs, pending requests prompt */
+function todayKey(now = new Date()): string {
+  return now.toISOString().slice(0, 10)
+}
+
+function daysUntilDate(dateIso: string, from = new Date()): number {
+  const target = new Date(`${dateIso}T12:00:00`)
+  const start = new Date(from)
+  start.setHours(12, 0, 0, 0)
+  return Math.max(0, Math.ceil((target.getTime() - start.getTime()) / 86_400_000))
+}
+
+/** Vendor dashboard — parity with family home: attention, upcoming, earnings, KYC. */
 export default function VendorDashboard() {
   const router = useRouter()
   const { business, requests, jobs } = useVendorPortal()
@@ -35,6 +50,11 @@ export default function VendorDashboard() {
     business.verificationStatus
   )
   const isRejected = onboardingStatus === "rejected"
+  const isUnverified =
+    !isPendingReview &&
+    !isRejected &&
+    (business.verificationStatus === "unverified" ||
+      business.verificationStatus == null)
 
   useEffect(() => {
     if (needsOnboarding) {
@@ -42,13 +62,50 @@ export default function VendorDashboard() {
     }
   }, [needsOnboarding, router])
 
-  const pendingCount = requests.length
-  const upcomingJobs = jobs
-    .filter((j) => j.jobStatus === "upcoming" || j.jobStatus === "awaiting_check_in")
-    .sort((a, b) => a.eventDate.localeCompare(b.eventDate))
-  const upcomingThisMonth = upcomingJobs.filter((j) => j.eventDate.startsWith("2026-08")).length
-  const monthlyEarnings = getMonthlyEarnings(jobs)
-  const nextJobs = upcomingJobs.slice(0, 3)
+  const monthKey = getCurrentMonthKey()
+  const today = todayKey()
+
+  const attentionRequests = useMemo(
+    () =>
+      requests.filter(
+        (r) =>
+          r.status === "pending" ||
+          r.status === "awaiting_vendor_response"
+      ),
+    [requests]
+  )
+
+  const openDisputes = useMemo(
+    () =>
+      jobs.filter(
+        (j) =>
+          j.jobStatus === "disputed" &&
+          !j.disputeVendorResponse?.trim()
+      ),
+    [jobs]
+  )
+
+  const upcomingJobs = useMemo(
+    () =>
+      jobs
+        .filter(
+          (j) =>
+            j.jobStatus === "upcoming" || j.jobStatus === "awaiting_check_in"
+        )
+        .sort((a, b) => a.eventDate.localeCompare(b.eventDate)),
+    [jobs]
+  )
+
+  const nextJob = upcomingJobs[0]
+  const nextJobs = upcomingJobs.slice(0, 4)
+  const upcomingThisMonth = upcomingJobs.filter((j) =>
+    j.eventDate.startsWith(monthKey)
+  ).length
+  const monthlyEarnings = getMonthlyEarnings(jobs, monthKey)
+  const attentionCount = attentionRequests.length + openDisputes.length
+  const hasAnyActivity = jobs.length > 0 || requests.length > 0
+  const daysUntilNext = nextJob ? daysUntilDate(nextJob.eventDate) : null
+  const isToday = nextJob?.eventDate === today
 
   if (needsOnboarding) {
     return (
@@ -60,17 +117,71 @@ export default function VendorDashboard() {
 
   return (
     <PageTransition>
-      <header className="mb-8">
+      <header className="mb-8 md:mb-10">
         <p className="shaadi-label">Good morning</p>
         <h1 className="shaadi-page-title mt-1">
           Welcome back, {business.name}
         </h1>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-maroon/70">
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm leading-relaxed text-maroon/65">
           {business.categoryLabel} · {business.city}
           {isFeatured && <FeaturedBadge />}
         </p>
+
+        {nextJob ? (
+          <>
+            <div className="mt-5 rounded-[1.25rem] bg-gold/15 px-5 py-6 md:hidden">
+              <p className="shaadi-label">
+                {isToday ? "Today" : "Next booking"}
+              </p>
+              <div className="mt-3 flex items-end justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-display text-xl font-semibold text-maroon-dark">
+                    {nextJob.familyName}
+                  </p>
+                  <p className="mt-1 text-sm text-maroon/55">
+                    {nextJob.eventName} · {formatEventDate(nextJob.eventDate)}
+                  </p>
+                </div>
+                {daysUntilNext != null && !isToday ? (
+                  <p className="shrink-0 text-right">
+                    <span className="shaadi-stat-value block">{daysUntilNext}</span>
+                    <span className="text-xs font-medium text-maroon/45">
+                      days left
+                    </span>
+                  </p>
+                ) : (
+                  <p className="shrink-0 rounded-full bg-maroon px-3 py-1 text-xs font-bold text-gold">
+                    Today
+                  </p>
+                )}
+              </div>
+              <Link
+                href={`/vendor/jobs/${nextJob.id}`}
+                className="mt-4 inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
+              >
+                Open job →
+              </Link>
+            </div>
+
+            <div className="mt-4 hidden flex-wrap items-center gap-3 md:flex">
+              <p className="inline-flex items-center gap-2 rounded-full bg-gold/15 px-5 py-2 text-sm font-medium text-maroon-dark">
+                <span className="h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
+                {isToday
+                  ? `Today: ${nextJob.eventName} · ${nextJob.familyName}`
+                  : `${daysUntilNext} days until ${nextJob.eventName} · ${nextJob.familyName}`}
+              </p>
+              <Link
+                href={`/vendor/jobs/${nextJob.id}`}
+                className="text-sm font-semibold text-maroon hover:text-gold-dark"
+              >
+                View job →
+              </Link>
+            </div>
+          </>
+        ) : null}
       </header>
 
+      {/* Quick status — KYC / onboarding */}
       {isPendingReview ? (
         <section
           aria-labelledby="pending-review-heading"
@@ -122,57 +233,110 @@ export default function VendorDashboard() {
         </section>
       ) : null}
 
-      {/* Subscription status */}
-      <section
-        aria-labelledby="subscription-heading"
-        className="mb-6 shaadi-card p-5"
-      >
-        <h2 id="subscription-heading" className="sr-only">
-          Subscription status
-        </h2>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="shaadi-label">Your plan</p>
-            <p className="mt-1 text-base font-semibold text-maroon-dark">
-              {isFeatured ? "Featured" : "Basic (Free)"}
-            </p>
-            {isFeatured && nextBillingDate && (
-              <p className="mt-1 text-xs text-maroon/50">
-                Next billing: {nextBillingDate}
-              </p>
-            )}
-          </div>
-          <Link
-            href={isFeatured ? "/vendor/subscription" : "/vendor/upgrade"}
-            className="inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline"
+      {isUnverified ? (
+        <section
+          aria-labelledby="unverified-heading"
+          className="mb-6 rounded-2xl border border-gold/30 bg-white p-5"
+        >
+          <h2
+            id="unverified-heading"
+            className="font-display text-lg font-semibold text-maroon-dark"
           >
-            {isFeatured ? "Manage subscription" : "Upgrade to Featured →"}
+            Finish payment verification
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-maroon/70">
+            You can receive booking requests now. Deposits and payouts unlock
+            after admin approval.
+          </p>
+          <Link
+            href="/vendor/profile"
+            className="mt-4 inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
+          >
+            Complete verification →
           </Link>
+        </section>
+      ) : null}
+
+      {/* Needs attention */}
+      <section aria-labelledby="needs-attention-heading" className="mb-8">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2
+            id="needs-attention-heading"
+            className="shaadi-section-title sm:text-xl"
+          >
+            Needs attention
+          </h2>
+          {attentionCount > 0 ? (
+            <span className="rounded-full bg-maroon px-2.5 py-0.5 text-xs font-bold text-gold">
+              {attentionCount}
+            </span>
+          ) : null}
         </div>
+
+        {attentionCount === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gold/30 bg-white/50 px-5 py-6 text-center">
+            <p className="text-sm text-maroon/60">
+              You’re all caught up — no pending requests or open disputes.
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {attentionRequests.map((req) => (
+              <li key={req.id}>
+                <Link
+                  href="/vendor/requests"
+                  className="shaadi-card flex min-h-[44px] flex-col gap-2 p-4 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                      Booking request
+                    </p>
+                    <p className="mt-1 font-semibold text-maroon-dark">
+                      {req.familyName}
+                    </p>
+                    <p className="text-sm text-maroon/60">
+                      {req.eventName} · {formatEventDate(req.eventDate)}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-maroon">
+                    Respond →
+                  </span>
+                </Link>
+              </li>
+            ))}
+            {openDisputes.map((job) => (
+              <li key={job.id}>
+                <Link
+                  href={`/vendor/jobs/${job.id}`}
+                  className="shaadi-card flex min-h-[44px] flex-col gap-2 border-rose-200/80 p-4 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-rose-800">
+                      Open dispute
+                    </p>
+                    <p className="mt-1 font-semibold text-maroon-dark">
+                      {job.familyName}
+                    </p>
+                    <p className="text-sm text-maroon/60">
+                      {job.eventName} · {formatEventDate(job.eventDate)}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-rose-800">
+                    Respond →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
-      {pendingCount > 0 && (
-        <Link
-          href="/vendor/requests"
-          className="mb-6 flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gradient-to-r from-gold/15 to-gold/5 p-5 transition-shadow hover:shadow-md"
-        >
-          <div>
-            <p className="font-semibold text-maroon-dark">
-              You have {pendingCount} new booking request{pendingCount > 1 ? "s" : ""}
-            </p>
-            <p className="text-sm text-maroon/60">Review and respond before they expire</p>
-          </div>
-          <span className="rounded-full bg-maroon px-3 py-1 text-sm font-bold text-gold">
-            {pendingCount}
-          </span>
-        </Link>
-      )}
-
-      <section aria-labelledby="vendor-overview" className="mb-8">
+      {/* Overview stats */}
+      <section aria-labelledby="vendor-overview" className="mb-8 md:mb-10">
         <h2 id="vendor-overview" className="sr-only">
           Overview
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Upcoming this month"
             value={upcomingThisMonth}
@@ -184,19 +348,19 @@ export default function VendorDashboard() {
             }
           />
           <StatCard
-            label="Pending requests"
-            value={pendingCount}
-            subtext="Awaiting your response"
+            label="Needs attention"
+            value={attentionCount}
+            subtext="Requests & disputes"
             icon={
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>
             }
           />
           <StatCard
-            label="Earned this month"
+            label="This month"
             value={formatPrice(monthlyEarnings)}
-            subtext="Completed jobs"
+            subtext="Confirmed & completed"
             icon={
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.375M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
@@ -204,7 +368,7 @@ export default function VendorDashboard() {
             }
           />
           <StatCard
-            label={isNewVendor(business.completedJobsCount) ? "Status" : "Reliability score"}
+            label={isNewVendor(business.completedJobsCount) ? "Status" : "Reliability"}
             value={
               isNewVendor(business.completedJobsCount)
                 ? "New vendor"
@@ -224,19 +388,78 @@ export default function VendorDashboard() {
         </div>
       </section>
 
+      {/* Subscription — compact, secondary */}
+      <section
+        aria-labelledby="subscription-heading"
+        className="mb-8 shaadi-card p-5"
+      >
+        <h2 id="subscription-heading" className="sr-only">
+          Subscription status
+        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="shaadi-label">Your plan</p>
+            <p className="mt-1 text-base font-semibold text-maroon-dark">
+              {isFeatured ? "Featured" : "Basic (Free)"}
+            </p>
+            {isFeatured && nextBillingDate ? (
+              <p className="mt-1 text-xs text-maroon/50">
+                Next billing: {nextBillingDate}
+              </p>
+            ) : null}
+          </div>
+          <Link
+            href={isFeatured ? "/vendor/subscription" : "/vendor/upgrade"}
+            className="inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline"
+          >
+            {isFeatured ? "Manage subscription" : "Upgrade to Featured →"}
+          </Link>
+        </div>
+      </section>
+
+      {/* Today / upcoming */}
       <section aria-labelledby="upcoming-jobs">
         <div className="mb-4 flex items-center justify-between">
           <h2 id="upcoming-jobs" className="shaadi-section-title sm:text-xl">
-            Upcoming jobs
+            Today & upcoming
           </h2>
-          <Link href="/vendor/jobs" className="inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark">
+          <Link
+            href="/vendor/jobs"
+            className="inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
+          >
             View all →
           </Link>
         </div>
 
-        {nextJobs.length === 0 ? (
+        {!hasAnyActivity ? (
           <div className="rounded-2xl border border-dashed border-gold/30 bg-white/50 p-8 text-center">
-            <p className="text-maroon/60">No upcoming jobs yet. Accept a booking request to get started.</p>
+            <p className="font-display text-lg font-semibold text-maroon-dark">
+              No bookings yet
+            </p>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-maroon/60">
+              When families request you, they’ll show up under Needs attention.
+              Keep your profile and portfolio up to date so you’re easy to find.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/vendor/profile"
+                className="inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
+              >
+                Update profile →
+              </Link>
+              <Link
+                href="/vendor/requests"
+                className="inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
+              >
+                Check requests →
+              </Link>
+            </div>
+          </div>
+        ) : nextJobs.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gold/30 bg-white/50 p-8 text-center">
+            <p className="text-maroon/60">
+              No upcoming confirmed jobs. Accept a booking request to get started.
+            </p>
             <Link
               href="/vendor/requests"
               className="mt-3 inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
@@ -253,9 +476,19 @@ export default function VendorDashboard() {
                   className="shaadi-card flex min-h-[44px] flex-col gap-3 p-4 transition-shadow hover:shadow-md md:flex-row md:flex-wrap md:items-center md:justify-between md:p-5"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-maroon-dark">{job.familyName}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-maroon-dark">
+                        {job.familyName}
+                      </p>
+                      {job.eventDate === today ? (
+                        <span className="rounded-full bg-maroon/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-maroon">
+                          Today
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-sm text-maroon/60">
-                      {job.eventName} · {formatEventDate(job.eventDate)} · {job.eventTime}
+                      {job.eventName} · {formatEventDate(job.eventDate)}
+                      {job.eventTime ? ` · ${job.eventTime}` : ""}
                     </p>
                   </div>
                   <div className="flex items-center justify-between gap-2 md:justify-end">
@@ -269,6 +502,34 @@ export default function VendorDashboard() {
             ))}
           </ul>
         )}
+      </section>
+
+      {/* Quick links — match family pill CTAs */}
+      <section className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 lg:grid-cols-4">
+        <Link
+          href="/vendor/requests"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+        >
+          Booking requests →
+        </Link>
+        <Link
+          href="/vendor/jobs"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+        >
+          My jobs →
+        </Link>
+        <Link
+          href="/vendor/earnings"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+        >
+          Earnings →
+        </Link>
+        <Link
+          href="/vendor/profile"
+          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+        >
+          Profile →
+        </Link>
       </section>
     </PageTransition>
   )

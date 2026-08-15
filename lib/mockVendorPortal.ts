@@ -361,10 +361,57 @@ export function buildEarningsFromJobs(jobs: VendorJob[]): EarningsTransaction[] 
   return txs.sort((a, b) => b.date.localeCompare(a.date))
 }
 
-export function getMonthlyEarnings(jobs: VendorJob[], month = "2026-07"): number {
+export function getCurrentMonthKey(now = new Date()): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, "0")
+  return `${y}-${m}`
+}
+
+/**
+ * Booked value for the calendar month: confirmed + completed jobs whose
+ * event (or completion) falls in that month. Uses deposit + paid/released
+ * balance when payment exists; otherwise the job price.
+ */
+export function getMonthlyEarnings(
+  jobs: VendorJob[],
+  month = getCurrentMonthKey()
+): number {
+  const countable: VendorJobStatus[] = [
+    "upcoming",
+    "awaiting_check_in",
+    "completed",
+  ]
   return jobs
-    .filter((j) => j.jobStatus === "completed" && j.completedAt?.startsWith(month))
-    .reduce((sum, j) => sum + j.payment.depositAmount + (j.payment.balanceStatus === "paid_in_person" || j.payment.balanceStatus === "released_online" ? j.payment.balanceAmount : 0), 0)
+    .filter((j) => {
+      if (!countable.includes(j.jobStatus)) return false
+      return (
+        j.eventDate.startsWith(month) ||
+        Boolean(j.completedAt?.startsWith(month))
+      )
+    })
+    .reduce((sum, j) => {
+      const p = j.payment
+      if (!p) return sum + j.price
+      let amount = 0
+      if (p.depositStatus === "held" || p.depositStatus === "released") {
+        amount += p.depositAmount
+      }
+      if (
+        p.balanceStatus === "paid_in_person" ||
+        p.balanceStatus === "released_online" ||
+        p.balanceStatus === "charged_pending_release"
+      ) {
+        amount += p.balanceAmount
+      }
+      // Confirmed job with no money movement yet — count booked price
+      if (
+        amount === 0 &&
+        (j.jobStatus === "upcoming" || j.jobStatus === "awaiting_check_in")
+      ) {
+        return sum + j.price
+      }
+      return sum + amount
+    }, 0)
 }
 
 export function getPendingPayouts(jobs: VendorJob[]): number {
