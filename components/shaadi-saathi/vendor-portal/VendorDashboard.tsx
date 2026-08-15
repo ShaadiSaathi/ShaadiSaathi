@@ -17,6 +17,7 @@ import {
   getMonthlyEarnings,
   isNewVendor,
 } from "@/lib/mockVendorPortal"
+import { getVendorEarningsSummary } from "@/lib/vendor-earnings"
 import {
   normalizeVendorOnboardingStatus,
   vendorNeedsOnboarding,
@@ -103,6 +104,7 @@ export default function VendorDashboard() {
     j.eventDate.startsWith(monthKey)
   ).length
   const monthlyEarnings = getMonthlyEarnings(jobs, monthKey)
+  const earningsSummary = useMemo(() => getVendorEarningsSummary(jobs), [jobs])
   const attentionCount = attentionRequests.length + openDisputes.length
   const hasAnyActivity = jobs.length > 0 || requests.length > 0
   const daysUntilNext = nextJob ? daysUntilDate(nextJob.eventDate) : null
@@ -416,6 +418,80 @@ export default function VendorDashboard() {
             {isFeatured ? "Manage subscription" : "Upgrade to Featured →"}
           </Link>
         </div>
+      </section>
+
+      {/* Payout visibility — amounts only; Safepay bank transfers not live */}
+      <section className="mb-8 md:mb-10" aria-labelledby="vendor-earnings-visibility">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="vendor-earnings-visibility" className="shaadi-section-title sm:text-xl">
+              Earnings overview
+            </h2>
+            <p className="mt-1 text-sm text-maroon/55">
+              Tracked from your bookings — not a bank transfer yet
+            </p>
+          </div>
+          <Link
+            href="/vendor/jobs?tab=earnings"
+            className="inline-flex min-h-[44px] items-center text-sm font-semibold text-maroon hover:text-gold-dark"
+          >
+            Full earnings →
+          </Link>
+        </div>
+
+        {!earningsSummary.bankPayoutsActive ? (
+          <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
+            <span className="font-semibold">Safepay payouts are not active yet.</span>{" "}
+            Owed and Pending show what you will receive once bank payouts go live —
+            these totals do not mean money has been sent.
+          </p>
+        ) : null}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Owed"
+            value={formatPrice(earningsSummary.owedPkr)}
+            subtext="Ready for payout when Safepay is live"
+          />
+          <StatCard
+            label="Pending"
+            value={formatPrice(earningsSummary.pendingPkr)}
+            subtext="Held for check-in or dispute window"
+          />
+          <StatCard
+            label="Paid"
+            value={formatPrice(earningsSummary.paidPkr)}
+            subtext={
+              earningsSummary.bankPayoutsActive
+                ? "Settled payouts & in-person balances"
+                : "In-person balances received on the day"
+            }
+          />
+        </div>
+
+        {earningsSummary.paidBreakdown.length > 0 ? (
+          <ul className="mt-4 space-y-2">
+            {earningsSummary.paidBreakdown.slice(0, 3).map((row) => (
+              <li key={`${row.jobId}-${row.note}`}>
+                <Link
+                  href={`/vendor/jobs/${row.jobId}`}
+                  className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-gold/20 bg-white px-4 py-3 text-sm transition-shadow hover:shadow-sm"
+                >
+                  <span className="min-w-0 truncate text-maroon/70">
+                    <span className="font-semibold text-maroon-dark">{row.familyName}</span>
+                    {" · "}
+                    {row.eventName}
+                    {" · "}
+                    {row.note}
+                  </span>
+                  <span className="shrink-0 font-semibold text-maroon-dark">
+                    {formatPrice(row.amountPkr)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
 
       {/* Today / upcoming */}

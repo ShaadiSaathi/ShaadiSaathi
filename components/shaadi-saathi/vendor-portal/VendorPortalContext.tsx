@@ -37,6 +37,7 @@ import {
 } from "@/lib/firebase/notifications"
 import type { FirestoreBooking } from "@/lib/firebase/types"
 import type { VendorVerificationStatus } from "@/lib/firebase/vendor-verification"
+import { withDerivedPayoutStatus } from "@/lib/vendor-earnings"
 import { formatPrice } from "@/lib/mockVendors"
 
 interface VendorPortalContextValue {
@@ -93,7 +94,7 @@ function bookingToJob(b: FirestoreBooking): VendorJob {
     packageName: b.packageName,
     price: b.price,
     jobStatus,
-    payment: firestorePaymentToUi(b),
+    payment: withDerivedPayoutStatus(firestorePaymentToUi(b), jobStatus),
     disputeFamilyMessage: b.dispute?.description || b.dispute?.familyReason,
     disputeVendorResponse: b.dispute?.vendorResponse,
   }
@@ -161,6 +162,7 @@ function firestorePaymentToUi(b: FirestoreBooking): BookingPayment {
     safepayPayoutStatus: p.safepayPayoutStatus,
     safepayPayoutError: p.safepayPayoutError,
     safepayPayoutAttemptedAt: msToIso(p.safepayPayoutAttemptedAt),
+    ...(p.payoutStatus ? { payoutStatus: p.payoutStatus } : {}),
   }
 }
 

@@ -12,6 +12,8 @@ import {
   PaymentPathBadge,
 } from "@/components/shaadi-saathi/vendors/payments/PaymentStatusBadges"
 import { JobStatusBadge } from "@/components/shaadi-saathi/vendor-portal/JobStatusBadge"
+import { VendorPayoutStatusBadge } from "@/components/shaadi-saathi/vendor-portal/VendorPayoutStatusBadge"
+import { getBookingPayoutVisibility } from "@/lib/vendor-earnings"
 import CheckInButton, { GracePeriodBanner } from "@/components/shaadi-saathi/vendors/payments/CheckInButton"
 import { QualityConcernBadge, QualityConcernCard } from "@/components/shaadi-saathi/shared/QualityConcernForm"
 import MessageThread from "@/components/shaadi-saathi/shared/MessageThread"
@@ -137,12 +139,28 @@ export default function JobDetail({ job }: JobDetailProps) {
           <div className="shaadi-card p-5">
             <h2 className="shaadi-section-title">Payment</h2>
             <div className="mt-3 flex flex-wrap gap-2">
+              <VendorPayoutStatusBadge
+                payment={payment}
+                jobStatus={job.jobStatus}
+              />
               <DepositStatusBadge status={payment.depositStatus} />
               <BalanceStatusBadge payment={payment} />
               <PaymentPathBadge payment={payment} />
               {payment.qualityConcern && <QualityConcernBadge />}
               {payment.dispute?.status === "under_review" && <DisputeBadge />}
             </div>
+            {(() => {
+              const visibility = getBookingPayoutVisibility(
+                payment,
+                job.jobStatus
+              )
+              if (visibility.status === "none") return null
+              return (
+                <p className="mt-3 text-sm leading-relaxed text-maroon/65">
+                  {visibility.detail}
+                </p>
+              )
+            })()}
             {payment.qualityConcern && (
               <div className="mt-3">
                 <QualityConcernCard description={payment.qualityConcern.description} />
@@ -372,8 +390,7 @@ export function JobListCard({ job }: { job: VendorJob }) {
       <div className="mt-3 flex flex-wrap gap-2">
         {job.isRepeatClient && <RepeatClientBadge />}
         <JobStatusBadge status={job.jobStatus} />
-        <DepositStatusBadge status={payment.depositStatus} />
-        <BalanceStatusBadge payment={payment} />
+        <VendorPayoutStatusBadge payment={payment} jobStatus={job.jobStatus} />
       </div>
     </Link>
   )

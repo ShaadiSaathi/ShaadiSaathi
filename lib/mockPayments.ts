@@ -96,6 +96,17 @@ export interface BookingPayment {
     | "P_SETTLED"
   safepayPayoutError?: string
   safepayPayoutAttemptedAt?: string
+  /**
+   * Vendor-facing earnings bucket (owed | pending | paid | on_hold | refunded | none).
+   * Derived from deposit/balance/safepay fields — not a second ledger of amounts.
+   */
+  payoutStatus?:
+    | "owed"
+    | "pending"
+    | "paid"
+    | "on_hold"
+    | "refunded"
+    | "none"
 }
 
 export const PAYMENT_PROVIDERS = [
@@ -261,9 +272,10 @@ export function getVendorPayoutDisplay(payment: BookingPayment): {
   if (payment.depositStatus === "held") {
     return {
       status: "held",
-      label: "Held",
+      label: "Pending — held until check-in",
       style: DEPOSIT_STATUS_STYLES.held,
-      detail: "Held until day-of check-in",
+      detail:
+        "Held in platform escrow until day-of check-in. Not a bank transfer yet.",
     }
   }
 
@@ -317,9 +329,10 @@ export function getVendorPayoutDisplay(payment: BookingPayment): {
 
   return {
     status: "released_pending_payout",
-    label: "Released — Payout Pending",
+    label: "Owed — awaiting bank payout",
     style: "bg-amber-50 text-amber-900 border-amber-200",
-    detail: "Deposit released; waiting for bank payout",
+    detail:
+      "Deposit released to your earnings. You will receive this once Safepay payouts are active — it has not been sent to your bank yet.",
   }
 }
 

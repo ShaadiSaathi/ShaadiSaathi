@@ -1,118 +1,126 @@
 "use client"
 
+import Link from "next/link"
 import { useMemo, useState } from "react"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import StatCard from "@/components/shaadi-saathi/app/StatCard"
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
 import { formatPrice } from "@/lib/mockVendors"
 import {
-  BALANCE_STATUS_STYLES,
-  getBalanceStatusLabel,
-  getVendorPayoutDisplay,
-  type BookingPayment,
-} from "@/lib/mockPayments"
-import { getPendingPayouts } from "@/lib/mockVendorPortal"
-import type { EarningsTransaction } from "@/lib/mockVendorPortal"
+  getBookingPayoutVisibility,
+  getVendorEarningsSummary,
+  type VendorPayoutStatus,
+} from "@/lib/vendor-earnings"
+import type { VendorJob } from "@/lib/mockVendorPortal"
 
-type StatusFilter =
-  | "all"
-  | "held"
-  | "payout_sent"
-  | "payout_failed"
-  | "pending_payout"
+type StatusFilter = "all" | VendorPayoutStatus
 
-/** Earnings summary + transaction history with real Safepay payout status */
+/** Earnings — Owed / Pending / Paid visibility (Safepay bank payouts not live yet). */
 export default function EarningsList({ embedded = false }: { embedded?: boolean }) {
-  const { earnings, jobs } = useVendorPortal()
+  const { jobs } = useVendorPortal()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const summary = useMemo(() => getVendorEarningsSummary(jobs), [jobs])
 
-  const pendingPayouts = getPendingPayouts(jobs)
-  const nowMonth = new Date().toISOString().slice(0, 7)
-  const earnedThisMonth = earnings
-    .filter((t) => t.date.startsWith(nowMonth) && isPayoutSent(t))
-    .reduce((sum, t) => sum + t.amount, 0)
-
-  const awaitingBank = jobs.reduce((sum, j) => {
-    const p = j.payment
-    if (p.depositStatus !== "released") return sum
-    if (p.safepayPayoutStatus === "P_SETTLED") return sum
-    return sum + p.depositAmount
-  }, 0)
+  const rows = useMemo(() => {
+    return jobs
+      .map((job) => ({
+        job,
+        visibility: getBookingPayoutVisibility(job.payment, job.jobStatus),
+      }))
+      .filter(({ visibility }) => visibility.status !== "none")
+      .sort((a, b) => b.job.eventDate.localeCompare(a.job.eventDate))
+  }, [jobs])
 
   const filtered = useMemo(() => {
-    if (statusFilter === "all") return earnings
-    if (statusFilter === "held") {
-      return earnings.filter(
-        (t) => t.depositStatus === "held" || t.balanceStatus === "charged_pending_release"
-      )
-    }
-    if (statusFilter === "payout_sent") {
-      return earnings.filter((t) => isPayoutSent(t))
-    }
-    if (statusFilter === "payout_failed") {
-      return earnings.filter(
-        (t) =>
-          t.safepayPayoutStatus === "P_FAILED" ||
-          t.safepayPayoutStatus === "P_REJECTED" ||
-          Boolean(t.safepayPayoutError)
-      )
-    }
-    // pending_payout: released but not settled
-    return earnings.filter((t) => {
-      if (t.type !== "deposit") return false
-      return (
-        t.depositStatus === "released" &&
-        t.safepayPayoutStatus !== "P_SETTLED"
-      )
-    })
-  }, [earnings, statusFilter])
+    if (statusFilter === "all") return rows
+    return rows.filter(({ visibility }) => visibility.status === statusFilter)
+  }, [rows, statusFilter])
 
   return (
     <PageTransition>
-      {!embedded && (
-        <header className="mb-8">
-          <h1 className="shaadi-page-title">Earnings</h1>
-          <p className="mt-1 text-maroon/60">Deposits, balances, and payout history</p>
-        </header>
-      )}
-      {embedded && (
-        <header className="mb-6">
-          <h1 className="shaadi-page-title">Earnings</h1>
-          <p className="mt-1 text-maroon/60">Deposits, balances, and payout history</p>
-        </header>
-      )}
+      <header className={embedded ? "mb-6" : "mb-8"}>
+        <h1 className="shaadi-page-title">Earnings</h1>
+        <p className="mt-1 text-maroon/60">
+          What you&apos;re owed, what&apos;s held, and what&apos;s already paid
+        </p>
+      </header>
+
+      <SafepayVisibilityBanner bankPayoutsActive={summary.bankPayoutsActive} />
 
       <section className="mb-8 grid gap-4 sm:grid-cols-3">
         <StatCard
-          label="Earned this month"
-          value={formatPrice(earnedThisMonth)}
-          subtext="Payouts sent to your bank"
+          label="Owed"
+          value={formatPrice(summary.owedPkr)}
+          subtext="Confirmed — not paid out to your bank yet"
         />
         <StatCard
-          label="Pending payouts"
-          value={formatPrice(pendingPayouts)}
-          subtext="Still held until check-in"
+          label="Pending"
+          value={formatPrice(summary.pendingPkr)}
+          subtext="Held for check-in, dispute, or payout processing"
         />
         <StatCard
-          label="Awaiting bank transfer"
-          value={formatPrice(awaitingBank)}
-          subtext="Released — payout in progress or pending"
+          label="Paid"
+          value={formatPrice(summary.paidPkr)}
+          subtext={
+            summary.bankPayoutsActive
+              ? "Bank payouts settled + in-person balances"
+              : "In-person balances only until Safepay is live"
+          }
         />
       </section>
 
-      <section aria-labelledby="transactions-heading">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 id="transactions-heading" className="shaadi-section-title sm:text-xl">
-            Transaction history
+      {summary.paidBreakdown.length > 0 ? (
+        <section className="mb-8" aria-labelledby="paid-breakdown-heading">
+          <h2 id="paid-breakdown-heading" className="shaadi-section-title sm:text-xl">
+            Paid breakdown
           </h2>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
+          <ul className="shaadi-card mt-4 divide-y divide-gold/15 overflow-hidden">
+            {summary.paidBreakdown.map((row) => (
+              <li key={`${row.jobId}-${row.note}-${row.paidAtLabel}`}>
+                <Link
+                  href={`/vendor/jobs/${row.jobId}`}
+                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-ivory/60 sm:px-5"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-maroon-dark">
+                      {row.familyName}
+                      {row.weddingName ? ` · ${row.weddingName}` : ""}
+                    </p>
+                    <p className="text-sm text-maroon/50">
+                      {row.eventName} ·{" "}
+                      {new Date(`${row.eventDate}T12:00:00`).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                      {" · "}
+                      {row.note}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="shaadi-stat-value text-lg">{formatPrice(row.amountPkr)}</p>
+                    <p className="text-xs text-maroon/45">{row.paidAtLabel}</p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section aria-labelledby="per-booking-heading">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 id="per-booking-heading" className="shaadi-section-title sm:text-xl">
+            Per booking
+          </h2>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by payout status">
             {(
               [
                 ["all", "All"],
-                ["held", "Held"],
-                ["pending_payout", "Payout pending"],
-                ["payout_sent", "Payout sent"],
-                ["payout_failed", "Failed"],
+                ["owed", "Owed"],
+                ["pending", "Pending"],
+                ["paid", "Paid"],
+                ["on_hold", "On hold"],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -133,12 +141,14 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
 
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gold/30 p-8 text-center text-maroon/60">
-            No transactions match this filter.
+            {jobs.length === 0
+              ? "No confirmed bookings yet — earnings appear once families book you."
+              : "No bookings match this filter."}
           </div>
         ) : (
           <ul className="shaadi-card divide-y divide-gold/15 overflow-hidden">
-            {filtered.map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} />
+            {filtered.map(({ job, visibility }) => (
+              <BookingEarningsRow key={job.id} job={job} visibility={visibility} />
             ))}
           </ul>
         )}
@@ -147,79 +157,67 @@ export default function EarningsList({ embedded = false }: { embedded?: boolean 
   )
 }
 
-function isPayoutSent(tx: EarningsTransaction): boolean {
-  return tx.safepayPayoutStatus === "P_SETTLED"
+function SafepayVisibilityBanner({ bankPayoutsActive }: { bankPayoutsActive: boolean }) {
+  if (bankPayoutsActive) {
+    return (
+      <p
+        className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950"
+        role="status"
+      >
+        Some bank payouts have settled. Owed and Pending still mean money has not
+        finished transferring to your account.
+      </p>
+    )
+  }
+
+  return (
+    <p
+      className="mb-6 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950"
+      role="status"
+    >
+      <span className="font-semibold">Visibility only — bank payouts are not active yet.</span>{" "}
+      Owed and Pending amounts show what you will receive once Safepay payouts are
+      connected. Nothing here means money has already been sent to your bank.
+    </p>
+  )
 }
 
-function TransactionRow({ tx }: { tx: EarningsTransaction }) {
-  if (tx.type === "deposit") {
-    const paymentLike = {
-      depositStatus: tx.depositStatus ?? "held",
-      safepayPayoutStatus: tx.safepayPayoutStatus,
-      safepayPayoutError: tx.safepayPayoutError,
-    } as BookingPayment
-    const display = getVendorPayoutDisplay(paymentLike)
-
-    return (
-      <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
+function BookingEarningsRow({
+  job,
+  visibility,
+}: {
+  job: VendorJob
+  visibility: ReturnType<typeof getBookingPayoutVisibility>
+}) {
+  return (
+    <li>
+      <Link
+        href={`/vendor/jobs/${job.id}`}
+        className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-ivory/60 sm:px-5"
+      >
         <div className="min-w-0">
-          <p className="font-medium text-maroon-dark">{tx.label}</p>
+          <p className="font-medium text-maroon-dark">{job.familyName}</p>
           <p className="text-sm text-maroon/50">
-            {tx.eventName} · Deposit ·{" "}
-            {new Date(tx.date).toLocaleDateString("en-US", {
+            {job.eventName} ·{" "}
+            {new Date(`${job.eventDate}T12:00:00`).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
               year: "numeric",
             })}
           </p>
-          {display.detail ? (
-            <p className="mt-1 max-w-md text-xs text-maroon/45">{display.detail}</p>
-          ) : null}
+          <p className="mt-1 max-w-md text-xs text-maroon/45">{visibility.detail}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col items-end gap-2">
           <span
-            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${display.style}`}
+            className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${visibility.style}`}
           >
-            {display.label}
+            {visibility.label}
           </span>
-          <span className="shaadi-stat-value text-lg">{formatPrice(tx.amount)}</span>
+          <span className="shaadi-stat-value text-lg">
+            {formatPrice(visibility.amountPkr || job.payment.depositAmount)}
+          </span>
         </div>
-      </li>
-    )
-  }
-
-  const statusLabel = getBalanceStatusLabel(tx.balanceStatus ?? "pending_online", {
-    totalPrice: tx.amount,
-    depositAmount: 0,
-    depositPercent: 0,
-    balanceAmount: tx.amount,
-    paymentPath: "online",
-    depositStatus: "released",
-    balanceStatus: tx.balanceStatus ?? "pending_online",
-  })
-  const statusStyle = BALANCE_STATUS_STYLES[tx.balanceStatus ?? "pending_online"]
-
-  return (
-    <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
-      <div className="min-w-0">
-        <p className="font-medium text-maroon-dark">{tx.label}</p>
-        <p className="text-sm text-maroon/50">
-          {tx.eventName} · Balance ·{" "}
-          {new Date(tx.date).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </p>
-      </div>
-      <div className="flex items-center gap-3">
-        <span
-          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusStyle}`}
-        >
-          {statusLabel}
-        </span>
-        <span className="shaadi-stat-value text-lg">{formatPrice(tx.amount)}</span>
-      </div>
+      </Link>
     </li>
   )
 }

@@ -59,6 +59,18 @@ export type FirestoreBookingPayment = {
   safepayPayoutRequestId?: string
   safepayPayoutAttemptedAt?: number
   safepayPayoutError?: string
+  /**
+   * Optional denormalized vendor earnings bucket (owed/pending/paid/…).
+   * Prefer deriving from deposit/balance/safepay fields; may be written by Admin
+   * later for querying. Amounts always come from depositAmount/balanceAmount.
+   */
+  payoutStatus?:
+    | "owed"
+    | "pending"
+    | "paid"
+    | "on_hold"
+    | "refunded"
+    | "none"
   updatedAt: number
 }
 
