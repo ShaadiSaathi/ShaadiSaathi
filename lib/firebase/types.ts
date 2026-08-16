@@ -96,6 +96,12 @@ export interface FirestoreWedding {
   /** Firebase Auth UID of the account that created this wedding */
   ownerId: string
   memberUids: string[]
+  /**
+   * Collaborator UIDs granted elevated financial permission (pay/book/dispute).
+   * Owner always has access implicitly — do not require ownerId in this list.
+   * Default / absent = collaborators cannot initiate financial actions.
+   */
+  paymentApproverUids?: string[]
   organiserName: string
   organiserPhone: string
   firstEventDate: string
@@ -350,6 +356,34 @@ export interface FirestoreBooking {
   /** Per-user last read timestamp for unread badges */
   lastReadByFamily?: number
   lastReadByVendor?: number
+}
+
+/**
+ * One review per completed/past booking. Document id == bookingId.
+ * Aggregates are denormalized onto vendors/{vendorId}.rating + reviewCount.
+ */
+export interface FirestoreVendorReview {
+  id: string
+  bookingId: string
+  vendorId: string
+  weddingId: string
+  /** Family member who left the review */
+  authorUid: string
+  /** Display name — family organiser / wedding name convention */
+  familyName: string
+  weddingName?: string
+  eventId: EventId
+  eventDate?: string
+  /** 1–5 stars */
+  rating: number
+  /** Optional written comment */
+  comment?: string
+  createdAt: number
+  updatedAt: number
+  /** Optional single public vendor reply */
+  vendorReply?: string
+  vendorReplyAt?: number
+  vendorReplyByUid?: string
 }
 
 export type ChatThreadType = "vendor_inquiry" | "family_consult"

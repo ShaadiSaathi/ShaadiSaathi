@@ -19,7 +19,9 @@ import {
 import {
   canApproveWeddingPayments,
   getWeddingOwnerDisplayName,
+  isWeddingOwnerUid,
 } from "@/lib/firebase/wedding-permissions"
+import { setWeddingPaymentApprover } from "@/lib/firebase/weddings"
 import type { FirestoreCollaboratorInvite } from "@/lib/firebase/types"
 import { FREE_LIMITS, PREMIUM_LIMITS } from "@/lib/premium"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
@@ -33,11 +35,13 @@ interface WeddingMembersContextValue {
   canInviteMore: boolean
   /** True when signed-in user is weddings.ownerId */
   isOwner: boolean
-  /** Owner-only: approve deposits/balances/disputes */
+  /** Owner or collaborator on paymentApproverUids: deposits/balances/disputes */
   canApprovePayments: boolean
   ownerDisplayName: string
   inviteByPhone: (phone: string) => Promise<void>
   cancelInvite: (inviteId: string) => Promise<void>
+  /** Owner-only: grant/revoke elevated financial permission for a collaborator. */
+  setMemberPaymentAccess: (uid: string, allowed: boolean) => Promise<void>
   getMemberByUid: (uid: string) => WeddingMemberProfile | undefined
   formatAssigneeLabel: (assignee: string, assigneeUid?: string) => string
 }
@@ -127,6 +131,19 @@ export function WeddingMembersProvider({ children }: { children: ReactNode }) {
     await cancelCollaboratorInvite(inviteId)
   }, [])
 
+  const setMemberPaymentAccess = useCallback(
+    async (uid: string, allowed: boolean) => {
+      if (!activeWeddingId) {
+        throw new Error("Wedding not found.")
+      }
+      if (!isWeddingOwnerUid(firebaseUser?.uid, wedding)) {
+        throw new Error("Only the wedding owner can change payment access.")
+      }
+      await setWeddingPaymentApprover(activeWeddingId, uid, allowed)
+    },
+    [activeWeddingId, firebaseUser?.uid, wedding]
+  )
+
   const getMemberByUid = useCallback(
     (uid: string) => members.find((m) => m.uid === uid),
     [members]
@@ -153,7 +170,9 @@ export function WeddingMembersProvider({ children }: { children: ReactNode }) {
   const canApprovePayments = !isFirebaseMode
     ? true
     : canApproveWeddingPayments(firebaseUser?.uid, wedding)
-  const isOwner = !isFirebaseMode ? true : canApprovePayments
+  const isOwner = !isFirebaseMode
+    ? true
+    : isWeddingOwnerUid(firebaseUser?.uid, wedding)
   const ownerDisplayName = getWeddingOwnerDisplayName(members, wedding)
 
   const value = useMemo(
@@ -168,6 +187,7 @@ export function WeddingMembersProvider({ children }: { children: ReactNode }) {
       ownerDisplayName,
       inviteByPhone,
       cancelInvite,
+      setMemberPaymentAccess,
       getMemberByUid,
       formatAssigneeLabel,
     }),
@@ -182,6 +202,7 @@ export function WeddingMembersProvider({ children }: { children: ReactNode }) {
       ownerDisplayName,
       inviteByPhone,
       cancelInvite,
+      setMemberPaymentAccess,
       getMemberByUid,
       formatAssigneeLabel,
     ]

@@ -17,11 +17,21 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/weddings/$(weddingId)).data.memberUids;
     }
 
-    /** Financial approvals — only the wedding ownerId (not collaborators). */
+    /** Financial approvals — wedding ownerId (not default collaborators). */
     function isWeddingOwner(weddingId) {
       return isSignedIn()
         && weddingId != null
         && get(/databases/$(database)/documents/weddings/$(weddingId)).data.ownerId == request.auth.uid;
+    }
+
+    /** Owner, or collaborator listed on paymentApproverUids. */
+    function isWeddingPaymentApprover(weddingId) {
+      return isSignedIn()
+        && weddingId != null
+        && (
+          get(/databases/$(database)/documents/weddings/$(weddingId)).data.ownerId == request.auth.uid
+          || request.auth.uid in get(/databases/$(database)/documents/weddings/$(weddingId)).data.get('paymentApproverUids', [])
+        );
     }
 
     function isVendorOwner(vendorId) {
@@ -30,14 +40,25 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/vendors/$(vendorId)).data.ownerUid == request.auth.uid;
     }
 
-    /** Ownership and premium are Admin SDK only after create. */
+    /** Ownership, membership, and payment-approver allowlist are protected. */
     function weddingOwnershipFieldsUnchanged() {
       return request.resource.data.ownerId == resource.data.ownerId
-        && request.resource.data.memberUids == resource.data.memberUids;
+        && request.resource.data.memberUids == resource.data.memberUids
+        && request.resource.data.get('paymentApproverUids', [])
+          == resource.data.get('paymentApproverUids', []);
     }
 
     function weddingPremiumUnchanged() {
       return request.resource.data.isPremium == resource.data.isPremium;
+    }
+
+    /** Owner may grant/revoke elevated financial access for collaborators. */
+    function weddingPaymentApproverUidsUpdateOk(weddingId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return isWeddingOwner(weddingId)
+        && changed.hasOnly(['paymentApproverUids'])
+        && request.resource.data.paymentApproverUids is list
+        && request.resource.data.paymentApproverUids.size() <= 16;
     }
 
     function isValidWeddingCreate(weddingId) {
@@ -178,7 +199,11 @@ service cloud.firestore {
         || (nextStatus == 'pending'
           && prevStatus in ['unverified', 'rejected', 'pending']);
       return statusOk
-        && !changed.hasAny(['ownerUid', 'verificationReviewedAt', 'verifiedByUid'])
+        && !changed.hasAny([
+          'ownerUid', 'verificationReviewedAt', 'verifiedByUid',
+          // Review aggregates — Admin SDK only (/api/reviews)
+          'rating', 'reviewCount'
+        ])
         && !request.resource.data.keys().hasAny(['verificationCnic']);
     }
 
@@ -260,6 +285,7 @@ service cloud.firestore {
       allow list: if isWeddingMember(weddingId) || isPlatformAdmin();
       allow create: if isSignedIn() && isValidWeddingCreate(weddingId);
       allow update: if isPlatformAdmin()
+        || weddingPaymentApproverUidsUpdateOk(weddingId)
         || (
           (isWeddingOwner(weddingId) || isWeddingMember(weddingId))
           && weddingOwnershipFieldsUnchanged()
@@ -293,10 +319,13 @@ service cloud.firestore {
     match /vendors/{vendorId} {
       allow read: if true;
       // New vendors must start unverified — they cannot self-approve for payments.
+      // rating / reviewCount start at 0 (or absent) — only Admin review API may set them.
       allow create: if isSignedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.verificationStatus == 'unverified'
-        && !request.resource.data.keys().hasAny(['verificationCnic']);
+        && !request.resource.data.keys().hasAny(['verificationCnic'])
+        && request.resource.data.get('rating', 0) == 0
+        && request.resource.data.get('reviewCount', 0) == 0;
       allow update: if isPlatformAdmin()
         || (isVendorOwner(vendorId) && vendorOwnerUpdateAllowed());
       allow delete: if isVendorOwner(vendorId) || isPlatformAdmin();
@@ -351,21 +380,21 @@ service cloud.firestore {
       // write confirmed bookings directly.
       allow create: if isPlatformAdmin()
         || (isSignedIn()
-          && isWeddingOwner(request.resource.data.weddingId)
+          && isWeddingPaymentApprover(request.resource.data.weddingId)
           && request.resource.data.status == 'requested');
       // Payment fields are Admin SDK only (Stripe webhook / payment APIs).
-      // Owner/vendor may update status, quotes, disputes — not payment.
+      // Payment approver / vendor may update status, quotes, disputes — not payment.
       allow update: if isPlatformAdmin()
         || (isSignedIn()
           && isVendorOwner(resource.data.vendorId)
           && bookingNonPaymentUpdateKeys())
         || (isSignedIn()
-          && isWeddingOwner(resource.data.weddingId)
+          && isWeddingPaymentApprover(resource.data.weddingId)
           && bookingNonPaymentUpdateKeys())
         || (isSignedIn()
           && isWeddingMember(resource.data.weddingId)
           && bookingFamilyReadReceiptOnly());
-      allow delete: if isWeddingOwner(resource.data.weddingId) || isPlatformAdmin();
+      allow delete: if isWeddingPaymentApprover(resource.data.weddingId) || isPlatformAdmin();
     }
 
     // Denormalized confirmed-date locks for a vendor (vendorId_YYYY-MM-DD).
@@ -707,6 +736,12 @@ service cloud.firestore {
         || (isSignedIn()
           && isVendorOwner(vendorId)
           && resource.data.ownerUid == request.auth.uid);
+    }
+
+    // Post-booking vendor reviews (doc id == bookingId). Writes via Admin API only.
+    match /vendor_reviews/{reviewId} {
+      allow read: if true;
+      allow create, update, delete: if false;
     }
   }
 }

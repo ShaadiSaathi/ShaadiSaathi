@@ -90,3 +90,32 @@ export async function updateWeddingEventOverride(
     },
   })
 }
+
+/**
+ * Owner grants or revokes elevated financial permission for a collaborator.
+ * Owner is always implied and must not be stored in paymentApproverUids.
+ */
+export async function setWeddingPaymentApprover(
+  weddingId: string,
+  collaboratorUid: string,
+  allowed: boolean
+): Promise<void> {
+  const ref = doc(getFirestoreDb(), "weddings", weddingId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error("Wedding not found")
+  const data = snap.data() as FirestoreWedding
+  if (collaboratorUid === data.ownerId) {
+    throw new Error("The wedding owner already has full payment access.")
+  }
+  if (!(data.memberUids ?? []).includes(collaboratorUid)) {
+    throw new Error("Only wedding members can receive payment access.")
+  }
+
+  const current = new Set(data.paymentApproverUids ?? [])
+  if (allowed) current.add(collaboratorUid)
+  else current.delete(collaboratorUid)
+
+  await updateDoc(ref, {
+    paymentApproverUids: Array.from(current),
+  })
+}

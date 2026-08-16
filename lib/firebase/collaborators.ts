@@ -42,6 +42,8 @@ export interface WeddingMemberProfile {
   name: string
   phone: string
   role: "owner" | "collaborator"
+  /** True for owner, or collaborators on paymentApproverUids. */
+  canApprovePayments: boolean
 }
 
 export async function fetchWeddingMemberProfiles(
@@ -50,15 +52,20 @@ export async function fetchWeddingMemberProfiles(
 ): Promise<WeddingMemberProfile[]> {
   const weddingSnap = await getDoc(doc(getFirestoreDb(), "weddings", weddingId))
   if (!weddingSnap.exists()) return []
-  const memberUids = (weddingSnap.data().memberUids as string[] | undefined) ?? []
+  const data = weddingSnap.data()
+  const memberUids = (data.memberUids as string[] | undefined) ?? []
+  const paymentApproverUids =
+    (data.paymentApproverUids as string[] | undefined) ?? []
   const profiles = await Promise.all(
     memberUids.map(async (uid) => {
       const profile = await getUserProfile(getFirestoreDb(), uid)
+      const isOwner = uid === ownerId
       return {
         uid,
         name: profile?.name ?? "Member",
         phone: profile?.phone ?? "",
-        role: uid === ownerId ? ("owner" as const) : ("collaborator" as const),
+        role: isOwner ? ("owner" as const) : ("collaborator" as const),
+        canApprovePayments: isOwner || paymentApproverUids.includes(uid),
       }
     })
   )
@@ -167,6 +174,8 @@ export function subscribeWeddingMemberProfiles(
       }
       const data = snap.data()
       const memberUids = (data.memberUids as string[] | undefined) ?? []
+      const paymentApproverUids =
+        (data.paymentApproverUids as string[] | undefined) ?? []
       const weddingOwnerId = ownerId ?? (data.ownerId as string)
       const profiles = await Promise.all(
         memberUids.map(async (uid) => {
@@ -174,11 +183,13 @@ export function subscribeWeddingMemberProfiles(
             getFirestoreDb(),
             uid
           )
+          const isOwner = uid === weddingOwnerId
           return {
             uid,
             name: profile?.name ?? "Member",
             phone: profile?.phone ?? "",
-            role: uid === weddingOwnerId ? ("owner" as const) : ("collaborator" as const),
+            role: isOwner ? ("owner" as const) : ("collaborator" as const),
+            canApprovePayments: isOwner || paymentApproverUids.includes(uid),
           }
         })
       )

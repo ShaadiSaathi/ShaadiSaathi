@@ -10,6 +10,7 @@ import CategoryIcon from "@/components/shaadi-saathi/vendors/CategoryIcon"
 import FamilyConsultThread from "@/components/shaadi-saathi/vendors/FamilyConsultThread"
 import MessageModal from "@/components/shaadi-saathi/vendors/MessageModal"
 import VendorPastWorkGallery from "@/components/shaadi-saathi/vendors/VendorPastWorkGallery"
+import VendorReviewsSection from "@/components/shaadi-saathi/vendors/VendorReviewsSection"
 import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 import { NewVendorBadge, VerifiedVendorBadge } from "@/components/shaadi-saathi/shared/StatusBadge"
 import { isNewVendor } from "@/lib/mockVendorPortal"
@@ -104,18 +105,24 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
           <div className="flex flex-col items-end gap-2">
             {vendor.verificationStatus === "verified" ? <VerifiedVendorBadge /> : null}
             <div className="flex items-center gap-1.5 text-lg font-semibold text-maroon-dark">
-              {isNewVendor(vendor.completedJobsCount ?? 0) ? (
+              {isNewVendor(vendor.completedJobsCount ?? 0) &&
+              (vendor.reviewCount ?? 0) === 0 ? (
                 <NewVendorBadge />
-              ) : (
+              ) : (vendor.reviewCount ?? 0) > 0 ? (
                 <>
                   <svg className="h-5 w-5 text-gold" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   {vendor.rating}
                   <span className="text-sm font-normal text-maroon/50">
-                    ({vendor.reviewCount} reviews)
+                    ({vendor.reviewCount}{" "}
+                    {vendor.reviewCount === 1 ? "review" : "reviews"})
                   </span>
                 </>
+              ) : (
+                <span className="rounded-full border border-gold/25 bg-gold/8 px-2.5 py-0.5 text-xs font-medium text-maroon/60">
+                  No reviews yet
+                </span>
               )}
             </div>
           </div>
@@ -132,6 +139,13 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
         vendorName={vendor.name}
         photos={pastWork}
         fallbackGradients={vendor.galleryGradients}
+      />
+
+      <VendorReviewsSection
+        vendorId={vendor.id}
+        rating={vendor.rating}
+        reviewCount={vendor.reviewCount}
+        mockReviews={vendor.reviews}
       />
 
       <section aria-labelledby="availability-heading" className="mb-6">
@@ -190,35 +204,6 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
           <p className="mt-1 text-sm text-maroon/60">
             Packages not listed yet — message this vendor for a custom quote.
           </p>
-        </section>
-      )}
-
-      {vendor.reviews.length > 0 && (
-        <section aria-labelledby="reviews-heading" className="mb-8">
-          <h2 id="reviews-heading" className="mb-4 font-display text-lg font-semibold text-maroon-dark">
-            What families say
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {vendor.reviews.map((review) => (
-              <blockquote
-                key={review.id}
-                className="relative rounded-2xl border border-gold/30 bg-white p-5 shadow-sm"
-              >
-                <div
-                  className="absolute left-3 top-3 h-5 w-5 border-l-2 border-t-2 border-gold/40"
-                  aria-hidden="true"
-                />
-                <p className="font-display text-sm italic leading-relaxed text-maroon-dark">
-                  &ldquo;{review.text}&rdquo;
-                </p>
-                <footer className="mt-4 border-t border-gold/15 pt-3 text-xs text-maroon/60">
-                  <span className="font-semibold text-maroon">{review.author}</span>
-                  {" · "}
-                  {review.location} · {review.eventType}
-                </footer>
-              </blockquote>
-            ))}
-          </div>
         </section>
       )}
 

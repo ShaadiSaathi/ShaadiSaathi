@@ -105,6 +105,8 @@ export interface VendorBooking {
   vendorId: string
   eventId: EventId
   status: BookingStatus
+  /** YYYY-MM-DD when known (Firebase bookings) */
+  eventDate?: string
   guestCount?: number
   packageName?: string
   price: number

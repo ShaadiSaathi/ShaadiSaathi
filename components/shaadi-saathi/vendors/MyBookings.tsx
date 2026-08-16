@@ -37,6 +37,7 @@ import MessageThread from "@/components/shaadi-saathi/shared/MessageThread"
 import { useVendorBookings } from "./VendorBookingsContext"
 import { useWeddingMembersOptional } from "@/components/shaadi-saathi/family/WeddingMembersContext"
 import PaymentOwnerOnlyNotice from "./payments/PaymentOwnerOnlyNotice"
+import LeaveVendorReview from "./LeaveVendorReview"
 
 const STATUS_STYLES = {
   requested: "bg-amber-50 text-amber-800 border-amber-200",
@@ -350,6 +351,14 @@ function BookingCard({
           </Link>
         </div>
       )}
+
+      <LeaveVendorReview
+        bookingId={booking.id}
+        vendorName={vendor.name}
+        status={booking.status}
+        eventId={booking.eventId}
+        eventDate={booking.eventDate}
+      />
 
       {booking.status === "no_show" && <NoShowState booking={booking} />}
 

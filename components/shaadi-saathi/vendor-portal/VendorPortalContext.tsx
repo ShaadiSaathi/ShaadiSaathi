@@ -224,6 +224,8 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
       completedJobsCount: vendor.completedJobsCount ?? prev.completedJobsCount,
       suspended: vendor.suspended ?? prev.suspended,
       reliabilityScore: vendor.reliabilityScore ?? prev.reliabilityScore,
+      rating: vendor.rating ?? prev.rating,
+      reviewCount: vendor.reviewCount ?? prev.reviewCount,
     }))
   }, [isFirebaseMode, vendorId])
 

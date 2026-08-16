@@ -10,6 +10,7 @@ import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { JobStatusBadge } from "@/components/shaadi-saathi/vendor-portal/JobStatusBadge"
 import VendorBookingCalendar from "@/components/shaadi-saathi/vendor-portal/VendorBookingCalendar"
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
+import VendorReviewsSection from "@/components/shaadi-saathi/vendors/VendorReviewsSection"
 import { formatEventDate } from "@/lib/mockData"
 import { formatPrice } from "@/lib/mockVendors"
 import {
@@ -492,6 +493,18 @@ export default function VendorDashboard() {
             ))}
           </ul>
         ) : null}
+      </section>
+
+      {/* Reviews from families */}
+      <section className="mb-8 md:mb-10" aria-label="Your reviews">
+        <VendorReviewsSection
+          vendorId={business.id}
+          rating={business.rating}
+          reviewCount={business.reviewCount}
+          allowVendorReply
+          heading="Your reviews"
+          emptyTitle="No reviews yet"
+        />
       </section>
 
       {/* Today / upcoming */}

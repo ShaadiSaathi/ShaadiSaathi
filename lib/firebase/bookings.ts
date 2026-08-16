@@ -26,6 +26,7 @@ function toVendorBooking(data: FirestoreBooking): VendorBooking {
     vendorId: data.vendorId,
     eventId: data.eventId,
     status: data.status,
+    ...(data.eventDate ? { eventDate: data.eventDate } : {}),
     price: data.price,
     packageName: data.packageName,
     guestCount: data.guestCount,

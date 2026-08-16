@@ -46,6 +46,7 @@ export async function verifyPaymentUser(
 type WeddingAuthFields = {
   ownerId?: string
   memberUids?: string[]
+  paymentApproverUids?: string[]
 }
 
 export async function getWeddingAuthFields(
@@ -58,10 +59,22 @@ export async function getWeddingAuthFields(
     exists: true,
     ownerId: data.ownerId,
     memberUids: data.memberUids,
+    paymentApproverUids: data.paymentApproverUids,
   }
 }
 
-/** Family payment approvals — wedding owner only (not collaborators). */
+function uidCanApproveWeddingPayments(
+  uid: string,
+  wedding: WeddingAuthFields
+): boolean {
+  if (wedding.ownerId === uid) return true
+  return (wedding.paymentApproverUids ?? []).includes(uid)
+}
+
+/**
+ * Family payment / booking / dispute approvals — wedding owner, or a
+ * collaborator listed on paymentApproverUids.
+ */
 export async function assertWeddingPaymentOwner(
   weddingId: string,
   uid: string
@@ -70,15 +83,15 @@ export async function assertWeddingPaymentOwner(
   if (!wedding.exists) {
     throw new PaymentAuthError(404, "Wedding not found")
   }
-  if (wedding.ownerId !== uid) {
+  if (!uidCanApproveWeddingPayments(uid, wedding)) {
     throw new PaymentAuthError(
       403,
-      "Only the wedding owner can approve payments for this wedding"
+      "Only the wedding owner or an authorized payment approver can do this"
     )
   }
 }
 
-/** Deposit capture / refund: wedding owner or the booking's vendor account. */
+/** Deposit capture / refund: payment approver or the booking's vendor account. */
 export async function assertWeddingOwnerOrVendorOwner(
   weddingId: string,
   vendorId: string | undefined,
@@ -88,7 +101,7 @@ export async function assertWeddingOwnerOrVendorOwner(
   if (!wedding.exists) {
     throw new PaymentAuthError(404, "Wedding not found")
   }
-  if (wedding.ownerId === uid) return
+  if (uidCanApproveWeddingPayments(uid, wedding)) return
 
   if (vendorId) {
     const vendorSnap = await getAdminDb().collection("vendors").doc(vendorId).get()
@@ -99,6 +112,6 @@ export async function assertWeddingOwnerOrVendorOwner(
 
   throw new PaymentAuthError(
     403,
-    "Only the wedding owner or vendor can perform this payment action"
+    "Only the wedding owner, an authorized payment approver, or the vendor can perform this payment action"
   )
 }

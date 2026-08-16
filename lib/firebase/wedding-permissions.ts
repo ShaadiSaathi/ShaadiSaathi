@@ -1,8 +1,9 @@
 /**
  * Wedding financial permissions — owner vs collaborator.
  *
- * Role is derived from weddings/{id}.ownerId (not a separate role field),
- * so a future owner-transfer only needs to update that one field.
+ * Owner always has full financial access via weddings/{id}.ownerId.
+ * Collaborators default to view-only for money actions; the owner may grant
+ * elevated access via weddings/{id}.paymentApproverUids.
  */
 
 import type { FirestoreWedding } from "./types"
@@ -20,12 +21,26 @@ export function getWeddingFinancialRole(
   return "none"
 }
 
-/** Owner-only: deposits, balances, disputes, extra-work approvals. */
+type WeddingPaymentFields = Pick<
+  FirestoreWedding,
+  "ownerId" | "memberUids" | "paymentApproverUids"
+>
+
+/** Owner, or collaborator listed on paymentApproverUids. */
 export function canApproveWeddingPayments(
   uid: string | null | undefined,
-  wedding: Pick<FirestoreWedding, "ownerId" | "memberUids"> | null | undefined
+  wedding: WeddingPaymentFields | null | undefined
 ): boolean {
-  return getWeddingFinancialRole(uid, wedding) === "owner"
+  if (!uid || !wedding?.ownerId) return false
+  if (uid === wedding.ownerId) return true
+  return (wedding.paymentApproverUids ?? []).includes(uid)
+}
+
+export function isWeddingOwnerUid(
+  uid: string | null | undefined,
+  wedding: Pick<FirestoreWedding, "ownerId"> | null | undefined
+): boolean {
+  return Boolean(uid && wedding?.ownerId && uid === wedding.ownerId)
 }
 
 export function getWeddingOwnerProfile(

@@ -243,6 +243,7 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
           vendorId: input.vendorId,
           eventId: input.eventId,
           status: result.status,
+          eventDate: result.eventDate,
           guestCount: input.guestCount,
           packageName: input.packageName,
           price: input.price,

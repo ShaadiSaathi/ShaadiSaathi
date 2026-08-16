@@ -144,9 +144,13 @@ export default function SettingsPage() {
     loading: membersLoading,
     memberLimit,
     canInviteMore,
+    isOwner,
     inviteByPhone,
     cancelInvite,
+    setMemberPaymentAccess,
   } = useWeddingMembers()
+  const [paymentAccessBusyUid, setPaymentAccessBusyUid] = useState<string | null>(null)
+  const [paymentAccessError, setPaymentAccessError] = useState<string | null>(null)
 
   const guestInviteUrl =
     typeof window !== "undefined" && weddingId
@@ -346,10 +350,14 @@ export default function SettingsPage() {
           <p className="text-sm text-maroon/50">Loading members…</p>
         ) : (
           <ul className="space-y-2">
-            {members.map((member) => (
+            {members.map((member) => {
+              const isSelf = firebaseUser?.uid === member.uid
+              const showPaymentToggle =
+                isOwner && member.role !== "owner" && Boolean(setMemberPaymentAccess)
+              return (
               <li
                 key={member.uid}
-                className="shaadi-card flex items-center justify-between p-4"
+                className="shaadi-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
                   <Avatar initials={initials(member.name)} size="md" />
@@ -365,19 +373,50 @@ export default function SettingsPage() {
                       >
                         {member.role === "owner" ? "Owner" : "Collaborator"}
                       </span>
+                      {member.role !== "owner" && member.canApprovePayments ? (
+                        <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                          Can approve payments
+                        </span>
+                      ) : null}
                       {member.phone ? (
                         <span className="text-xs text-maroon/50">{maskPhone(member.phone)}</span>
+                      ) : null}
+                      {isSelf ? (
+                        <span className="inline-flex rounded-full bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold-dark">
+                          You
+                        </span>
                       ) : null}
                     </div>
                   </div>
                 </div>
-                {firebaseUser?.uid === member.uid && (
-                  <span className="inline-flex rounded-full bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold-dark">
-                    You
-                  </span>
-                )}
+                {showPaymentToggle ? (
+                  <label className="flex cursor-pointer items-center gap-2 self-start sm:self-center">
+                    <span className="text-xs text-maroon/60">Payment access</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gold/40 text-maroon focus:ring-maroon/30"
+                      checked={Boolean(member.canApprovePayments)}
+                      disabled={paymentAccessBusyUid === member.uid}
+                      onChange={(e) => {
+                        const allowed = e.target.checked
+                        setPaymentAccessError(null)
+                        setPaymentAccessBusyUid(member.uid)
+                        void setMemberPaymentAccess(member.uid, allowed)
+                          .catch((err: unknown) => {
+                            setPaymentAccessError(
+                              err instanceof Error
+                                ? err.message
+                                : "Could not update payment access."
+                            )
+                          })
+                          .finally(() => setPaymentAccessBusyUid(null))
+                      }}
+                    />
+                  </label>
+                ) : null}
               </li>
-            ))}
+              )
+            })}
 
             {pendingInvites.map((invite) => (
               <li
@@ -399,6 +438,18 @@ export default function SettingsPage() {
             ))}
           </ul>
         )}
+
+        {paymentAccessError ? (
+          <p className="mt-3 text-sm text-rose-700" role="alert">
+            {paymentAccessError}
+          </p>
+        ) : null}
+        {isOwner ? (
+          <p className="mt-3 text-xs text-maroon/45">
+            Collaborators can view payment status for planning. Turn on &quot;Payment access&quot; to
+            let a trusted person also approve deposits, balances, and disputes.
+          </p>
+        ) : null}
 
         <div className="mt-6 space-y-3">
           <p className="text-sm text-maroon/60">
