@@ -9,6 +9,7 @@ import {
   where,
   type Unsubscribe,
 } from "firebase/firestore"
+import { isGuestInviteToken, makeGuestInviteToken } from "@/lib/guest-invite-token"
 import type { EventId, Guest, RsvpSource, RsvpStatus } from "@/lib/mockData"
 import { getFirestoreDb } from "./config"
 import type { FirestoreGuest } from "./types"
@@ -117,36 +118,19 @@ export async function addGuestToFirestore(
       : {}),
   }
 
+  if (!isGuestInviteToken(input.inviteToken)) {
+    throw new Error("Guest invite token must be a random UUID.")
+  }
+
   const ref = doc(getFirestoreDb(), "guests", input.inviteToken)
   await setDoc(ref, guest)
 }
 
 const ALL_EVENTS: EventId[] = ["mehndi", "baraat", "walima"]
 
-function normalizeGuestName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ")
-}
-
-/** Stable public-claim token so we can getDoc without listing the guests collection. */
-export function makeWeddingClaimInviteToken(weddingId: string, name: string): string {
-  const normalized = normalizeGuestName(name)
-  const slug = normalized
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 20)
-  const key = `${weddingId}:${normalized}`
-  let hash = 2166136261
-  for (let i = 0; i < key.length; i++) {
-    hash ^= key.charCodeAt(i)
-    hash = Math.imul(hash, 16777619)
-  }
-  const suffix = (hash >>> 0).toString(36)
-  return `${slug || "guest"}-w${suffix}`
-}
-
 /**
- * Public wedding-invite claim: find-or-create a guest by stable token.
- * Uses client Firestore (Admin API is currently broken on Vercel).
+ * Public wedding-invite claim: find-or-create via Admin API (name match).
+ * Falls back to a client create with a random token if the API is unconfigured.
  */
 export async function claimGuestOnWeddingInvite(input: {
   weddingId: string
@@ -158,13 +142,53 @@ export async function claimGuestOnWeddingInvite(input: {
     throw new Error("Please enter your name (at least 2 characters).")
   }
 
-  const inviteToken = makeWeddingClaimInviteToken(input.weddingId, name)
-  const existing = await getGuestByInviteToken(inviteToken)
-  if (existing) {
-    return { inviteToken, created: false, name: existing.name }
+  const res = await fetch(
+    `/api/invite/wedding/${encodeURIComponent(input.weddingId)}/claim`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone: input.phone?.trim() || "" }),
+    }
+  )
+
+  if (res.ok) {
+    const payload = (await res.json()) as {
+      inviteToken?: unknown
+      created?: unknown
+      name?: unknown
+    }
+    if (typeof payload.inviteToken !== "string" || !payload.inviteToken.trim()) {
+      throw new Error("Invite claiming returned an invalid token. Please try again.")
+    }
+    return {
+      inviteToken: payload.inviteToken,
+      created: payload.created === true,
+      name: typeof payload.name === "string" ? payload.name : name,
+    }
   }
 
-  const id = `guest-${inviteToken}`
+  if (res.status !== 503) {
+    const payload = (await res.json().catch(() => null)) as { error?: unknown } | null
+    throw new Error(
+      typeof payload?.error === "string"
+        ? payload.error
+        : "Could not open your invitation. Please try again."
+    )
+  }
+
+  return createPublicClaimGuestFallback({
+    weddingId: input.weddingId,
+    name,
+    phone: input.phone,
+  })
+}
+
+async function createPublicClaimGuestFallback(input: {
+  weddingId: string
+  name: string
+  phone?: string
+}): Promise<{ inviteToken: string; created: boolean; name: string }> {
+  const inviteToken = makeGuestInviteToken()
   const now = Date.now()
   const rsvp = Object.fromEntries(
     ALL_EVENTS.map((e) => [e, "pending" as RsvpStatus])
@@ -180,9 +204,9 @@ export async function claimGuestOnWeddingInvite(input: {
   ) as Record<EventId, boolean>
 
   const guest: FirestoreGuest = {
-    id,
+    id: `guest-${inviteToken}`,
     weddingId: input.weddingId,
-    name,
+    name: input.name,
     phone: input.phone?.trim() || "+92 3XX ••• ••00",
     events: ALL_EVENTS,
     rsvp,
@@ -195,7 +219,7 @@ export async function claimGuestOnWeddingInvite(input: {
   }
 
   await setDoc(doc(getFirestoreDb(), "guests", inviteToken), guest)
-  return { inviteToken, created: true, name }
+  return { inviteToken, created: true, name: input.name }
 }
 
 export async function updateGuestRsvpByOrganiser(
@@ -289,8 +313,11 @@ export async function seedGuestsBatch(
 ): Promise<void> {
   const db = getFirestoreDb()
   await Promise.all(
-    guests.map((g) =>
-      setDoc(doc(db, "guests", g.inviteToken), {
+    guests.map((g) => {
+      const inviteToken = isGuestInviteToken(g.inviteToken)
+        ? g.inviteToken
+        : makeGuestInviteToken()
+      return setDoc(doc(db, "guests", inviteToken), {
         id: g.id,
         weddingId,
         name: g.name,
@@ -308,10 +335,10 @@ export async function seedGuestsBatch(
           baraat: false,
           walima: false,
         },
-        inviteToken: g.inviteToken,
+        inviteToken,
         notes: g.notes,
         updatedAt: Date.now(),
       } satisfies FirestoreGuest)
-    )
+    })
   )
 }

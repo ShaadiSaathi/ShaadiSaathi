@@ -214,11 +214,23 @@ service cloud.firestore {
       return changed.hasOnly(allowed);
     }
 
+    // Invite tokens are capability URLs: 128-bit UUID v4, never derived from
+    // guest name / wedding id. Doc id must equal inviteToken.
+    function isOpaqueGuestInviteToken() {
+      return request.resource.data.inviteToken is string
+        && request.resource.data.inviteToken.size() == 36
+        && request.resource.data.inviteToken == request.resource.id
+        && request.resource.data.inviteToken.matches(
+          '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        );
+    }
+
     // Unauthenticated wedding-invite self-claim (create only). Doc id must
     // equal inviteToken; wedding must exist; RSVP fields start as pending.
     function isPublicWeddingGuestClaim() {
       let d = request.resource.data;
-      return d.keys().hasOnly([
+      return isOpaqueGuestInviteToken()
+        && d.keys().hasOnly([
           'id', 'weddingId', 'name', 'phone', 'events',
           'rsvp', 'rsvpSource', 'rsvpUpdatedAt', 'rsvpOrganiserAlert',
           'inviteToken', 'notes', 'updatedAt'
@@ -230,8 +242,6 @@ service cloud.firestore {
         && d.name is string
         && d.name.size() >= 2
         && d.name.size() <= 80
-        && d.inviteToken is string
-        && d.inviteToken == request.resource.id
         && d.id is string
         && d.phone is string
         && d.phone.size() <= 40
@@ -294,13 +304,16 @@ service cloud.firestore {
       allow delete: if isWeddingOwner(weddingId) || isPlatformAdmin();
     }
 
+    // Public get is required for /invite/[token] (capability URL). Safe because
+    // tokens are unguessable UUIDs; list stays member-only so they cannot be enumerated.
     match /guests/{inviteToken} {
       allow get: if true;
       allow list: if isPlatformAdmin()
         || (isSignedIn() && isWeddingMember(resource.data.weddingId));
-      allow create: if (isSignedIn()
-          && isWeddingMember(request.resource.data.weddingId))
-        || isPublicWeddingGuestClaim();
+      allow create: if isOpaqueGuestInviteToken() && (
+        (isSignedIn() && isWeddingMember(request.resource.data.weddingId))
+        || isPublicWeddingGuestClaim()
+      );
       allow delete: if isSignedIn()
         && isWeddingMember(resource.data.weddingId);
       allow update: if isWeddingMember(resource.data.weddingId)

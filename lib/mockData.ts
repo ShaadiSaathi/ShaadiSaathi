@@ -3,6 +3,7 @@
  * Swap this file for real API/Convex queries when backend is ready.
  */
 
+import { makeGuestInviteToken } from "./guest-invite-token"
 import type { VendorCategoryId } from "./mockVendors"
 
 export type EventId = "mehndi" | "baraat" | "walima"
@@ -72,7 +73,7 @@ export interface Guest {
    * surfaces an "Updated" cue for organisers until cleared.
    */
   rsvpOrganiserAlert?: Partial<Record<EventId, boolean>>
-  /** Unique token for shareable invite link — /invite/[inviteToken] */
+  /** Opaque capability token for /invite/[inviteToken] (UUID v4 in Firebase). */
   inviteToken: string
   notes?: string
   /**
@@ -281,6 +282,7 @@ function seededRsvp(index: number, eventIndex: number): RsvpStatus {
   return "declined"
 }
 
+/** Demo-only tokens for seeded mock guests (not used for live Firestore writes). */
 function makeInviteToken(id: string, name: string): string {
   const slug = name
     .toLowerCase()
@@ -511,7 +513,7 @@ export function createGuest(input: {
     events: input.events,
     rsvp,
     rsvpSource,
-    inviteToken: makeInviteToken(id, input.name.trim()),
+    inviteToken: makeGuestInviteToken(),
     ...(kind === "group" ? { kind: "group" as const, partySize } : {}),
   }
 }

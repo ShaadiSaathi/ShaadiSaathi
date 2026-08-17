@@ -46,3 +46,6 @@ tmp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.staging-login-links.txt
+.staging-guest-token-migration.json
+.production-guest-token-migration.json

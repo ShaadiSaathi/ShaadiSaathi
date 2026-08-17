@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { makeGuestInviteToken } from "@/lib/guest-invite-token"
 import type { EventId, RsvpSource, RsvpStatus } from "@/lib/mockData"
 import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin"
 
@@ -8,15 +9,6 @@ const ALL_EVENTS: EventId[] = ["mehndi", "baraat", "walima"]
 
 function normalizeName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ")
-}
-
-function makeInviteToken(id: string, name: string): string {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 20)
-  return `${slug}-${id.replace(/^guest-/, "")}`
 }
 
 export async function POST(
@@ -99,8 +91,8 @@ export async function POST(
     })
   }
 
-  const id = `guest-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
-  const inviteToken = makeInviteToken(id, name)
+  const inviteToken = makeGuestInviteToken()
+  const id = `guest-${inviteToken}`
   const now = Date.now()
   const rsvp = Object.fromEntries(
     ALL_EVENTS.map((e) => [e, "pending" as RsvpStatus])

@@ -234,6 +234,7 @@ export interface FirestoreGuest {
   rsvpUpdatedAt?: Partial<Record<EventId, number | null>>
   /** Guest changed an existing response — organiser "Updated" cue */
   rsvpOrganiserAlert?: Partial<Record<EventId, boolean>>
+  /** Opaque UUID v4; also the Firestore document id. */
   inviteToken: string
   notes?: string
   updatedAt: number
