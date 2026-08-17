@@ -307,7 +307,7 @@ export default function TestLandingV2Page() {
         </div>
       </div>
 
-      <TestLandingFooter note="Lahore Fort scroll experiment — /test-landing-v2 only" />
+      <TestLandingFooter />
     </div>
   )
 }

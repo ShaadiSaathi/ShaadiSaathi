@@ -29,7 +29,7 @@ export default function TestLandingV2Nav() {
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link
-          href="/test-landing-v2"
+          href="/"
           className={`font-display text-xl font-semibold tracking-tight transition-colors ${
             scrolled ? "text-maroon-dark" : "text-ivory"
           }`}
