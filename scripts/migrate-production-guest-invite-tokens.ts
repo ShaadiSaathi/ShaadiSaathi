@@ -41,7 +41,6 @@ function loadEnvFile(path: string) {
 }
 
 loadEnvFile(join(root, ".env.production.local"))
-loadEnvFile(join(root, ".env.local"))
 
 if (process.env.CONFIRM_PRODUCTION_GUEST_TOKEN_MIGRATION !== "yes") {
   console.error(
@@ -50,34 +49,38 @@ if (process.env.CONFIRM_PRODUCTION_GUEST_TOKEN_MIGRATION !== "yes") {
   process.exit(2)
 }
 
-const { cert, getApps, initializeApp } = require("firebase-admin/app")
+const { cert, getApps, initializeApp, applicationDefault } = require("firebase-admin/app")
 const { getFirestore } = require("firebase-admin/firestore")
 
-const sa = JSON.parse(process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON!)
-if (sa.project_id !== PRODUCTION_PROJECT_ID) {
-  console.error(
-    `ABORT: admin SA project_id is ${sa.project_id}, expected ${PRODUCTION_PROJECT_ID}`
-  )
-  process.exit(2)
-}
+function initProductionAdmin() {
+  const raw = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON?.trim()
+  if (raw) {
+    const sa = JSON.parse(raw)
+    if (sa.project_id !== PRODUCTION_PROJECT_ID) {
+      console.error(
+        `ABORT: FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON is for ${sa.project_id}, expected ${PRODUCTION_PROJECT_ID}. Update Vercel production env or run with Application Default Credentials for the production project.`
+      )
+      process.exit(2)
+    }
+    if (!getApps().length) {
+      initializeApp({
+        credential: cert({
+          projectId: sa.project_id,
+          clientEmail: sa.client_email,
+          privateKey: sa.private_key.replace(/\\n/g, "\n"),
+        }),
+        projectId: sa.project_id,
+      })
+    }
+    return
+  }
 
-const clientProject = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
-if (clientProject && clientProject !== PRODUCTION_PROJECT_ID) {
-  console.error(
-    `ABORT: NEXT_PUBLIC_FIREBASE_PROJECT_ID is ${clientProject}, expected ${PRODUCTION_PROJECT_ID}`
-  )
-  process.exit(2)
-}
-
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: sa.project_id,
-      clientEmail: sa.client_email,
-      privateKey: sa.private_key.replace(/\\n/g, "\n"),
-    }),
-    projectId: sa.project_id,
-  })
+  if (!getApps().length) {
+    initializeApp({
+      credential: applicationDefault(),
+      projectId: PRODUCTION_PROJECT_ID,
+    })
+  }
 }
 
 type MappingRow = {
@@ -87,6 +90,7 @@ type MappingRow = {
 }
 
 async function main() {
+  initProductionAdmin()
   const db = getFirestore()
   const snap = await db.collection("guests").get()
   const toMigrate = snap.docs.filter((d: { id: string }) => !isGuestInviteToken(d.id))
@@ -133,7 +137,7 @@ async function main() {
     JSON.stringify(
       {
         migratedAt: new Date().toISOString(),
-        project: sa.project_id,
+        project: PRODUCTION_PROJECT_ID,
         note: "Previous invite URLs using oldId are invalidated. Use newId.",
         count: mapping.length,
         mapping,
