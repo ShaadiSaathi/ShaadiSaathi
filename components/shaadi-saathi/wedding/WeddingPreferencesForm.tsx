@@ -3,6 +3,10 @@
 import { useState } from "react"
 import AuthSubmitButton from "@/components/shaadi-saathi/auth/AuthSubmitButton"
 import {
+  AUTH_INPUT_CLASS,
+  authChipClass,
+} from "@/lib/auth/auth-form-styles"
+import {
   GUEST_COUNT_RANGE_OPTIONS,
   WEDDING_BUDGET_TIER_OPTIONS,
   WEDDING_PLANNING_EVENT_OPTIONS,
@@ -30,16 +34,7 @@ export interface WeddingPreferencesFormProps {
   compact?: boolean
 }
 
-const inputClass =
-  "w-full rounded-xl border border-gold/25 bg-ivory px-4 py-3 text-maroon-dark placeholder:text-maroon/35 focus:border-maroon focus:outline-none focus:ring-2 focus:ring-maroon/10"
-
-const chipClass = (selected: boolean) =>
-  [
-    "rounded-full border px-3 py-1.5 text-sm transition",
-    selected
-      ? "border-maroon bg-maroon/10 text-maroon-dark"
-      : "border-gold/25 bg-ivory text-maroon/70 hover:border-maroon/30",
-  ].join(" ")
+const inputClass = AUTH_INPUT_CLASS
 
 export default function WeddingPreferencesForm({
   initial,
@@ -131,7 +126,7 @@ export default function WeddingPreferencesForm({
             <button
               key={opt.value}
               type="button"
-              className={chipClass(traditionRegion === opt.value)}
+              className={authChipClass(traditionRegion === opt.value)}
               onClick={() =>
                 setTraditionRegion((prev) =>
                   prev === opt.value ? "" : opt.value
@@ -153,7 +148,7 @@ export default function WeddingPreferencesForm({
             <button
               key={opt.value}
               type="button"
-              className={chipClass(plannedEvents.includes(opt.value))}
+              className={authChipClass(plannedEvents.includes(opt.value))}
               onClick={() => toggleEvent(opt.value)}
             >
               {opt.label}
@@ -171,7 +166,7 @@ export default function WeddingPreferencesForm({
             <button
               key={opt.value}
               type="button"
-              className={chipClass(guestCountRange === opt.value)}
+              className={authChipClass(guestCountRange === opt.value)}
               onClick={() =>
                 setGuestCountRange((prev) =>
                   prev === opt.value ? "" : opt.value
@@ -193,7 +188,7 @@ export default function WeddingPreferencesForm({
             <button
               key={opt.value}
               type="button"
-              className={chipClass(stylePreference === opt.value)}
+              className={authChipClass(stylePreference === opt.value)}
               onClick={() =>
                 setStylePreference((prev) => (prev === opt.value ? "" : opt.value))
               }
@@ -217,7 +212,7 @@ export default function WeddingPreferencesForm({
             <button
               key={opt.value}
               type="button"
-              className={chipClass(budgetTier === opt.value)}
+              className={authChipClass(budgetTier === opt.value)}
               onClick={() =>
                 setBudgetTier((prev) => (prev === opt.value ? "" : opt.value))
               }

@@ -9,9 +9,14 @@ import WeddingPreferencesForm from "@/components/shaadi-saathi/wedding/WeddingPr
 import { updateWeddingPlanningPreferences } from "@/lib/firebase/weddings"
 import { isFirebaseConfigured } from "@/lib/firebase/config"
 import type { WeddingPlanningPreferences } from "@/lib/wedding-preferences"
+import { AUTH_INPUT_CLASS, AUTH_LABEL_CLASS, AUTH_ERROR_CLASS } from "@/lib/auth/auth-form-styles"
 
 /** Family wedding setup after signup OTP, then optional planning preferences */
-export default function FamilyOnboardingStep() {
+export default function FamilyOnboardingStep({
+  onPhaseChange,
+}: {
+  onPhaseChange?: (phase: "wedding" | "preferences") => void
+}) {
   const router = useRouter()
   const { pending, completeFamilyOnboarding, isFamilyLoggedIn, pendingCollaboratorInvites } =
     useAuth()
@@ -68,6 +73,7 @@ export default function FamilyOnboardingStep() {
       const id = await completeFamilyOnboarding(weddingName, firstEventDate)
       setCreatedWeddingId(id)
       setPhase("preferences")
+      onPhaseChange?.("preferences")
       setLoading(false)
       completingRef.current = false
     } catch (err) {
@@ -88,8 +94,7 @@ export default function FamilyOnboardingStep() {
     await finishToDashboard()
   }
 
-  const inputClass =
-    "w-full rounded-xl border border-gold/25 bg-ivory px-4 py-3 text-maroon-dark placeholder:text-maroon/35 focus:border-maroon focus:outline-none focus:ring-2 focus:ring-maroon/10"
+  const inputClass = AUTH_INPUT_CLASS
 
   if (phase === "preferences") {
     return (
@@ -110,7 +115,7 @@ export default function FamilyOnboardingStep() {
       </p>
 
       <div>
-        <label htmlFor="wedding-name" className="mb-1 block text-sm font-medium text-maroon/70">
+        <label htmlFor="wedding-name" className={AUTH_LABEL_CLASS}>
           What should we call your wedding?
         </label>
         <input
@@ -124,14 +129,14 @@ export default function FamilyOnboardingStep() {
           aria-describedby={errors.weddingName ? "wedding-name-error" : undefined}
         />
         {errors.weddingName && (
-          <p id="wedding-name-error" className="mt-1 text-xs text-rose-600" role="alert">
+          <p id="wedding-name-error" className={AUTH_ERROR_CLASS} role="alert">
             {errors.weddingName}
           </p>
         )}
       </div>
 
       <div>
-        <label htmlFor="first-event-date" className="mb-1 block text-sm font-medium text-maroon/70">
+        <label htmlFor="first-event-date" className={AUTH_LABEL_CLASS}>
           When&apos;s the first event?
         </label>
         <input
@@ -144,7 +149,7 @@ export default function FamilyOnboardingStep() {
           aria-describedby={errors.date ? "first-event-error" : undefined}
         />
         {errors.date && (
-          <p id="first-event-error" className="mt-1 text-xs text-rose-600" role="alert">
+          <p id="first-event-error" className={AUTH_ERROR_CLASS} role="alert">
             {errors.date}
           </p>
         )}

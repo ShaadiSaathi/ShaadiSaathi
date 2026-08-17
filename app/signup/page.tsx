@@ -16,6 +16,7 @@ import {
   validatePasswordMatch,
   validateRequired,
 } from "@/components/shaadi-saathi/auth/authValidation"
+import { AUTH_INPUT_CLASS, AUTH_LABEL_CLASS, AUTH_ERROR_CLASS } from "@/lib/auth/auth-form-styles"
 
 export default function FamilySignupPage() {
   const router = useRouter()
@@ -53,11 +54,12 @@ export default function FamilySignupPage() {
     router.push("/dashboard")
   }
 
-  const inputClass =
-    "w-full rounded-xl border border-gold/25 bg-ivory px-4 py-3 text-maroon-dark placeholder:text-maroon/35 focus:border-maroon focus:outline-none focus:ring-2 focus:ring-maroon/10"
+  const inputClass = AUTH_INPUT_CLASS
 
   return (
     <AuthCard
+      premium
+      progress={{ step: 1, total: 4 }}
       title="Create your account"
       subtitle="Start planning your shaadi in one shared space."
       footer={
@@ -71,7 +73,7 @@ export default function FamilySignupPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-5" aria-label="Family signup">
         <div>
-          <label htmlFor="signup-name" className="mb-1 block text-sm font-medium text-maroon/70">
+          <label htmlFor="signup-name" className={AUTH_LABEL_CLASS}>
             Full name
           </label>
           <input
@@ -85,7 +87,7 @@ export default function FamilySignupPage() {
             aria-describedby={errors.name ? "signup-name-error" : undefined}
           />
           {errors.name && (
-            <p id="signup-name-error" className="mt-1 text-xs text-rose-600" role="alert">
+            <p id="signup-name-error" className={AUTH_ERROR_CLASS} role="alert">
               {errors.name}
             </p>
           )}
@@ -94,7 +96,7 @@ export default function FamilySignupPage() {
         <PhoneInput id="signup-phone" value={phone} onChange={setPhone} error={errors.phone} />
 
         <div>
-          <label htmlFor="signup-password" className="mb-1 block text-sm font-medium text-maroon/70">
+          <label htmlFor="signup-password" className={AUTH_LABEL_CLASS}>
             Password
           </label>
           <input
@@ -108,14 +110,14 @@ export default function FamilySignupPage() {
             aria-describedby={errors.password ? "signup-password-error" : undefined}
           />
           {errors.password && (
-            <p id="signup-password-error" className="mt-1 text-xs text-rose-600" role="alert">
+            <p id="signup-password-error" className={AUTH_ERROR_CLASS} role="alert">
               {errors.password}
             </p>
           )}
         </div>
 
         <div>
-          <label htmlFor="signup-confirm" className="mb-1 block text-sm font-medium text-maroon/70">
+          <label htmlFor="signup-confirm" className={AUTH_LABEL_CLASS}>
             Confirm password
           </label>
           <input
@@ -129,7 +131,7 @@ export default function FamilySignupPage() {
             aria-describedby={errors.confirm ? "signup-confirm-error" : undefined}
           />
           {errors.confirm && (
-            <p id="signup-confirm-error" className="mt-1 text-xs text-rose-600" role="alert">
+            <p id="signup-confirm-error" className={AUTH_ERROR_CLASS} role="alert">
               {errors.confirm}
             </p>
           )}

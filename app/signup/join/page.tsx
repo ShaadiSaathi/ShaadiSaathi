@@ -6,6 +6,8 @@ import CollaboratorJoinStep from "@/components/shaadi-saathi/family/Collaborator
 export default function SignupJoinPage() {
   return (
     <AuthCard
+      premium
+      progress={{ step: 3, total: 4 }}
       title="Join a wedding"
       subtitle="Someone invited you to help plan — accept to get started."
     >

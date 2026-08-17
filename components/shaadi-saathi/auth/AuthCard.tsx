@@ -2,9 +2,19 @@
 
 import Link from "next/link"
 import MehndiPattern from "@/components/shaadi-saathi/MehndiPattern"
+import SignupFlowProgress from "@/components/shaadi-saathi/auth/SignupFlowProgress"
+import SignupPremiumBackdrop from "@/components/shaadi-saathi/auth/SignupPremiumBackdrop"
+
+export interface SignupProgressConfig {
+  step: number
+  total?: number
+}
 
 interface AuthCardProps {
   variant?: "family" | "vendor"
+  /** Lahore Fort premium backdrop — family signup flow only */
+  premium?: boolean
+  progress?: SignupProgressConfig
   title: string
   subtitle?: string
   badge?: string
@@ -12,9 +22,11 @@ interface AuthCardProps {
   footer?: React.ReactNode
 }
 
-/** Shared split-screen auth layout — form card + decorative panel */
+/** Shared auth layout — standard split-screen or premium signup shell */
 export default function AuthCard({
   variant = "family",
+  premium = false,
+  progress,
   title,
   subtitle,
   badge,
@@ -23,9 +35,48 @@ export default function AuthCard({
 }: AuthCardProps) {
   const isVendor = variant === "vendor"
 
+  if (premium) {
+    return (
+      <div className="shaadi-saathi relative min-h-[100dvh] safe-top safe-bottom">
+        <SignupPremiumBackdrop />
+
+        <div className="relative z-10 flex min-h-[100dvh] flex-col overflow-y-auto overscroll-y-contain px-4 py-6 sm:justify-center sm:py-10">
+          <div className="mx-auto w-full max-w-md pb-safe">
+            <Link
+              href="/"
+              className="mb-5 block text-center font-display text-xl font-bold text-ivory/95 sm:mb-6"
+            >
+              Shaadi Saathi
+            </Link>
+
+            <div className="shaadi-auth-card p-6 sm:p-8">
+              {progress ? (
+                <SignupFlowProgress step={progress.step} total={progress.total} />
+              ) : null}
+              {badge ? (
+                <p className="text-xs font-semibold uppercase tracking-wider text-gold-dark">
+                  {badge}
+                </p>
+              ) : null}
+              <h1 className={`shaadi-page-title ${badge ? "mt-1" : ""}`}>{title}</h1>
+              {subtitle ? (
+                <p className="mt-2 text-sm leading-relaxed text-maroon/60">{subtitle}</p>
+              ) : null}
+
+              <div className="mt-6 sm:mt-7">{children}</div>
+
+              {footer ? (
+                <div className="mt-6 border-t border-gold/10 pt-6">{footer}</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="shaadi-saathi relative min-h-screen bg-ivory safe-top safe-bottom">
-
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col lg:flex-row">
         {/* Decorative panel — desktop */}
         <div
@@ -72,11 +123,11 @@ export default function AuthCard({
                 {badge}
               </p>
             )}
-            <h1 className="shaadi-page-title mt-1 text-center lg:text-left">
-              {title}
-            </h1>
+            <h1 className="shaadi-page-title mt-1 text-center lg:text-left">{title}</h1>
             {subtitle && (
-              <p className="mt-2 text-center text-sm leading-relaxed text-maroon/60 lg:text-left">{subtitle}</p>
+              <p className="mt-2 text-center text-sm leading-relaxed text-maroon/60 lg:text-left">
+                {subtitle}
+              </p>
             )}
 
             <div className="mt-6 sm:mt-7">{children}</div>

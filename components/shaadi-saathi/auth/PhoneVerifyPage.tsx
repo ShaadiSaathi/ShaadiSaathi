@@ -143,6 +143,8 @@ export default function PhoneVerifyPage({ kind }: PhoneVerifyPageProps) {
   return (
     <AuthCard
       variant={config.variant}
+      premium={kind === "family-signup"}
+      progress={kind === "family-signup" ? { step: 2, total: 4 } : undefined}
       badge={config.badge}
       title="Verify your number"
       subtitle={config.subtitle}

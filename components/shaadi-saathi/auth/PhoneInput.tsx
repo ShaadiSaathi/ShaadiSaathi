@@ -35,10 +35,10 @@ export default function PhoneInput({
         {label}
       </label>
       <div
-        className={`flex items-stretch overflow-visible rounded-xl border bg-ivory transition-colors focus-within:ring-2 ${
+        className={`shaadi-auth-input flex items-stretch overflow-visible rounded-xl border bg-ivory p-0 transition-[border-color,box-shadow] duration-150 focus-within:ring-0 ${
           error
-            ? "border-rose-300 focus-within:border-rose-400 focus-within:ring-rose-100"
-            : "border-gold/25 focus-within:border-maroon/40 focus-within:ring-maroon/10"
+            ? "border-rose-300 focus-within:border-rose-400 focus-within:shadow-[0_0_0_3px_rgb(231_76_60_/_0.1)]"
+            : "border-gold/25 focus-within:border-maroon/38 focus-within:shadow-[0_0_0_3px_rgb(106_27_77_/_0.12)]"
         }`}
       >
         <PhoneInputWithCountry

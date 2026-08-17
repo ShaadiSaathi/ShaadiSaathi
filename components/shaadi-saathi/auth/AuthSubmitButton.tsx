@@ -14,7 +14,7 @@ export default function AuthSubmitButton({
   variant = "primary",
 }: AuthSubmitButtonProps) {
   const base =
-    "inline-flex w-full items-center justify-center gap-2 rounded-full px-8 py-3.5 text-base font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon disabled:cursor-not-allowed disabled:opacity-60"
+    "inline-flex w-full items-center justify-center gap-2 rounded-full px-8 py-3.5 text-base font-semibold transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]"
 
   const styles =
     variant === "primary"

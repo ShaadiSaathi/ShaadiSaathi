@@ -121,6 +121,37 @@ body:has(.refine-app) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+/* Premium family signup — glass card over fort backdrop */
+.shaadi-saathi .shaadi-auth-card {
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  background: rgb(255 255 255 / 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 4px 6px rgb(26 8 8 / 0.04),
+    0 16px 48px rgb(26 8 8 / 0.14);
+}
+
+.shaadi-saathi .shaadi-auth-input {
+  min-height: 2.75rem;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.shaadi-saathi .shaadi-auth-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--maroon) 38%, transparent);
+  box-shadow: 0 0 0 3px rgb(106 27 77 / 0.12);
+}
+
+.shaadi-saathi .shaadi-auth-input[aria-invalid="true"] {
+  border-color: color-mix(in srgb, var(--error) 55%, transparent);
+  box-shadow: 0 0 0 3px rgb(231 76 60 / 0.1);
+}
+
 .shaadi-saathi .shaadi-input {
   min-height: 2.75rem;
   width: 100%;
