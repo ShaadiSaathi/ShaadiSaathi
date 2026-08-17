@@ -36,7 +36,7 @@ export default function TestLandingV2Nav() {
         >
           Shaadi Saathi
         </Link>
-        <nav className="hidden items-center gap-6 md:flex" aria-label="Palace landing">
+        <nav className="hidden items-center gap-6 md:flex" aria-label="Lahore Fort landing">
           {navLinks.map((link) => (
             <a
               key={link.href}

@@ -3,13 +3,13 @@ import TestLandingV2Page from "@/components/test-redesign/TestLandingV2Page"
 
 /**
  * Isolated palace parallax landing experiment — do not link from production surfaces.
- * Route: /test-landing-v2
+ * Route: /test-landing-v2 — Lahore Fort cinematic scroll journey
  */
 
 export const metadata: Metadata = {
-  title: "Shaadi Saathi — Palace Landing (Test v2)",
+  title: "Shaadi Saathi — Lahore Fort Landing (Test v2)",
   description:
-    "Scroll-driven palace parallax landing experiment. Not linked from the live site.",
+    "Cinematic scroll journey through Lahore Fort. Isolated preview — not linked from the live site.",
   robots: { index: false, follow: false },
 }
 

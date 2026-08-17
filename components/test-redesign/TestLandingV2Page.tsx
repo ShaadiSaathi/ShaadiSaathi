@@ -14,7 +14,7 @@ import {
   trustBadges,
   trustPoints,
 } from "@/components/test-redesign/landing-content"
-import PalaceScrollBackground from "@/components/test-redesign/PalaceScrollBackground"
+import FortScrollBackground from "@/components/test-redesign/FortScrollBackground"
 import { Reveal, StaggerContainer, StaggerItem } from "@/components/test-redesign/scroll-motion"
 import TestLandingPage from "@/components/test-redesign/TestLandingPage"
 import TestLandingV2Nav from "@/components/test-redesign/TestLandingV2Nav"
@@ -37,14 +37,14 @@ export default function TestLandingV2Page() {
 
       <div ref={scrollRef} className="relative">
         <div className="sticky top-0 z-0 h-screen w-full" aria-hidden>
-          <PalaceScrollBackground progress={scrollYProgress} />
+          <FortScrollBackground progress={scrollYProgress} />
         </div>
 
         <div className="relative z-10 -mt-[100vh]">
-          {/* Layer 1 — approach (0–20%) */}
+          {/* Depth 1 — The Approach */}
           <section
             id="hero"
-            className="flex min-h-screen items-center px-4 pb-16 pt-24 sm:px-6"
+            className="flex min-h-[120vh] items-center px-4 pb-16 pt-24 sm:px-6"
           >
             <div className="mx-auto w-full max-w-6xl">
               <PalaceContentPanel className="mx-auto max-w-3xl p-7 sm:p-10">
@@ -109,10 +109,10 @@ export default function TestLandingV2Page() {
             </div>
           </section>
 
-          {/* Layer 2 — through the gates (20–40%) */}
+          {/* Depth 1→2 — service cards as gate transition */}
           <section
             id="offers"
-            className="flex min-h-screen items-center px-4 py-16 sm:px-6"
+            className="flex min-h-[120vh] items-center px-4 py-16 sm:px-6"
           >
             <div className="mx-auto w-full max-w-6xl">
               <Reveal className="mb-6">
@@ -156,10 +156,10 @@ export default function TestLandingV2Page() {
             </div>
           </section>
 
-          {/* Layer 3 — entrance (40–60%) */}
+          {/* Depth 2 — Alamgiri Gate / choose your path */}
           <section
             id="paths"
-            className="flex min-h-screen items-center px-4 py-16 sm:px-6"
+            className="flex min-h-[120vh] items-center px-4 py-16 sm:px-6"
           >
             <div className="mx-auto w-full max-w-6xl">
               <Reveal className="mb-8">
@@ -222,10 +222,10 @@ export default function TestLandingV2Page() {
             </div>
           </section>
 
-          {/* Layer 4 — inside, trust (60–80%) */}
+          {/* Depth 2→3 — trust as Sheesh Mahal transition */}
           <section
             id="trust"
-            className="flex min-h-screen items-center px-4 py-16 sm:px-6"
+            className="flex min-h-[120vh] items-center px-4 py-16 sm:px-6"
           >
             <div className="mx-auto w-full max-w-6xl">
               <PalaceContentPanel dark className="p-7 sm:p-10">
@@ -274,10 +274,10 @@ export default function TestLandingV2Page() {
             </div>
           </section>
 
-          {/* Layer 5 — deeper inside, how it works (80–100%) */}
+          {/* Depth 3 — Sheesh Mahal / how it works */}
           <section
             id="how"
-            className="flex min-h-screen items-center px-4 py-16 sm:px-6"
+            className="flex min-h-[120vh] items-center px-4 py-16 sm:px-6"
           >
             <div className="mx-auto w-full max-w-6xl">
               <PalaceContentPanel dark className="p-7 sm:p-10">
@@ -307,7 +307,7 @@ export default function TestLandingV2Page() {
         </div>
       </div>
 
-      <TestLandingFooter note="Palace scroll experiment — /test-landing-v2 only" />
+      <TestLandingFooter note="Lahore Fort scroll experiment — /test-landing-v2 only" />
     </div>
   )
 }
