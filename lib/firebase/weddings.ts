@@ -8,6 +8,8 @@ import {
   type Unsubscribe,
 } from "firebase/firestore"
 import type { InviteThemeId } from "@/lib/premium"
+import { normalizeWeddingPlanningPreferences } from "@/lib/wedding-preferences"
+import type { WeddingPlanningPreferences } from "@/lib/wedding-preferences"
 import { getFirestoreDb } from "./config"
 import type { FirestoreWedding } from "./types"
 
@@ -95,6 +97,19 @@ export async function updateWeddingEventOverride(
  * Owner grants or revokes elevated financial permission for a collaborator.
  * Owner is always implied and must not be stored in paymentApproverUids.
  */
+export async function updateWeddingPlanningPreferences(
+  weddingId: string,
+  preferences: WeddingPlanningPreferences | null
+): Promise<void> {
+  const normalized = normalizeWeddingPlanningPreferences(preferences)
+  const ref = doc(getFirestoreDb(), "weddings", weddingId)
+  if (!normalized) {
+    await updateDoc(ref, { planningPreferences: null })
+    return
+  }
+  await updateDoc(ref, { planningPreferences: normalized })
+}
+
 export async function setWeddingPaymentApprover(
   weddingId: string,
   collaboratorUid: string,

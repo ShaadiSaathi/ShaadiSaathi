@@ -11,6 +11,7 @@ import type {
 import type { VendorOnboardingStatus } from "./vendor-onboarding"
 import type { VendorPortfolioItem } from "./vendor-portfolio"
 import type { VendorVerificationStatus } from "./vendor-verification"
+import type { WeddingPlanningPreferences } from "@/lib/wedding-preferences"
 
 export type { VendorOnboardingStatus, VendorPortfolioItem, VendorVerificationStatus }
 
@@ -122,6 +123,8 @@ export interface FirestoreWedding {
       }
     >
   >
+  /** Optional signup / settings preferences for Wedding AI personalization */
+  planningPreferences?: WeddingPlanningPreferences
 }
 
 export type TaskStatusValue = "todo" | "in_progress" | "done"

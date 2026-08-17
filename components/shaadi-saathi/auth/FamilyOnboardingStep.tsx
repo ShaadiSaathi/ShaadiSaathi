@@ -5,22 +5,27 @@ import { useRouter } from "next/navigation"
 import AuthSubmitButton from "./AuthSubmitButton"
 import { useAuth } from "./AuthContext"
 import { mockAuthDelay, validateRequired } from "./authValidation"
+import WeddingPreferencesForm from "@/components/shaadi-saathi/wedding/WeddingPreferencesForm"
+import { updateWeddingPlanningPreferences } from "@/lib/firebase/weddings"
+import { isFirebaseConfigured } from "@/lib/firebase/config"
+import type { WeddingPlanningPreferences } from "@/lib/wedding-preferences"
 
-/** One-screen family wedding setup after signup OTP */
+/** Family wedding setup after signup OTP, then optional planning preferences */
 export default function FamilyOnboardingStep() {
   const router = useRouter()
-  const { pending, completeFamilyOnboarding, isFamilyLoggedIn, pendingCollaboratorInvites } = useAuth()
+  const { pending, completeFamilyOnboarding, isFamilyLoggedIn, pendingCollaboratorInvites } =
+    useAuth()
+  const [phase, setPhase] = useState<"wedding" | "preferences">("wedding")
   const [weddingName, setWeddingName] = useState("")
   const [firstEventDate, setFirstEventDate] = useState("")
+  const [createdWeddingId, setCreatedWeddingId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [errors, setErrors] = useState<{ weddingName?: string; date?: string }>({})
-  // Once the user has submitted onboarding we are navigating to the dashboard.
-  // Completing onboarding clears `pending`, which must NOT be misread as "the
-  // signup session vanished" and bounce the now-signed-in user back to /signup.
   const completingRef = useRef(false)
 
   useEffect(() => {
+    if (phase === "preferences") return
     if (completingRef.current || isFamilyLoggedIn) return
     if (!pending || pending.flow !== "family-signup") {
       router.replace("/signup")
@@ -29,9 +34,10 @@ export default function FamilyOnboardingStep() {
     if (pendingCollaboratorInvites.length > 0) {
       router.replace("/signup/join")
     }
-  }, [pending, isFamilyLoggedIn, router, pendingCollaboratorInvites.length])
+  }, [phase, pending, isFamilyLoggedIn, router, pendingCollaboratorInvites.length])
 
   if (
+    phase === "wedding" &&
     !completingRef.current &&
     !isFamilyLoggedIn &&
     (!pending || pending.flow !== "family-signup")
@@ -39,7 +45,12 @@ export default function FamilyOnboardingStep() {
     return null
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function finishToDashboard() {
+    completingRef.current = true
+    router.push("/dashboard")
+  }
+
+  async function handleWeddingSubmit(e: React.FormEvent) {
     e.preventDefault()
     const weddingErr = validateRequired(weddingName, "Wedding name")
     const dateErr = validateRequired(firstEventDate, "First event date")
@@ -51,16 +62,14 @@ export default function FamilyOnboardingStep() {
     if (weddingErr || dateErr) return
 
     setLoading(true)
-    // Mark completing BEFORE awaiting so the guard effect that reacts to
-    // `pending` being cleared inside completeFamilyOnboarding can't redirect
-    // us back to /signup mid-flight.
     completingRef.current = true
     try {
       await mockAuthDelay()
-      // Must finish creating the wedding + writing users.weddingId before the
-      // dashboard mounts — otherwise the invite link stays "not ready".
-      await completeFamilyOnboarding(weddingName, firstEventDate)
-      router.push("/dashboard")
+      const id = await completeFamilyOnboarding(weddingName, firstEventDate)
+      setCreatedWeddingId(id)
+      setPhase("preferences")
+      setLoading(false)
+      completingRef.current = false
     } catch (err) {
       completingRef.current = false
       setSubmitError(
@@ -72,11 +81,30 @@ export default function FamilyOnboardingStep() {
     }
   }
 
+  async function savePreferences(preferences: WeddingPlanningPreferences) {
+    if (isFirebaseConfigured() && createdWeddingId) {
+      await updateWeddingPlanningPreferences(createdWeddingId, preferences)
+    }
+    await finishToDashboard()
+  }
+
   const inputClass =
     "w-full rounded-xl border border-gold/25 bg-ivory px-4 py-3 text-maroon-dark placeholder:text-maroon/35 focus:border-maroon focus:outline-none focus:ring-2 focus:ring-maroon/10"
 
+  if (phase === "preferences") {
+    return (
+      <WeddingPreferencesForm
+        defaultWeddingDate={firstEventDate}
+        intro="Optional — helps your Wedding AI assistant tailor answers from your first question. You can change these anytime in Settings."
+        submitLabel="Save & enter dashboard"
+        onSubmit={savePreferences}
+        onSkip={finishToDashboard}
+      />
+    )
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleWeddingSubmit} className="space-y-5">
       <p className="text-sm leading-relaxed text-maroon/60">
         Welcome, <strong>{pending?.familyName}</strong>! Let&apos;s set up your wedding space.
       </p>
@@ -128,7 +156,7 @@ export default function FamilyOnboardingStep() {
         </p>
       )}
 
-      <AuthSubmitButton loading={loading}>Enter my dashboard</AuthSubmitButton>
+      <AuthSubmitButton loading={loading}>Continue</AuthSubmitButton>
     </form>
   )
 }

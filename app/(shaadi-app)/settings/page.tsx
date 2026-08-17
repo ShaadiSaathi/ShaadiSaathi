@@ -19,6 +19,7 @@ import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import { getFirestoreDb, isFirebaseConfigured } from "@/lib/firebase/config"
 import { getUserProfile, updateUserContactEmail } from "@/lib/firebase/users"
 import { normalizeEmail } from "@/lib/email/config"
+import WeddingPreferencesSettings from "@/components/shaadi-saathi/wedding/WeddingPreferencesSettings"
 
 function maskPhone(phone: string): string {
   if (phone.length <= 6) return phone
@@ -239,6 +240,20 @@ export default function SettingsPage() {
           number stays your login — this is never required.
         </p>
         <ContactEmailForm />
+      </section>
+
+      <section
+        aria-labelledby="planning-preferences-heading"
+        className="mb-8 shaadi-card p-5 sm:p-6"
+      >
+        <h2 id="planning-preferences-heading" className="shaadi-section-title sm:text-xl">
+          Wedding planning preferences
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-maroon/60">
+          Helps Wedding AI tailor answers to your tradition, events, and guest
+          scale — without you repeating yourself each time.
+        </p>
+        <WeddingPreferencesSettings />
       </section>
 
       {/* Guest RSVP invite — separate from collaborator access */}

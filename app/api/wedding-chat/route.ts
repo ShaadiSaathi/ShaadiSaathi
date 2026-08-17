@@ -3,6 +3,9 @@ import Anthropic from "@anthropic-ai/sdk"
 import { PaymentAuthError } from "@/lib/server/payment-auth"
 import { assertFamilyWeddingPremium } from "@/lib/server/premium-auth"
 import { saveWeddingChatExchange } from "@/lib/server/wedding-chat-history"
+import { weddingPlanningContextFromDoc } from "@/lib/server/wedding-planning-context"
+import { getAdminDb } from "@/lib/server/firebase-admin"
+import type { FirestoreWedding } from "@/lib/firebase/types"
 import {
   releaseWeddingAiUsageSlot,
   reserveWeddingAiUsageSlot,
@@ -160,23 +163,35 @@ export async function POST(req: NextRequest) {
       throw retrieveErr
     }
 
+    const weddingSnap = await getAdminDb().collection("weddings").doc(weddingId).get()
+    const weddingData = weddingSnap.exists
+      ? ({ id: weddingSnap.id, ...weddingSnap.data() } as FirestoreWedding)
+      : null
+    const profileBlock = weddingData ? weddingPlanningContextFromDoc(weddingData) : null
+
     const context = buildContextBlock(chunks)
     const citations = collectCitations(chunks)
     console.info("[wedding-chat] retrieved", {
       count: chunks.length,
       topScore: chunks[0]?.score ?? null,
       types: chunks.map((c) => c.chunkType),
+      hasProfileContext: Boolean(profileBlock),
     })
 
     const client = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY!.trim(),
     })
+    const systemParts = [SYSTEM_PROMPT]
+    if (profileBlock) {
+      systemParts.push(`FAMILY PROFILE:\n${profileBlock}`)
+    }
+    systemParts.push(`CONTEXT:\n${context}`)
     let response
     try {
       response = await client.messages.create({
         model: WEDDING_CHAT_MODEL,
         max_tokens: 1024,
-        system: `${SYSTEM_PROMPT}\n\nCONTEXT:\n${context}`,
+        system: systemParts.join("\n\n"),
         messages: [{ role: "user", content: userMessage }],
       })
     } catch (llmErr) {
