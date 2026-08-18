@@ -1,6 +1,8 @@
 "use client"
 
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
+import { APP_PAGE_HEADER_CLASS } from "@/lib/design/app-form-styles"
+import { ScheduleSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 import { EVENTS, formatEventDate } from "@/lib/mockData"
 import { useTasks } from "@/components/shaadi-saathi/tasks/TasksContext"
 
@@ -15,7 +17,7 @@ interface TimelineItem {
 }
 
 export default function SchedulePage() {
-  const { tasks } = useTasks()
+  const { tasks, loading } = useTasks()
 
   const items: TimelineItem[] = [
     ...EVENTS.map((e) => ({
@@ -53,7 +55,7 @@ export default function SchedulePage() {
 
   return (
     <PageTransition>
-      <header className="mb-8">
+      <header className={APP_PAGE_HEADER_CLASS}>
         <h1 className="shaadi-page-title">
           Schedule
         </h1>
@@ -62,6 +64,9 @@ export default function SchedulePage() {
         </p>
       </header>
 
+      {loading ? (
+        <ScheduleSkeleton />
+      ) : (
       <div className="relative overflow-x-hidden">
         {/* Vertical timeline line */}
         <div
@@ -70,7 +75,7 @@ export default function SchedulePage() {
         />
 
         {Object.entries(grouped).map(([month, monthItems]) => (
-          <section key={month} className="mb-8 md:mb-10" aria-labelledby={`month-${month}`}>
+          <section key={month} className="shaadi-section" aria-labelledby={`month-${month}`}>
             <h2
               id={`month-${month}`}
               className="shaadi-label mb-4 pl-9 uppercase tracking-wider md:mb-5 md:pl-14"
@@ -78,7 +83,7 @@ export default function SchedulePage() {
               {month}
             </h2>
 
-            <ul className="space-y-3 md:space-y-4">
+            <ul className="shaadi-stack">
               {monthItems.map((item) => (
                 <li key={item.id} className="relative min-w-0 pl-9 md:pl-14">
                   {/* Timeline dot */}
@@ -113,7 +118,7 @@ export default function SchedulePage() {
                         <p className="mt-0.5 break-words text-sm text-maroon/60">{item.subtitle}</p>
                       </div>
                       <div className="shrink-0 md:text-right">
-                        <p className="text-sm font-medium text-maroon-dark">
+                        <p className="shaadi-num text-sm font-medium text-maroon-dark">
                           {formatEventDate(item.date)}
                         </p>
                         {item.time && (
@@ -135,6 +140,7 @@ export default function SchedulePage() {
           </section>
         ))}
       </div>
+      )}
 
       <p className="mt-6 rounded-xl border border-gold/20 bg-gold/5 px-4 py-3 text-center text-sm text-maroon/60">
         Everyone in your family sees this same schedule — no more &ldquo;what time is baraat?&rdquo; texts.

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState, type ReactNode } from "react"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { StarRow } from "@/components/shaadi-saathi/vendors/LeaveVendorReview"
@@ -8,6 +9,10 @@ import { replyToVendorReviewApi } from "@/lib/firebase/reviews-client"
 import type { FirestoreVendorReview } from "@/lib/firebase/types"
 import { EVENTS } from "@/lib/mockData"
 import type { VendorReview } from "@/lib/mockVendors"
+import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
+import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
+import { EmptyReviewsIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
+import { ReviewListSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 
 function formatReviewDate(ms: number): string {
   if (!ms) return ""
@@ -128,12 +133,16 @@ export default function VendorReviewsSection({
           >
             {heading}
           </h2>
-          <div className="rounded-2xl border border-dashed border-gold/30 bg-gold/5 px-5 py-6 text-center">
-            <p className="font-medium text-maroon-dark">{emptyTitle}</p>
-            <p className="mt-1 text-sm text-maroon/55">
-              Reviews appear here after families complete a booking.
-            </p>
-          </div>
+          <EmptyState
+            illustration={<EmptyReviewsIllustration />}
+            title={emptyTitle}
+            description="Reviews appear here after families complete a booking."
+            action={
+              <Link href="/vendors">
+                <GoldButton>Browse vendors</GoldButton>
+              </Link>
+            }
+          />
         </section>
       )
     }
@@ -169,7 +178,7 @@ export default function VendorReviewsSection({
         >
           {heading}
         </h2>
-        <p className="text-sm text-maroon/50">Loading reviews…</p>
+        <ReviewListSkeleton />
       </section>
     )
   }
@@ -183,12 +192,16 @@ export default function VendorReviewsSection({
         >
           {heading}
         </h2>
-        <div className="rounded-2xl border border-dashed border-gold/30 bg-gold/5 px-5 py-6 text-center">
-          <p className="font-medium text-maroon-dark">{emptyTitle}</p>
-          <p className="mt-1 text-sm text-maroon/55">
-            Reviews appear here after families complete a booking with this vendor.
-          </p>
-        </div>
+        <EmptyState
+          illustration={<EmptyReviewsIllustration />}
+          title={emptyTitle}
+          description="Reviews appear here after families complete a booking with this vendor."
+          action={
+            <Link href="/vendors">
+              <GoldButton>Browse vendors</GoldButton>
+            </Link>
+          }
+        />
       </section>
     )
   }

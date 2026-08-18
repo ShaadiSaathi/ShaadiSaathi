@@ -11,7 +11,9 @@ import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import AnimatedCheckmark from "@/components/shaadi-saathi/app/motion/AnimatedCheckmark"
 import { AppToast, useAppToast } from "@/components/shaadi-saathi/app/AppToast"
-import { APP_INPUT_CLASS, APP_LABEL_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import { APP_INPUT_CLASS, APP_LABEL_CLASS, APP_PAGE_HEADER_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import { TaskListSkeleton } from "@/components/shaadi-saathi/app/skeletons"
+import { EmptyTasksIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
 import { motionTransitionIfMotion } from "@/lib/design/motion-tokens"
 import { EVENTS, type EventId, type TaskStatus } from "@/lib/mockData"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
@@ -31,11 +33,7 @@ const STATUS_ORDER: TaskStatus[] = ["todo", "in_progress", "done"]
 export default function TasksPage() {
   return (
     <Suspense
-      fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-maroon/50">
-          Loading tasks…
-        </div>
-      }
+      fallback={<TaskListSkeleton />}
     >
       <TasksPageContent />
     </Suspense>
@@ -47,7 +45,7 @@ function TasksPageContent() {
   const eventParam = searchParams.get("event")
   const eventFilter = EVENTS.find((e) => e.id === eventParam)?.id as EventId | undefined
 
-  const { tasks, addTask, reassignTask, toggleTaskDone } = useTasks()
+  const { tasks, addTask, reassignTask, toggleTaskDone, loading } = useTasks()
   const { familyUser, isFirebaseMode, firebaseUser } = useAuth()
   const weddingMembers = useWeddingMembersOptional()
   const [groupBy, setGroupBy] = useState<GroupBy>("status")
@@ -119,7 +117,7 @@ function TasksPageContent() {
 
   return (
     <PageTransition>
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className={`${APP_PAGE_HEADER_CLASS} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}>
         <div>
           <h1 className="shaadi-page-title">
             Tasks
@@ -171,13 +169,11 @@ function TasksPageContent() {
         ))}
       </div>
 
-      {displayedTasks.length === 0 ? (
+      {loading ? (
+        <TaskListSkeleton />
+      ) : displayedTasks.length === 0 ? (
         <EmptyState
-          icon={
-            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
+          illustration={<EmptyTasksIllustration />}
           title="No tasks yet"
           description="Add your first task to get the family organized — book the dholki, confirm the caterer, you name it."
           action={<GoldButton onClick={() => setShowAddForm(true)}>Add Task</GoldButton>}
@@ -195,7 +191,7 @@ function TasksPageContent() {
                 >
                   {STATUS_LABELS[status]} ({group.length})
                 </h2>
-                <ul className="space-y-2">
+                <ul className="shaadi-stack">
                   {group.map((task) => (
                     <TaskCard
                       key={task.id}
@@ -243,7 +239,7 @@ function TasksPageContent() {
                   </h2>
                   <span className="text-xs text-maroon/40">({group.length})</span>
                 </div>
-                <ul className="space-y-2">
+                <ul className="shaadi-stack">
                   {group.map((task) => (
                     <TaskCard
                       key={task.id}
@@ -528,7 +524,7 @@ function TaskCard({
                 )
               )}
               <span aria-hidden="true">·</span>
-              <span className="shrink-0">
+              <span className="shaadi-num ml-auto shrink-0 text-xs text-maroon/50">
                 Due{" "}
                 {new Date(task.dueDate).toLocaleDateString("en-US", {
                   month: "short",

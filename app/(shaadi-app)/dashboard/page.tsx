@@ -12,6 +12,8 @@ import { useTasks } from "@/components/shaadi-saathi/tasks/TasksContext"
 import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
 import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
+import { DashboardSkeleton } from "@/components/shaadi-saathi/app/skeletons"
+import { APP_PAGE_HEADER_CLASS, APP_SECTION_CLASS } from "@/lib/design/app-form-styles"
 import { getBookingProgress } from "@/lib/mockVendors"
 import {
   EVENTS,
@@ -29,12 +31,12 @@ const EVENT_DOT: Record<string, string> = {
 }
 
 export default function DashboardPage() {
-  const { bookings } = useVendorBookings()
-  const { getVendorById } = useVendorsDirectory()
-  const { guests } = useGuests()
-  const { tasks } = useTasks()
+  const { bookings, loading: bookingsLoading } = useVendorBookings()
+  const { getVendorById, loading: vendorsLoading } = useVendorsDirectory()
+  const { guests, loading: guestsLoading } = useGuests()
+  const { tasks, loading: tasksLoading } = useTasks()
   const { familyUser } = useAuth()
-  const { wedding } = useWedding()
+  const { wedding, loading: weddingLoading } = useWedding()
   const { isFamilyPremium } = usePremium()
   const nextEvent = getNextUpcomingEvent()
   const rsvpStats = getTotalRsvpStats(guests)
@@ -47,11 +49,20 @@ export default function DashboardPage() {
   const vendorProgress = getBookingProgress(bookings, getVendorById)
   const daysUntil = nextEvent ? getDaysUntil(nextEvent.date) : 0
   const weddingName = familyUser?.weddingName || wedding?.name || "Your wedding"
+  const pageLoading = guestsLoading || tasksLoading || bookingsLoading || vendorsLoading || weddingLoading
+
+  if (pageLoading) {
+    return (
+      <PageTransition>
+        <DashboardSkeleton />
+      </PageTransition>
+    )
+  }
 
   return (
     <PageTransition>
       {/* Welcome header */}
-      <header className="mb-8 md:mb-10">
+      <header className={APP_PAGE_HEADER_CLASS}>
         <p className="shaadi-label">Good morning</p>
         <h1 className="shaadi-page-title mt-1">
           Welcome back, {familyUser?.name || "there"}
@@ -101,7 +112,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Overview cards — stacked on mobile, original grids from sm+ */}
-      <section aria-labelledby="overview-heading" className="mb-8 md:mb-10">
+      <section aria-labelledby="overview-heading" className={APP_SECTION_CLASS}>
         <h2 id="overview-heading" className="sr-only">
           Overview
         </h2>
@@ -163,7 +174,7 @@ export default function DashboardPage() {
 
       {/* Timeline strip — snap-scroll on mobile */}
       <section aria-labelledby="timeline-heading">
-        <div className="mb-4 flex items-center justify-between md:mb-5">
+        <div className="mb-5 flex items-center justify-between">
           <h2 id="timeline-heading" className="shaadi-section-title sm:text-xl">
             Your events
           </h2>
@@ -186,7 +197,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="mt-2.5 text-sm text-maroon/55">{formatEventDate(event.date)}</p>
-              <p className="text-xs text-maroon/40">{event.time}</p>
+              <p className="shaadi-num mt-0.5 text-xs text-maroon/40">{event.time}</p>
               {i < EVENTS.length - 1 && (
                 <span className="sr-only">Next: {EVENTS[i + 1]?.name}</span>
               )}
@@ -196,7 +207,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Quick links — Arc-style pill CTAs */}
-      <section className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Link
           href="/guests"
           className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"

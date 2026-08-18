@@ -9,3 +9,7 @@ export const APP_ERROR_CLASS = "mt-1 text-sm text-rose-700"
 
 export const APP_TAB_CLASS =
   "inline-flex min-h-[44px] items-center rounded-full px-4 py-1.5 text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+
+export const APP_PAGE_HEADER_CLASS = "shaadi-page-header"
+export const APP_SECTION_CLASS = "shaadi-section"
+export const APP_LIST_CLASS = "shaadi-stack"
