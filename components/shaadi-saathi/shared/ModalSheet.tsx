@@ -5,6 +5,8 @@ interface ModalSheetProps {
   onClose?: () => void
   titleId?: string
   labelledBy?: string
+  describedBy?: string
+  role?: "dialog" | "alertdialog"
   className?: string
 }
 
@@ -14,13 +16,16 @@ export default function ModalSheet({
   onClose,
   titleId,
   labelledBy,
+  describedBy,
+  role = "dialog",
   className = "",
 }: ModalSheetProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
-      role="dialog"
+      role={role}
       aria-labelledby={labelledBy ?? titleId}
+      aria-describedby={describedBy}
       aria-modal="true"
       onClick={onClose ? () => onClose() : undefined}
     >

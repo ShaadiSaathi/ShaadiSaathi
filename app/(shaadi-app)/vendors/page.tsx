@@ -9,16 +9,21 @@ import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
 import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
+import Button from "@/components/shaadi-saathi/ui/Button"
+import { Input, Select } from "@/components/shaadi-saathi/ui/Input"
+import { usePlanningPreferences } from "@/components/shaadi-saathi/wedding/usePlanningPreferences"
 import { EVENTS, type EventId } from "@/lib/mockData"
 import {
   CITIES,
   PRICE_RANGES,
+  VENDOR_CATEGORIES,
   type VendorCategoryId,
 } from "@/lib/mockVendors"
-import { APP_INPUT_CLASS, APP_PAGE_HEADER_CLASS } from "@/lib/design/app-form-styles"
+import { APP_PAGE_HEADER_CLASS } from "@/lib/design/app-form-styles"
 import { VendorGridSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 import { EmptyVendorsIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
 import { sortVendorsForBrowse } from "@/lib/premium"
+import { emptyVendorsCopy, orderVendorCategories, vendorsIntro } from "@/lib/wedding-personalization"
 
 export default function VendorsBrowsePage() {
   return (
@@ -37,6 +42,9 @@ function VendorsBrowseContent() {
   const eventContext = EVENTS.find((e) => e.id === eventParam)?.id as EventId | undefined
 
   const { vendors, loading } = useVendorsDirectory()
+  const prefs = usePlanningPreferences()
+  const vendorCategories = orderVendorCategories(VENDOR_CATEGORIES, prefs)
+  const vendorsEmpty = emptyVendorsCopy(prefs, vendors.length === 0)
   const [category, setCategory] = useState<VendorCategoryId | "all">(
     categoryParam && categoryParam.length > 0 ? categoryParam : "all"
   )
@@ -86,15 +94,12 @@ function VendorsBrowseContent() {
             Vendors
           </h1>
           <p className="mt-1 text-maroon/60">
-            A curated directory for your shaadi — catering, decor, mehndi, and more.
+            {vendorsIntro(prefs)}
           </p>
         </div>
-        <Link
-          href="/vendors/bookings"
-          className="inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline"
-        >
+        <Button href="/vendors/bookings" variant="ghost">
           My bookings →
-        </Link>
+        </Button>
       </header>
 
       {eventContext && (
@@ -111,21 +116,21 @@ function VendorsBrowseContent() {
         <label className="sr-only" htmlFor="vendor-search">
           Search vendors
         </label>
-        <input
+        <Input
           id="vendor-search"
           type="search"
           placeholder="Search by name or service..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className={`${APP_INPUT_CLASS} min-h-[44px] w-full`}
+          className="min-h-[44px] w-full"
         />
 
         <div className="flex flex-col gap-2 md:flex-row">
-          <select
+          <Select
             aria-label="Filter by city"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className={`${APP_INPUT_CLASS} min-h-[44px] flex-1`}
+            className="min-h-[44px] flex-1"
           >
             <option value="all">All cities</option>
             {cityOptions.map((c) => (
@@ -133,34 +138,34 @@ function VendorsBrowseContent() {
                 {c}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             aria-label="Filter by price range"
             value={priceRange}
             onChange={(e) => setPriceRange(Number(e.target.value))}
-            className={`${APP_INPUT_CLASS} min-h-[44px] flex-1`}
+            className="min-h-[44px] flex-1"
           >
             {PRICE_RANGES.map((r, i) => (
               <option key={r.label} value={i}>
                 {r.label}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             aria-label="Filter by minimum rating"
             value={minRating}
             onChange={(e) => setMinRating(Number(e.target.value))}
-            className={`${APP_INPUT_CLASS} min-h-[44px] flex-1`}
+            className="min-h-[44px] flex-1"
           >
             <option value={0}>Any rating</option>
             <option value={4}>4+ stars</option>
             <option value={4.5}>4.5+ stars</option>
             <option value={4.8}>4.8+ stars</option>
-          </select>
+          </Select>
         </div>
       </div>
 
-      <CategoryGrid selected={category} onSelect={setCategory} />
+      <CategoryGrid selected={category} onSelect={setCategory} categories={vendorCategories} />
 
       <section className="mt-6" aria-labelledby="vendor-list-heading">
         <h2 id="vendor-list-heading" className="sr-only">
@@ -172,19 +177,13 @@ function VendorsBrowseContent() {
         ) : filtered.length === 0 ? (
           <EmptyState
             illustration={<EmptyVendorsIllustration />}
-            title={vendors.length === 0 ? "No vendors listed yet" : "No vendors match"}
-            description={
-              vendors.length === 0
-                ? "When vendors sign up on Shaadi Saathi, they will appear here for families to discover."
-                : "Try adjusting your filters or search — our directory has caterers, photographers, mehndi artists, and more."
-            }
+            title={vendorsEmpty.title}
+            description={vendorsEmpty.description}
             action={
               vendors.length === 0 ? (
-                <Link href="/vendors/bookings">
-                  <span className="inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline">
-                    View bookings →
-                  </span>
-                </Link>
+                <Button href="/vendors/bookings" variant="ghost">
+                  View bookings →
+                </Button>
               ) : undefined
             }
           />

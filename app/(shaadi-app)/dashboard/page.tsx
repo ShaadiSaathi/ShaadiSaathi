@@ -13,7 +13,14 @@ import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBook
 import { useVendorsDirectory } from "@/components/shaadi-saathi/vendors/VendorsDirectoryContext"
 import { useWedding } from "@/components/shaadi-saathi/firebase/WeddingContext"
 import { DashboardSkeleton } from "@/components/shaadi-saathi/app/skeletons"
+import Button from "@/components/shaadi-saathi/ui/Button"
+import Card from "@/components/shaadi-saathi/ui/Card"
+import { usePlanningPreferences } from "@/components/shaadi-saathi/wedding/usePlanningPreferences"
 import { APP_PAGE_HEADER_CLASS, APP_SECTION_CLASS } from "@/lib/design/app-form-styles"
+import {
+  dashboardGreeting,
+  dashboardGuestSubtext,
+} from "@/lib/wedding-personalization"
 import { getBookingProgress } from "@/lib/mockVendors"
 import {
   EVENTS,
@@ -38,6 +45,8 @@ export default function DashboardPage() {
   const { familyUser } = useAuth()
   const { wedding, loading: weddingLoading } = useWedding()
   const { isFamilyPremium } = usePremium()
+  const prefs = usePlanningPreferences()
+  const greeting = dashboardGreeting(familyUser?.name, prefs)
   const nextEvent = getNextUpcomingEvent()
   const rsvpStats = getTotalRsvpStats(guests)
   const totalGuestHeadcount = getTotalGuestHeadcount(guests)
@@ -63,9 +72,9 @@ export default function DashboardPage() {
     <PageTransition>
       {/* Welcome header */}
       <header className={APP_PAGE_HEADER_CLASS}>
-        <p className="shaadi-label">Good morning</p>
+        <p className="shaadi-label">{greeting.kicker}</p>
         <h1 className="shaadi-page-title mt-1">
-          Welcome back, {familyUser?.name || "there"}
+          {greeting.title}
         </h1>
         <p className="mt-2 flex flex-wrap items-center gap-2 text-sm leading-relaxed text-maroon/65">
           {weddingName}
@@ -120,7 +129,7 @@ export default function DashboardPage() {
           <StatCard
             label="Total guests"
             value={totalGuestHeadcount}
-            subtext="Across all events"
+            subtext={dashboardGuestSubtext(prefs)}
             icon={
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -188,19 +197,21 @@ export default function DashboardPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group shaadi-card shaadi-card-interactive w-[78vw] max-w-[280px] shrink-0 snap-start p-5 md:min-w-[220px] md:w-auto md:max-w-none md:flex-1"
+              className="group w-[78vw] max-w-[280px] shrink-0 snap-start md:min-w-[220px] md:w-auto md:max-w-none md:flex-1"
             >
-              <div className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${EVENT_DOT[event.id] ?? "bg-gold"}`} />
-                <span className="font-semibold text-maroon-dark group-hover:text-maroon">
-                  {event.name}
-                </span>
-              </div>
-              <p className="mt-2.5 text-sm text-maroon/55">{formatEventDate(event.date)}</p>
-              <p className="shaadi-num mt-0.5 text-xs text-maroon/40">{event.time}</p>
-              {i < EVENTS.length - 1 && (
-                <span className="sr-only">Next: {EVENTS[i + 1]?.name}</span>
-              )}
+              <Card variant="interactive" padding="sm" className="h-full p-5">
+                <div className="flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${EVENT_DOT[event.id] ?? "bg-gold"}`} />
+                  <span className="font-semibold text-maroon-dark group-hover:text-maroon">
+                    {event.name}
+                  </span>
+                </div>
+                <p className="mt-2.5 text-sm text-maroon/55">{formatEventDate(event.date)}</p>
+                <p className="shaadi-num mt-0.5 text-xs text-maroon/40">{event.time}</p>
+                {i < EVENTS.length - 1 && (
+                  <span className="sr-only">Next: {EVENTS[i + 1]?.name}</span>
+                )}
+              </Card>
             </Link>
           ))}
         </div>
@@ -208,36 +219,21 @@ export default function DashboardPage() {
 
       {/* Quick links — Arc-style pill CTAs */}
       <section className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Link
-          href="/guests"
-          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-        >
+        <Button href="/guests" variant="ghost" className="min-h-[48px] w-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
           Review RSVPs →
-        </Link>
-        <Link
-          href="/vendors"
-          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-        >
+        </Button>
+        <Button href="/vendors" variant="ghost" className="min-h-[48px] w-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
           Browse vendors →
-        </Link>
-        <Link
-          href="/wedding-ai"
-          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-        >
+        </Button>
+        <Button href="/wedding-ai" variant="ghost" className="min-h-[48px] w-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
           Ask Wedding AI →
-        </Link>
-        <Link
-          href="/tasks"
-          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-        >
+        </Button>
+        <Button href="/tasks" variant="ghost" className="min-h-[48px] w-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
           Check tasks →
-        </Link>
-        <Link
-          href="/schedule"
-          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-        >
+        </Button>
+        <Button href="/schedule" variant="ghost" className="min-h-[48px] w-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
           View schedule →
-        </Link>
+        </Button>
       </section>
     </PageTransition>
   )

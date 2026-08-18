@@ -1,10 +1,14 @@
 "use client"
 
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
+import Badge from "@/components/shaadi-saathi/ui/Badge"
+import Card from "@/components/shaadi-saathi/ui/Card"
+import { usePlanningPreferences } from "@/components/shaadi-saathi/wedding/usePlanningPreferences"
 import { APP_PAGE_HEADER_CLASS } from "@/lib/design/app-form-styles"
 import { ScheduleSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 import { EVENTS, formatEventDate } from "@/lib/mockData"
 import { useTasks } from "@/components/shaadi-saathi/tasks/TasksContext"
+import { scheduleFooter } from "@/lib/wedding-personalization"
 
 interface TimelineItem {
   id: string
@@ -18,6 +22,7 @@ interface TimelineItem {
 
 export default function SchedulePage() {
   const { tasks, loading } = useTasks()
+  const prefs = usePlanningPreferences()
 
   const items: TimelineItem[] = [
     ...EVENTS.map((e) => ({
@@ -94,24 +99,15 @@ export default function SchedulePage() {
                     aria-hidden="true"
                   />
 
-                  <article
-                    className={`shaadi-card p-4 transition-shadow hover:shadow-md md:p-5 ${
-                      item.type === "event"
-                        ? "border-gold/30"
-                        : "border-dashed"
-                    }`}
+                  <Card
+                    padding="sm"
+                    className={item.type === "event" ? "border-gold/30" : "border border-dashed"}
                   >
                     <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-2">
                       <div className="min-w-0">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wider ${
-                            item.type === "event"
-                              ? "bg-gold/15 text-gold-dark"
-                              : "bg-maroon/8 text-maroon/60"
-                          }`}
-                        >
+                        <Badge tone={item.type === "event" ? "gold" : "maroon"} className="uppercase tracking-wider">
                           {item.type === "event" ? "Event" : "Deadline"}
-                        </span>
+                        </Badge>
                         <h3 className="mt-2 break-words text-base font-semibold text-maroon-dark md:text-lg">
                           {item.title}
                         </h3>
@@ -133,7 +129,7 @@ export default function SchedulePage() {
                         aria-hidden="true"
                       />
                     )}
-                  </article>
+                  </Card>
                 </li>
               ))}
             </ul>
@@ -143,7 +139,7 @@ export default function SchedulePage() {
       )}
 
       <p className="mt-6 rounded-xl border border-gold/20 bg-gold/5 px-4 py-3 text-center text-sm text-maroon/60">
-        Everyone in your family sees this same schedule — no more &ldquo;what time is baraat?&rdquo; texts.
+        {scheduleFooter(prefs)}
       </p>
     </PageTransition>
   )

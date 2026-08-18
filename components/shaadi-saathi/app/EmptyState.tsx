@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import Card from "@/components/shaadi-saathi/ui/Card"
 
 interface EmptyStateProps {
   illustration?: ReactNode
@@ -17,7 +18,7 @@ export default function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center shaadi-card border border-dashed border-gold/25 bg-white/60 px-6 py-16 text-center">
+    <Card variant="dashed" className="flex flex-col items-center justify-center px-6 py-16 text-center">
       {illustration ? (
         <div className="mb-5">{illustration}</div>
       ) : icon ? (
@@ -26,6 +27,6 @@ export default function EmptyState({
       <h3 className="shaadi-section-title">{title}</h3>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-maroon/60">{description}</p>
       {action && <div className="mt-6">{action}</div>}
-    </div>
+    </Card>
   )
 }

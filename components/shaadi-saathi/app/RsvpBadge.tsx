@@ -1,49 +1,28 @@
 import type { RsvpStatus } from "@/lib/mockData"
+import Badge, { type BadgeTone } from "@/components/shaadi-saathi/ui/Badge"
 
 interface RsvpBadgeProps {
   status: RsvpStatus | null
   showLabel?: boolean
 }
 
-const config: Record<
-  RsvpStatus,
-  { label: string; dot: string; badge: string }
-> = {
-  confirmed: {
-    label: "Confirmed",
-    dot: "bg-emerald-500",
-    badge: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  },
-  pending: {
-    label: "Pending",
-    dot: "bg-amber-400",
-    badge: "bg-amber-50 text-amber-800 border-amber-200",
-  },
-  declined: {
-    label: "Declined",
-    dot: "bg-rose-400",
-    badge: "bg-rose-50 text-rose-800 border-rose-200",
-  },
-  cancelled: {
-    label: "Cancelled",
-    dot: "bg-slate-400",
-    badge: "bg-slate-100 text-slate-600 border-slate-200",
-  },
+const config: Record<RsvpStatus, { label: string; tone: BadgeTone; dot: string }> = {
+  confirmed: { label: "Confirmed", tone: "success", dot: "bg-emerald-500" },
+  pending: { label: "Pending", tone: "warning", dot: "bg-amber-400" },
+  declined: { label: "Declined", tone: "danger", dot: "bg-rose-400" },
+  cancelled: { label: "Cancelled", tone: "muted", dot: "bg-slate-400" },
 }
 
 export default function RsvpBadge({ status, showLabel = false }: RsvpBadgeProps) {
   if (!status) return <span className="text-xs text-maroon/30">—</span>
 
-  const { label, dot, badge } = config[status]
+  const { label, tone, dot } = config[status]
 
   if (showLabel) {
     return (
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${badge}`}
-      >
-        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden="true" />
+      <Badge tone={tone} dot>
         {label}
-      </span>
+      </Badge>
     )
   }
 

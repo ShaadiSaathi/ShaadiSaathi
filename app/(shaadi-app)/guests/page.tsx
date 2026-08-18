@@ -5,9 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Avatar from "@/components/shaadi-saathi/app/Avatar"
 import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
-import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
-import RsvpBadge from "@/components/shaadi-saathi/app/RsvpBadge"
 import { AppToast, useAppToast } from "@/components/shaadi-saathi/app/AppToast"
 import { useChangePulse } from "@/components/shaadi-saathi/app/motion/useChangePulse"
 import ConfirmOverrideDialog from "@/components/shaadi-saathi/guests/ConfirmOverrideDialog"
@@ -18,7 +16,13 @@ import WeddingInviteLinkButton from "@/components/shaadi-saathi/guests/WeddingIn
 import UpgradePromptBanner from "@/components/shaadi-saathi/premium/UpgradePromptBanner"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
-import { APP_INPUT_CLASS, APP_LABEL_CLASS, APP_PAGE_HEADER_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import Badge from "@/components/shaadi-saathi/ui/Badge"
+import Button from "@/components/shaadi-saathi/ui/Button"
+import Card from "@/components/shaadi-saathi/ui/Card"
+import { FieldError, Input, Label, Select } from "@/components/shaadi-saathi/ui/Input"
+import Modal from "@/components/shaadi-saathi/ui/Modal"
+import { usePlanningPreferences } from "@/components/shaadi-saathi/wedding/usePlanningPreferences"
+import { APP_PAGE_HEADER_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
 import { GuestListSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 import { EmptyGuestsIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
 import { motionTransitionIfMotion } from "@/lib/design/motion-tokens"
@@ -32,6 +36,10 @@ import {
   isGuestGroup,
 } from "@/lib/mockData"
 import { FREE_LIMITS } from "@/lib/premium"
+import {
+  coreEventIdsFromPreferences,
+  emptyGuestsCopy,
+} from "@/lib/wedding-personalization"
 
 type Tab = "all" | "rsvp"
 type AddMode = "individual" | "group"
@@ -48,6 +56,9 @@ interface PendingOverride {
 export default function GuestsPage() {
   const { guests, addGuest, updateRsvpByOrganiser, clearRsvpOrganiserAlerts, loading } = useGuests()
   const { isFamilyPremium } = usePremium()
+  const prefs = usePlanningPreferences()
+  const guestsEmpty = emptyGuestsCopy(prefs)
+  const defaultEvents = coreEventIdsFromPreferences(prefs?.plannedEvents)
   const { message: toastMessage, variant: toastVariant, showToast } = useAppToast()
   const [tab, setTab] = useState<Tab>("all")
   const [search, setSearch] = useState("")
@@ -105,7 +116,7 @@ export default function GuestsPage() {
     setAddMode(mode)
     setNewName("")
     setNewPartySize(4)
-    setNewEvents(["walima"])
+    setNewEvents(defaultEvents.length > 0 ? defaultEvents : ["walima"])
     setAddGuestError(null)
     setShowAddForm(true)
     setShowGuestLimit(false)
@@ -209,15 +220,15 @@ export default function GuestsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <WeddingInviteLinkButton />
-          <GoldButton variant="ghost" onClick={() => openAddForm("group")}>
+          <Button variant="ghost" onClick={() => openAddForm("group")}>
             Add Group
-          </GoldButton>
-          <GoldButton onClick={() => openAddForm("individual")}>
+          </Button>
+          <Button onClick={() => openAddForm("individual")}>
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             Add Guest
-          </GoldButton>
+          </Button>
         </div>
       </header>
 
@@ -266,19 +277,19 @@ export default function GuestsPage() {
               <label className="sr-only" htmlFor="guest-search">
                 Search guests
               </label>
-              <input
+              <Input
                 id="guest-search"
                 type="search"
                 placeholder="Search by name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`${APP_INPUT_CLASS} min-h-11 flex-1 md:min-h-[44px]`}
+                className="min-h-11 flex-1 md:min-h-[44px]"
               />
-              <select
+              <Select
                 aria-label="Filter by event"
                 value={eventFilter}
                 onChange={(e) => setEventFilter(e.target.value as EventId | "all")}
-                className={`${APP_INPUT_CLASS} min-h-11 md:min-h-[44px]`}
+                className="min-h-11 md:min-h-[44px]"
               >
                 <option value="all">All events</option>
                 {EVENTS.map((ev) => (
@@ -286,35 +297,35 @@ export default function GuestsPage() {
                     {ev.name}
                   </option>
                 ))}
-              </select>
-              <select
+              </Select>
+              <Select
                 aria-label="Filter by RSVP status"
                 value={rsvpFilter}
                 onChange={(e) => setRsvpFilter(e.target.value as RsvpStatus | "all")}
-                className={`${APP_INPUT_CLASS} min-h-11 md:min-h-[44px]`}
+                className="min-h-11 md:min-h-[44px]"
               >
                 <option value="all">All RSVPs</option>
                 <option value="confirmed">Confirmed</option>
                 <option value="pending">Pending</option>
                 <option value="declined">Declined</option>
                 <option value="cancelled">Cancelled</option>
-              </select>
+              </Select>
             </div>
           </div>
 
           {filteredGuests.length === 0 ? (
             <EmptyState
               illustration={<EmptyGuestsIllustration />}
-              title={guests.length === 0 ? "No guests yet" : "No guests found"}
+              title={guests.length === 0 ? guestsEmpty.title : "No guests found"}
               description={
                 guests.length === 0
-                  ? "Invite your first guest and keep every mehndi, baraat, and walima RSVP in one place."
+                  ? guestsEmpty.description
                   : "Try adjusting your filters, or add another guest to the register."
               }
               action={
-                <GoldButton onClick={() => openAddForm("individual")}>
+                <Button onClick={() => openAddForm("individual")}>
                   Add Guest
-                </GoldButton>
+                </Button>
               }
             />
           ) : (
@@ -356,27 +367,17 @@ export default function GuestsPage() {
         />
       )}
 
-      {/* Add guest / group modal — full sheet on mobile, centered on md+ */}
       {showAddForm && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
-          role="dialog"
-          aria-labelledby="add-guest-title"
-          aria-modal="true"
+        <Modal
+          titleId="add-guest-title"
+          title={addMode === "group" ? "Add Guest Group" : "Add Guest"}
+          description={
+            addMode === "group"
+              ? "Invite a whole household with one link and one RSVP."
+              : "Add one person to your guest list."
+          }
+          onClose={() => setShowAddForm(false)}
         >
-          <div className="safe-bottom flex max-h-[96dvh] w-full max-w-md flex-col overflow-y-auto rounded-t-2xl border border-gold/25 bg-ivory p-6 shadow-xl md:max-h-[90vh] md:rounded-2xl">
-            <div className="mb-2 flex shrink-0 justify-center md:hidden" aria-hidden="true">
-              <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
-            </div>
-            <h2 id="add-guest-title" className="shaadi-section-title text-xl">
-              {addMode === "group" ? "Add Guest Group" : "Add Guest"}
-            </h2>
-            <p className="mt-1 text-sm text-maroon/55">
-              {addMode === "group"
-                ? "Invite a whole household with one link and one RSVP."
-                : "Add one person to your guest list."}
-            </p>
-
             <div className="mt-4 flex rounded-xl border border-gold/20 bg-white p-1">
               <button
                 type="button"
@@ -404,27 +405,25 @@ export default function GuestsPage() {
 
             <form onSubmit={handleAddGuest} className="mt-4 space-y-4">
               <div>
-                <label htmlFor="guest-name" className={APP_LABEL_CLASS}>
+                <Label htmlFor="guest-name">
                   {addMode === "group" ? "Group name" : "Full name"}
-                </label>
-                <input
+                </Label>
+                <Input
                   id="guest-name"
                   type="text"
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   aria-invalid={addGuestError ? true : undefined}
-                  className={`mt-1 ${APP_INPUT_CLASS}`}
+                  className="mt-1"
                   placeholder={addMode === "group" ? "e.g. The Khan Family" : "e.g. Fatima Khan"}
                 />
               </div>
 
               {addMode === "group" && (
                 <div>
-                  <label htmlFor="party-size" className={APP_LABEL_CLASS}>
-                    Number of people
-                  </label>
-                  <input
+                  <Label htmlFor="party-size">Number of people</Label>
+                  <Input
                     id="party-size"
                     type="number"
                     required
@@ -432,7 +431,7 @@ export default function GuestsPage() {
                     max={50}
                     value={newPartySize}
                     onChange={(e) => setNewPartySize(Number(e.target.value) || 2)}
-                    className={`mt-1 ${APP_INPUT_CLASS}`}
+                    className="mt-1"
                   />
                   <p className="mt-1 text-xs text-maroon/45">
                     Counts toward your total guest headcount on the dashboard.
@@ -459,13 +458,9 @@ export default function GuestsPage() {
                   ))}
                 </div>
               </fieldset>
-              {addGuestError ? (
-                <p className="text-sm text-rose-700" role="alert">
-                  {addGuestError}
-                </p>
-              ) : null}
+              {addGuestError ? <FieldError>{addGuestError}</FieldError> : null}
               <div className="flex gap-3 pt-2">
-                <GoldButton
+                <Button
                   type="submit"
                   className="flex-1"
                   disabled={newEvents.length === 0 || addingGuest}
@@ -475,19 +470,18 @@ export default function GuestsPage() {
                     : addMode === "group"
                       ? "Add Group"
                       : "Add Guest"}
-                </GoldButton>
-                <GoldButton
+                </Button>
+                <Button
                   type="button"
                   variant="ghost"
                   onClick={() => setShowAddForm(false)}
                   className="flex-1"
                 >
                   Cancel
-                </GoldButton>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
       <AppToast message={toastMessage} variant={toastVariant} />
     </PageTransition>
@@ -532,9 +526,9 @@ function GuestRow({
           <div className="flex flex-wrap items-center gap-2">
             <p className="truncate font-medium text-maroon-dark">{guest.name}</p>
             {isGuestGroup(guest) && (
-              <span className="inline-flex shrink-0 items-center rounded-full bg-gold/12 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-maroon/65">
+              <Badge tone="gold" className="uppercase tracking-wide">
                 Group of {guestPartySize(guest)}
-              </span>
+              </Badge>
             )}
           </div>
           {!isGuestGroup(guest) && (
@@ -571,12 +565,11 @@ function GuestRow({
             </div>
           )
         })}
-        <motion.button
+        <Button
           type="button"
+          variant="secondary"
           onClick={onSendInvite}
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
-          transition={motionTransitionIfMotion(prefersReducedMotion, "micro")}
-          className="ml-0 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-maroon px-5 py-2.5 text-sm font-semibold text-ivory transition-[opacity,background-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:opacity-90 md:ml-1 md:w-auto md:min-h-[44px] md:px-4 md:py-2 md:text-xs"
+          className="ml-0 min-h-11 w-full md:ml-1 md:w-auto md:min-h-[44px] md:px-4 md:py-2 md:text-xs"
           aria-label={
             isGuestGroup(guest)
               ? `Share group invite link for ${guest.name}`
@@ -587,7 +580,7 @@ function GuestRow({
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
           </svg>
           {isGuestGroup(guest) ? "Share Group Invite" : "Send Invite"}
-        </motion.button>
+        </Button>
       </div>
     </motion.li>
   )
@@ -635,7 +628,7 @@ function RsvpOverview({
         ))}
       </div>
 
-      <div className="mb-6 shaadi-card px-6 py-7 sm:px-7 sm:py-8">
+      <Card padding="lg" className="mb-6 px-6 py-7 sm:px-7 sm:py-8">
         <p className="shaadi-label">{event.name} headcount</p>
         <p className="shaadi-stat-value mt-3">{summary.confirmed}</p>
         <p className="mt-2 text-sm text-maroon/45">
@@ -676,7 +669,7 @@ function RsvpOverview({
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
       <ul className="shaadi-stack w-full" role="list">
         {guests.map((guest) => (
@@ -748,10 +741,11 @@ function RsvpOverviewGuestRow({
         />
         <RsvpSourceIndicator source={guest.rsvpSource[rsvpEvent]} />
         {guest.rsvpOrganiserAlert?.[rsvpEvent] ? <UpdatedBadge /> : null}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => onSendInvite(guest)}
-          className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs font-medium text-maroon/70 transition-[color,background-color,border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-gold/40 hover:bg-gold/5"
+          className="min-h-9 px-2.5 py-1 text-xs"
           aria-label={
             isGuestGroup(guest)
               ? `Share group invite link for ${guest.name}`
@@ -762,7 +756,7 @@ function RsvpOverviewGuestRow({
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
           </svg>
           {isGuestGroup(guest) ? "Group Invite" : "Invite"}
-        </button>
+        </Button>
       </div>
     </motion.li>
   )
@@ -770,11 +764,8 @@ function RsvpOverviewGuestRow({
 
 function UpdatedBadge() {
   return (
-    <span
-      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800"
-      title="Guest changed their RSVP after responding"
-    >
+    <Badge tone="warning" className="uppercase tracking-wide">
       Updated
-    </span>
+    </Badge>
   )
 }
