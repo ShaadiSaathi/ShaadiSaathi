@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion"
 import type { ReactNode } from "react"
+import { motionTransitionIfMotion } from "@/lib/design/motion-tokens"
 
 interface GoldButtonProps {
   children: ReactNode
@@ -12,7 +13,7 @@ interface GoldButtonProps {
   disabled?: boolean
 }
 
-/** App-level CTA — smaller than landing page button */
+/** App-level CTA — shared micro-interactions (press + hover). */
 export default function GoldButton({
   children,
   onClick,
@@ -24,7 +25,7 @@ export default function GoldButton({
   const prefersReducedMotion = useReducedMotion()
 
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon disabled:opacity-50 disabled:pointer-events-none"
+    "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-[box-shadow,background-color,border-color,color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon disabled:opacity-50 disabled:pointer-events-none"
 
   const variants = {
     primary: "bg-gold text-maroon-dark shadow-sm shadow-gold/20 hover:shadow-md hover:shadow-gold/30",
@@ -34,8 +35,9 @@ export default function GoldButton({
   const motionProps = prefersReducedMotion
     ? {}
     : {
-        whileHover: disabled ? undefined : { scale: 1.02 },
-        whileTap: disabled ? undefined : { scale: 0.98 },
+        whileHover: disabled ? undefined : { scale: 1.015 },
+        whileTap: disabled ? undefined : { scale: 0.97 },
+        transition: motionTransitionIfMotion(false, "micro"),
       }
 
   return (

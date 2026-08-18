@@ -2,12 +2,13 @@
 
 import { motion, useReducedMotion } from "framer-motion"
 import type { ReactNode } from "react"
+import { motionTransitionIfMotion } from "@/lib/design/motion-tokens"
 
 interface PageTransitionProps {
   children: ReactNode
 }
 
-/** Subtle page enter animation — matches landing page motion style */
+/** Subtle page enter — snappy app pacing via shared motion tokens. */
 export default function PageTransition({ children }: PageTransitionProps) {
   const prefersReducedMotion = useReducedMotion()
 
@@ -17,9 +18,9 @@ export default function PageTransition({ children }: PageTransitionProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      transition={motionTransitionIfMotion(false, "standard")}
     >
       {children}
     </motion.div>

@@ -9,6 +9,10 @@ import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
+import AnimatedCheckmark from "@/components/shaadi-saathi/app/motion/AnimatedCheckmark"
+import { AppToast, useAppToast } from "@/components/shaadi-saathi/app/AppToast"
+import { APP_INPUT_CLASS, APP_LABEL_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import { motionTransitionIfMotion } from "@/lib/design/motion-tokens"
 import { EVENTS, type EventId, type TaskStatus } from "@/lib/mockData"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWeddingMembersOptional } from "@/components/shaadi-saathi/family/WeddingMembersContext"
@@ -52,6 +56,7 @@ function TasksPageContent() {
   const [newAssigneeUid, setNewAssigneeUid] = useState("")
   const [newDueDate, setNewDueDate] = useState("")
   const [newEvent, setNewEvent] = useState<EventId | "">("")
+  const { message: toastMessage, variant: toastVariant, showToast } = useAppToast()
 
   const assignableMembers = weddingMembers?.members ?? []
   const formatAssignee = weddingMembers?.formatAssigneeLabel ?? ((a: string) => a)
@@ -157,7 +162,7 @@ function TasksPageContent() {
             key={g}
             type="button"
             onClick={() => setGroupBy(g)}
-            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`${APP_TAB_CLASS} flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-4 py-2 ${
               groupBy === g ? "bg-maroon text-ivory" : "text-maroon/60 hover:text-maroon"
             }`}
           >
@@ -210,7 +215,11 @@ function TasksPageContent() {
                             }
                           : undefined
                       }
-                      onToggle={() => toggleTaskDone(task.id)}
+                      onToggle={() => {
+                        const wasDone = task.status === "done"
+                        toggleTaskDone(task.id)
+                        if (!wasDone) showToast("Task completed")
+                      }}
                     />
                   ))}
                 </ul>
@@ -254,7 +263,11 @@ function TasksPageContent() {
                             }
                           : undefined
                       }
-                      onToggle={() => toggleTaskDone(task.id)}
+                      onToggle={() => {
+                        const wasDone = task.status === "done"
+                        toggleTaskDone(task.id)
+                        if (!wasDone) showToast("Task completed")
+                      }}
                     />
                   ))}
                 </ul>
@@ -287,7 +300,7 @@ function TasksPageContent() {
               </h2>
               <form onSubmit={handleAddTask} className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="task-title" className="block text-sm font-medium text-maroon/70">
+                  <label htmlFor="task-title" className={APP_LABEL_CLASS}>
                     Task
                   </label>
                   <input
@@ -296,12 +309,12 @@ function TasksPageContent() {
                     required
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                    className={`mt-1 ${APP_INPUT_CLASS}`}
                     placeholder="e.g. Confirm florist"
                   />
                 </div>
                 <div>
-                  <label htmlFor="task-assignee" className="block text-sm font-medium text-maroon/70">
+                  <label htmlFor="task-assignee" className={APP_LABEL_CLASS}>
                     Assign to
                   </label>
                   {isFirebaseMode && assignableMembers.length > 0 ? (
@@ -310,7 +323,7 @@ function TasksPageContent() {
                         id="task-assignee"
                         value={newAssigneeUid}
                         onChange={(e) => setNewAssigneeUid(e.target.value)}
-                        className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+                        className={`mt-1 ${APP_INPUT_CLASS}`}
                       >
                         <option value="">Select a family member</option>
                         {assignableMembers.map((m) => (
@@ -335,14 +348,14 @@ function TasksPageContent() {
                       id="task-assignee"
                       value={newAssigneeUid}
                       onChange={(e) => setNewAssigneeUid(e.target.value)}
-                      className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm"
+                      className={`mt-1 ${APP_INPUT_CLASS}`}
                     >
                       <option value="">{familyUser?.name ?? "Unassigned"}</option>
                     </select>
                   )}
                 </div>
                 <div>
-                  <label htmlFor="task-due" className="block text-sm font-medium text-maroon/70">
+                  <label htmlFor="task-due" className={APP_LABEL_CLASS}>
                     Due date
                   </label>
                   <input
@@ -350,18 +363,18 @@ function TasksPageContent() {
                     type="date"
                     value={newDueDate}
                     onChange={(e) => setNewDueDate(e.target.value)}
-                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                    className={`mt-1 ${APP_INPUT_CLASS}`}
                   />
                 </div>
                 <div>
-                  <label htmlFor="task-event" className="block text-sm font-medium text-maroon/70">
+                  <label htmlFor="task-event" className={APP_LABEL_CLASS}>
                     Event (optional)
                   </label>
                   <select
                     id="task-event"
                     value={newEvent}
                     onChange={(e) => setNewEvent(e.target.value as EventId | "")}
-                    className="mt-1 min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+                    className={`mt-1 ${APP_INPUT_CLASS}`}
                   >
                     <option value="">No specific event</option>
                     {EVENTS.map((ev) => (
@@ -389,6 +402,7 @@ function TasksPageContent() {
           </div>
         </div>
       )}
+      <AppToast message={toastMessage} variant={toastVariant} />
     </PageTransition>
   )
 }
@@ -423,7 +437,7 @@ function TaskCard({
   const isDone = task.status === "done"
 
   return (
-    <li id={`task-${task.id}`} className="scroll-mt-24 overflow-hidden shaadi-card">
+    <li id={`task-${task.id}`} className="scroll-mt-24 overflow-hidden shaadi-card shaadi-card-interactive">
       <AnimatePresence mode="wait">
         <motion.div
           layout
@@ -431,7 +445,7 @@ function TaskCard({
           animate={{
             opacity: isDone ? 0.65 : 1,
           }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+          transition={motionTransitionIfMotion(prefersReducedMotion, "standard")}
           className="flex items-center gap-2 px-3 py-3 md:items-start md:gap-3 md:px-4 md:py-4"
         >
           <button
@@ -440,27 +454,28 @@ function TaskCard({
             aria-label={isDone ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
             className="flex h-11 w-11 shrink-0 items-center justify-center md:mt-0.5 md:h-5 md:w-5"
           >
-            <span
-              className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors md:h-5 md:w-5 ${
-                isDone
-                  ? "border-emerald-500 bg-emerald-500 text-white"
-                  : "border-maroon/30 hover:border-maroon"
-              }`}
+            <motion.span
+              animate={{
+                borderColor: isDone ? "rgb(16 185 129)" : "rgba(106, 27, 77, 0.3)",
+                backgroundColor: isDone ? "rgb(16 185 129)" : "rgba(255, 255, 255, 1)",
+              }}
+              transition={motionTransitionIfMotion(prefersReducedMotion, "micro")}
+              className="flex h-6 w-6 items-center justify-center rounded-full border-2 text-white md:h-5 md:w-5"
             >
-              {isDone && (
-                <motion.svg
-                  initial={prefersReducedMotion ? false : { scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="h-3.5 w-3.5 md:h-3 md:w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </motion.svg>
-              )}
-            </span>
+              <AnimatePresence mode="wait">
+                {isDone ? (
+                  <motion.span
+                    key="check"
+                    initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.5 }}
+                    transition={motionTransitionIfMotion(prefersReducedMotion, "micro")}
+                  >
+                    <AnimatedCheckmark />
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
+            </motion.span>
           </button>
 
           <div className="min-w-0 flex-1">
@@ -469,7 +484,7 @@ function TaskCard({
                 textDecoration: isDone ? "line-through" : "none",
                 color: isDone ? "rgba(74, 18, 53, 0.45)" : "rgba(74, 18, 53, 1)",
               }}
-              transition={{ duration: prefersReducedMotion ? 0 : 0.35 }}
+              transition={motionTransitionIfMotion(prefersReducedMotion, "standard")}
               className="text-sm font-medium leading-snug text-maroon-dark md:text-base"
             >
               {task.title}
