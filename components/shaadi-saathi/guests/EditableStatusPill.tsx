@@ -39,6 +39,9 @@ const config = Object.fromEntries(
   RSVP_STATUS_OPTIONS.map((o) => [o.value, o])
 ) as Record<RsvpStatus, (typeof RSVP_STATUS_OPTIONS)[number]>
 
+const pillTransition =
+  "transition-[background-color,border-color,color,box-shadow] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+
 interface EditableStatusPillProps {
   status: RsvpStatus | null
   eventLabel?: string
@@ -76,7 +79,7 @@ export default function EditableStatusPill({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value as RsvpStatus)}
         aria-label={ariaLabel}
-        className={`min-h-11 min-w-[5.5rem] cursor-pointer appearance-none rounded-full border py-2 pl-6 pr-8 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-maroon/20 disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[44px] md:min-w-0 md:py-0.5 md:pl-5 md:pr-7 md:text-xs ${badge}`}
+        className={`min-h-11 min-w-[5.5rem] cursor-pointer appearance-none rounded-full border py-2 pl-6 pr-8 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-maroon/20 disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[44px] md:min-w-0 md:py-0.5 md:pl-5 md:pr-7 md:text-xs ${pillTransition} ${badge}`}
       >
         {RSVP_STATUS_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -85,7 +88,7 @@ export default function EditableStatusPill({
         ))}
       </select>
       <span
-        className={`pointer-events-none absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${dot}`}
+        className={`pointer-events-none absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${pillTransition} ${dot}`}
         aria-hidden="true"
       />
       <svg

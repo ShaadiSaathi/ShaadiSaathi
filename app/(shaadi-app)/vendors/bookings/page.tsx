@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
+import { APP_TAB_CLASS } from "@/lib/design/app-form-styles"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
 import MyBookings from "@/components/shaadi-saathi/vendors/MyBookings"
 import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
@@ -68,7 +69,7 @@ function VendorBookingsContent() {
             key={g}
             type="button"
             onClick={() => setGroupBy(g)}
-            className={`min-h-[44px] flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`${APP_TAB_CLASS} min-h-[44px] flex-1 rounded-lg px-4 py-2 ${
               groupBy === g ? "bg-maroon text-ivory" : "text-maroon/60 hover:text-maroon"
             }`}
           >

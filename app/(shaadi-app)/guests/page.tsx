@@ -1,5 +1,6 @@
 "use client"
 
+import { motion, useReducedMotion } from "framer-motion"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Avatar from "@/components/shaadi-saathi/app/Avatar"
 import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
@@ -7,6 +8,8 @@ import EventChip from "@/components/shaadi-saathi/app/EventChip"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import RsvpBadge from "@/components/shaadi-saathi/app/RsvpBadge"
+import { AppToast, useAppToast } from "@/components/shaadi-saathi/app/AppToast"
+import { useChangePulse } from "@/components/shaadi-saathi/app/motion/useChangePulse"
 import ConfirmOverrideDialog from "@/components/shaadi-saathi/guests/ConfirmOverrideDialog"
 import EditableStatusPill from "@/components/shaadi-saathi/guests/EditableStatusPill"
 import InviteLinkModal from "@/components/shaadi-saathi/guests/InviteLinkModal"
@@ -15,6 +18,8 @@ import WeddingInviteLinkButton from "@/components/shaadi-saathi/guests/WeddingIn
 import UpgradePromptBanner from "@/components/shaadi-saathi/premium/UpgradePromptBanner"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
+import { APP_INPUT_CLASS, APP_LABEL_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import { motionTransitionIfMotion } from "@/lib/design/motion-tokens"
 import {
   EVENTS,
   type EventId,
@@ -41,6 +46,7 @@ interface PendingOverride {
 export default function GuestsPage() {
   const { guests, addGuest, updateRsvpByOrganiser, clearRsvpOrganiserAlerts } = useGuests()
   const { isFamilyPremium } = usePremium()
+  const { message: toastMessage, variant: toastVariant, showToast } = useAppToast()
   const [tab, setTab] = useState<Tab>("all")
   const [search, setSearch] = useState("")
   const [eventFilter, setEventFilter] = useState<EventId | "all">("all")
@@ -169,6 +175,7 @@ export default function GuestsPage() {
     }
 
     updateRsvpByOrganiser(guest.id, eventId, newStatus)
+    showToast("RSVP updated")
   }
 
   function confirmOverride() {
@@ -179,6 +186,7 @@ export default function GuestsPage() {
       pendingOverride.newStatus
     )
     setPendingOverride(null)
+    showToast("RSVP updated")
   }
 
   const totalPct =
@@ -227,7 +235,7 @@ export default function GuestsPage() {
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`${APP_TAB_CLASS} flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-4 py-2 ${
               tab === t ? "bg-maroon text-ivory" : "text-maroon/60 hover:text-maroon"
             }`}
           >
@@ -260,13 +268,13 @@ export default function GuestsPage() {
                 placeholder="Search by name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="min-h-11 flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10 md:min-h-[44px]"
+                className={`${APP_INPUT_CLASS} min-h-11 flex-1 md:min-h-[44px]`}
               />
               <select
                 aria-label="Filter by event"
                 value={eventFilter}
                 onChange={(e) => setEventFilter(e.target.value as EventId | "all")}
-                className="min-h-11 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none md:min-h-[44px]"
+                className={`${APP_INPUT_CLASS} min-h-11 md:min-h-[44px]`}
               >
                 <option value="all">All events</option>
                 {EVENTS.map((ev) => (
@@ -279,7 +287,7 @@ export default function GuestsPage() {
                 aria-label="Filter by RSVP status"
                 value={rsvpFilter}
                 onChange={(e) => setRsvpFilter(e.target.value as RsvpStatus | "all")}
-                className="min-h-11 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark focus:border-maroon/30 focus:outline-none md:min-h-[44px]"
+                className={`${APP_INPUT_CLASS} min-h-11 md:min-h-[44px]`}
               >
                 <option value="all">All RSVPs</option>
                 <option value="confirmed">Confirmed</option>
@@ -392,7 +400,7 @@ export default function GuestsPage() {
 
             <form onSubmit={handleAddGuest} className="mt-4 space-y-4">
               <div>
-                <label htmlFor="guest-name" className="block text-sm font-medium text-maroon/70">
+                <label htmlFor="guest-name" className={APP_LABEL_CLASS}>
                   {addMode === "group" ? "Group name" : "Full name"}
                 </label>
                 <input
@@ -401,14 +409,15 @@ export default function GuestsPage() {
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="mt-1 min-h-11 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10 md:min-h-[44px]"
+                  aria-invalid={addGuestError ? true : undefined}
+                  className={`mt-1 ${APP_INPUT_CLASS}`}
                   placeholder={addMode === "group" ? "e.g. The Khan Family" : "e.g. Fatima Khan"}
                 />
               </div>
 
               {addMode === "group" && (
                 <div>
-                  <label htmlFor="party-size" className="block text-sm font-medium text-maroon/70">
+                  <label htmlFor="party-size" className={APP_LABEL_CLASS}>
                     Number of people
                   </label>
                   <input
@@ -419,7 +428,7 @@ export default function GuestsPage() {
                     max={50}
                     value={newPartySize}
                     onChange={(e) => setNewPartySize(Number(e.target.value) || 2)}
-                    className="mt-1 min-h-11 w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10 md:min-h-[44px]"
+                    className={`mt-1 ${APP_INPUT_CLASS}`}
                   />
                   <p className="mt-1 text-xs text-maroon/45">
                     Counts toward your total guest headcount on the dashboard.
@@ -476,6 +485,7 @@ export default function GuestsPage() {
           </div>
         </div>
       )}
+      <AppToast message={toastMessage} variant={toastVariant} />
     </PageTransition>
   )
 }
@@ -489,6 +499,13 @@ function GuestRow({
   onStatusChange: (guest: Guest, eventId: EventId, status: RsvpStatus) => void
   onSendInvite: () => void
 }) {
+  const prefersReducedMotion = useReducedMotion()
+  const rsvpSignature = useMemo(
+    () => guest.events.map((e) => `${e}:${guest.rsvp[e] ?? ""}`).join("|"),
+    [guest.events, guest.rsvp]
+  )
+  const pulse = useChangePulse(rsvpSignature)
+
   const initials = guest.name
     .split(" ")
     .map((n) => n[0])
@@ -496,7 +513,15 @@ function GuestRow({
     .slice(0, 2)
 
   return (
-    <li className="shaadi-card flex w-full flex-col gap-5 p-6 md:flex-row md:items-center md:gap-4 md:p-5">
+    <motion.li
+      animate={{
+        boxShadow: pulse
+          ? "0 0 0 2px rgba(16, 185, 129, 0.35), 0 1px 3px rgba(0, 0, 0, 0.08)"
+          : "0 1px 3px rgba(0, 0, 0, 0.08)",
+      }}
+      transition={motionTransitionIfMotion(prefersReducedMotion, "standard")}
+      className="shaadi-card shaadi-card-interactive flex w-full flex-col gap-5 p-6 md:flex-row md:items-center md:gap-4 md:p-5"
+    >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar initials={initials} size="md" />
         <div className="min-w-0">
@@ -542,10 +567,12 @@ function GuestRow({
             </div>
           )
         })}
-        <button
+        <motion.button
           type="button"
           onClick={onSendInvite}
-          className="ml-0 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-maroon px-5 py-2.5 text-sm font-semibold text-ivory transition-opacity hover:opacity-90 md:ml-1 md:w-auto md:min-h-[44px] md:px-4 md:py-2 md:text-xs"
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+          transition={motionTransitionIfMotion(prefersReducedMotion, "micro")}
+          className="ml-0 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-maroon px-5 py-2.5 text-sm font-semibold text-ivory transition-[opacity,background-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:opacity-90 md:ml-1 md:w-auto md:min-h-[44px] md:px-4 md:py-2 md:text-xs"
           aria-label={
             isGuestGroup(guest)
               ? `Share group invite link for ${guest.name}`
@@ -556,9 +583,9 @@ function GuestRow({
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
           </svg>
           {isGuestGroup(guest) ? "Share Group Invite" : "Send Invite"}
-        </button>
+        </motion.button>
       </div>
-    </li>
+    </motion.li>
   )
 }
 
@@ -593,7 +620,7 @@ function RsvpOverview({
             key={ev.id}
             type="button"
             onClick={() => setRsvpEvent(ev.id)}
-            className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`${APP_TAB_CLASS} ${
               rsvpEvent === ev.id
                 ? "bg-maroon text-ivory"
                 : "border border-gold/30 text-maroon/60 hover:border-gold/50"
@@ -649,57 +676,91 @@ function RsvpOverview({
 
       <ul className="w-full space-y-3 md:space-y-3" role="list">
         {guests.map((guest) => (
-          <li
+          <RsvpOverviewGuestRow
             key={guest.id}
-            className="shaadi-card flex w-full items-center justify-between gap-3 p-5 md:p-5"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <Avatar
-                initials={guest.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)}
-                size="sm"
-              />
-              <div className="min-w-0">
-                <span className="truncate font-medium text-maroon-dark">{guest.name}</span>
-                {isGuestGroup(guest) && (
-                  <span className="ml-2 inline-flex items-center rounded-full border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-maroon/70">
-                    Group of {guestPartySize(guest)}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <EditableStatusPill
-                status={guest.rsvp[rsvpEvent]}
-                eventLabel={event.name}
-                guestName={guest.name}
-                onChange={(newStatus) => onStatusChange(guest, rsvpEvent, newStatus)}
-              />
-              <RsvpSourceIndicator source={guest.rsvpSource[rsvpEvent]} />
-              {guest.rsvpOrganiserAlert?.[rsvpEvent] ? <UpdatedBadge /> : null}
-              <button
-                type="button"
-                onClick={() => onSendInvite(guest)}
-                className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs font-medium text-maroon/70 transition-colors hover:border-gold/40 hover:bg-gold/5"
-                aria-label={
-                  isGuestGroup(guest)
-                    ? `Share group invite link for ${guest.name}`
-                    : `Send invite link to ${guest.name}`
-                }
-              >
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                </svg>
-                {isGuestGroup(guest) ? "Group Invite" : "Invite"}
-              </button>
-            </div>
-          </li>
+            guest={guest}
+            rsvpEvent={rsvpEvent}
+            eventName={event.name}
+            onStatusChange={onStatusChange}
+            onSendInvite={onSendInvite}
+          />
         ))}
       </ul>
     </div>
+  )
+}
+
+function RsvpOverviewGuestRow({
+  guest,
+  rsvpEvent,
+  eventName,
+  onStatusChange,
+  onSendInvite,
+}: {
+  guest: Guest
+  rsvpEvent: EventId
+  eventName: string
+  onStatusChange: (guest: Guest, eventId: EventId, status: RsvpStatus) => void
+  onSendInvite: (guest: Guest) => void
+}) {
+  const prefersReducedMotion = useReducedMotion()
+  const status = guest.rsvp[rsvpEvent]
+  const pulse = useChangePulse(status)
+
+  return (
+    <motion.li
+      animate={{
+        boxShadow: pulse
+          ? "0 0 0 2px rgba(16, 185, 129, 0.35), 0 1px 3px rgba(0, 0, 0, 0.08)"
+          : "0 1px 3px rgba(0, 0, 0, 0.08)",
+      }}
+      transition={motionTransitionIfMotion(prefersReducedMotion, "standard")}
+      className="shaadi-card shaadi-card-interactive flex w-full items-center justify-between gap-3 p-5 md:p-5"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar
+          initials={guest.name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .slice(0, 2)}
+          size="sm"
+        />
+        <div className="min-w-0">
+          <span className="truncate font-medium text-maroon-dark">{guest.name}</span>
+          {isGuestGroup(guest) && (
+            <span className="ml-2 inline-flex items-center rounded-full border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-maroon/70">
+              Group of {guestPartySize(guest)}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <EditableStatusPill
+          status={status}
+          eventLabel={eventName}
+          guestName={guest.name}
+          onChange={(newStatus) => onStatusChange(guest, rsvpEvent, newStatus)}
+        />
+        <RsvpSourceIndicator source={guest.rsvpSource[rsvpEvent]} />
+        {guest.rsvpOrganiserAlert?.[rsvpEvent] ? <UpdatedBadge /> : null}
+        <button
+          type="button"
+          onClick={() => onSendInvite(guest)}
+          className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs font-medium text-maroon/70 transition-[color,background-color,border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-gold/40 hover:bg-gold/5"
+          aria-label={
+            isGuestGroup(guest)
+              ? `Share group invite link for ${guest.name}`
+              : `Send invite link to ${guest.name}`
+          }
+        >
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+          </svg>
+          {isGuestGroup(guest) ? "Group Invite" : "Invite"}
+        </button>
+      </div>
+    </motion.li>
   )
 }
 

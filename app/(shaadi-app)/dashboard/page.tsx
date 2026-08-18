@@ -177,7 +177,7 @@ export default function DashboardPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group shaadi-card w-[78vw] max-w-[280px] shrink-0 snap-start p-5 transition-shadow hover:shadow-md md:min-w-[220px] md:w-auto md:max-w-none md:flex-1"
+              className="group shaadi-card shaadi-card-interactive w-[78vw] max-w-[280px] shrink-0 snap-start p-5 md:min-w-[220px] md:w-auto md:max-w-none md:flex-1"
             >
               <div className="flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${EVENT_DOT[event.id] ?? "bg-gold"}`} />
@@ -199,31 +199,31 @@ export default function DashboardPage() {
       <section className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 lg:grid-cols-5">
         <Link
           href="/guests"
-          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
         >
           Review RSVPs →
         </Link>
         <Link
           href="/vendors"
-          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
         >
           Browse vendors →
         </Link>
         <Link
           href="/wedding-ai"
-          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
         >
           Ask Wedding AI →
         </Link>
         <Link
           href="/tasks"
-          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
         >
           Check tasks →
         </Link>
         <Link
           href="/schedule"
-          className="flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md"
+          className="shaadi-card-interactive flex min-h-[48px] items-center justify-center rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-maroon shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
         >
           View schedule →
         </Link>

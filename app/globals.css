@@ -65,6 +65,11 @@ body:has(.refine-app) {
   font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   letter-spacing: -0.01em;
+
+  /* App micro-interaction tokens (snappy — not landing cinematic pace) */
+  --motion-ease-snappy: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-duration-micro: 180ms;
+  --motion-duration-standard: 280ms;
 }
 
 .shaadi-saathi .font-display {
@@ -121,6 +126,25 @@ body:has(.refine-app) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+.shaadi-saathi .shaadi-card-interactive {
+  transition:
+    transform var(--motion-duration-micro) var(--motion-ease-snappy),
+    box-shadow var(--motion-duration-micro) var(--motion-ease-snappy),
+    border-color var(--motion-duration-micro) var(--motion-ease-snappy);
+}
+
+@media (hover: hover) {
+  .shaadi-saathi .shaadi-card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.shaadi-saathi .shaadi-card-interactive:active {
+  transform: translateY(0);
+  transition-duration: 100ms;
+}
+
 /* Premium family signup — glass card over fort backdrop */
 .shaadi-saathi .shaadi-auth-card {
   border-radius: 1.5rem;
@@ -162,6 +186,24 @@ body:has(.refine-app) {
   font-size: 0.875rem;
   line-height: 1.4;
   color: var(--maroon-dark);
+}
+
+.shaadi-saathi .shaadi-app-input {
+  transition:
+    border-color var(--motion-duration-micro) var(--motion-ease-snappy),
+    box-shadow var(--motion-duration-micro) var(--motion-ease-snappy),
+    background-color var(--motion-duration-micro) var(--motion-ease-snappy);
+}
+
+.shaadi-saathi .shaadi-app-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--maroon) 30%, transparent);
+  box-shadow: 0 0 0 3px rgb(106 27 77 / 0.1);
+}
+
+.shaadi-saathi .shaadi-app-input[aria-invalid="true"] {
+  border-color: color-mix(in srgb, var(--error) 55%, transparent);
+  box-shadow: 0 0 0 3px rgb(231 76 60 / 0.1);
 }
 
 .shaadi-saathi input:focus,

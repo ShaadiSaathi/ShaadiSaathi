@@ -16,7 +16,7 @@ export default function VendorCard({ vendor }: VendorCardProps) {
   return (
     <Link
       href={`/vendors/${vendor.id}`}
-      className="group overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm transition-all hover:border-gold/35 hover:shadow-md"
+      className="group overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm shaadi-card-interactive transition-[border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-gold/35"
     >
       <div className="relative h-36 overflow-hidden" aria-hidden="true">
         {coverUrl ? (
@@ -24,7 +24,7 @@ export default function VendorCard({ vendor }: VendorCardProps) {
           <img
             src={coverUrl}
             alt=""
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover transition-transform duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]"
           />
         ) : (
           <div className={`h-full w-full bg-gradient-to-br ${vendor.coverGradient}`} />
