@@ -1,12 +1,17 @@
 import CategoryIcon from "./CategoryIcon"
-import { VENDOR_CATEGORIES, type VendorCategoryId } from "@/lib/mockVendors"
+import { VENDOR_CATEGORIES, type VendorCategory, type VendorCategoryId } from "@/lib/mockVendors"
 
 interface CategoryGridProps {
   selected: VendorCategoryId | "all"
   onSelect: (id: VendorCategoryId | "all") => void
+  categories?: VendorCategory[]
 }
 
-export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) {
+export default function CategoryGrid({
+  selected,
+  onSelect,
+  categories = VENDOR_CATEGORIES,
+}: CategoryGridProps) {
   return (
     <div
       className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 scrollbar-none md:mx-0 md:flex-wrap md:snap-none md:overflow-visible md:px-0 md:scrollbar-auto"
@@ -30,7 +35,7 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
         <span className="text-[11px] font-medium">All</span>
       </button>
 
-      {VENDOR_CATEGORIES.map((cat) => (
+      {categories.map((cat) => (
         <button
           key={cat.id}
           type="button"

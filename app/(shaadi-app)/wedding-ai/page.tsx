@@ -28,6 +28,9 @@ import {
 import { ChatResponseSkeleton, ChatHistorySkeleton } from "@/components/shaadi-saathi/app/skeletons"
 import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
 import { EmptyChatIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
+import Button from "@/components/shaadi-saathi/ui/Button"
+import { usePlanningPreferences } from "@/components/shaadi-saathi/wedding/usePlanningPreferences"
+import { emptyChatCopy } from "@/lib/wedding-personalization"
 
 type Citation = { url: string; title: string }
 
@@ -153,9 +156,9 @@ function usageLabel(usage: WeddingAiUsageClient): string {
 export default function WeddingAiTestPage() {
   const { firebaseUser, isFamilyLoggedIn, authLoading } = useAuth()
   const { isFamilyPremium } = usePremium()
-  const [draft, setDraft] = useState(
-    "What colours and decor work well for a Pakistani mehndi?"
-  )
+  const prefs = usePlanningPreferences()
+  const chatEmpty = emptyChatCopy(prefs)
+  const [draft, setDraft] = useState("")
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [error, setError] = useState("")
   const [limitReached, setLimitReached] = useState(false)
@@ -395,12 +398,9 @@ export default function WeddingAiTestPage() {
           Sign in to ask about ceremonies, colours, and decor — grounded in our
           South Asian wedding knowledge base.
         </p>
-        <Link
-          href="/login"
-          className="mt-8 inline-flex rounded-full bg-maroon px-6 py-2.5 font-sans text-sm font-medium text-ivory shadow-sm transition hover:bg-maroon-dark"
-        >
+        <Button href="/login" variant="secondary" className="mt-8">
           Log in
-        </Link>
+        </Button>
       </main>
     )
   }
@@ -446,18 +446,16 @@ export default function WeddingAiTestPage() {
         {turns.length === 0 && !busy && (
           <EmptyState
             illustration={<EmptyChatIllustration />}
-            title="No chat history yet"
-            description="Ask about Mehndi colours, Barat décor, or Walima palettes — we’ll keep the answer grounded in our knowledge base."
+            title={chatEmpty.title}
+            description={chatEmpty.description}
             action={
-              <button
+              <Button
                 type="button"
-                className="inline-flex min-h-[44px] items-center rounded-full bg-maroon px-5 py-2 text-sm font-semibold text-ivory"
-                onClick={() =>
-                  setDraft("What colours and decor work well for a Pakistani mehndi?")
-                }
+                variant="secondary"
+                onClick={() => setDraft(chatEmpty.starter)}
               >
                 Use a starter question
-              </button>
+              </Button>
             }
           />
         )}
@@ -533,13 +531,14 @@ export default function WeddingAiTestPage() {
               {WEDDING_AI_TOPUP_AMOUNT_MAJOR}, or come back after midnight UTC.
             </p>
             {!showTopUp ? (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                className="mt-3"
                 onClick={() => setShowTopUp(true)}
-                className="mt-3 rounded-full bg-maroon px-5 py-2 font-sans text-sm font-medium text-ivory shadow-sm transition hover:bg-maroon-dark"
               >
                 Buy more
-              </button>
+              </Button>
             ) : (
               <div className="mt-4">
                 <WeddingAiTopUpPayment
@@ -590,13 +589,13 @@ export default function WeddingAiTestPage() {
                 ? usageLabel(usage)
                 : "Enter to send · Shift+Enter for new line"}
             </p>
-            <button
+            <Button
               type="submit"
+              variant="secondary"
               disabled={busy || !draft.trim() || limitReached}
-              className="rounded-full bg-maroon px-5 py-2 font-sans text-sm font-medium text-ivory shadow-sm transition hover:bg-maroon-dark disabled:cursor-not-allowed disabled:opacity-45"
             >
               {busy ? "Sending…" : "Send"}
-            </button>
+            </Button>
           </div>
         </div>
       </form>

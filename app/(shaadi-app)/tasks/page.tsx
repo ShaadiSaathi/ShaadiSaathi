@@ -7,11 +7,14 @@ import { useSearchParams } from "next/navigation"
 import Avatar from "@/components/shaadi-saathi/app/Avatar"
 import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
-import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
 import AnimatedCheckmark from "@/components/shaadi-saathi/app/motion/AnimatedCheckmark"
 import { AppToast, useAppToast } from "@/components/shaadi-saathi/app/AppToast"
-import { APP_INPUT_CLASS, APP_LABEL_CLASS, APP_PAGE_HEADER_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import Button from "@/components/shaadi-saathi/ui/Button"
+import { Input, Label, Select } from "@/components/shaadi-saathi/ui/Input"
+import Modal from "@/components/shaadi-saathi/ui/Modal"
+import { usePlanningPreferences } from "@/components/shaadi-saathi/wedding/usePlanningPreferences"
+import { APP_PAGE_HEADER_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
 import { TaskListSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 import { EmptyTasksIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
 import { motionTransitionIfMotion } from "@/lib/design/motion-tokens"
@@ -19,6 +22,11 @@ import { EVENTS, type EventId, type TaskStatus } from "@/lib/mockData"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWeddingMembersOptional } from "@/components/shaadi-saathi/family/WeddingMembersContext"
 import { useTasks, type AppTask } from "@/components/shaadi-saathi/tasks/TasksContext"
+import {
+  emptyTasksCopy,
+  suggestedTaskTitles,
+  taskPlaceholder,
+} from "@/lib/wedding-personalization"
 
 type GroupBy = "status" | "assignee"
 
@@ -47,6 +55,9 @@ function TasksPageContent() {
 
   const { tasks, addTask, reassignTask, toggleTaskDone, loading } = useTasks()
   const { familyUser, isFirebaseMode, firebaseUser } = useAuth()
+  const prefs = usePlanningPreferences()
+  const tasksEmpty = emptyTasksCopy(prefs)
+  const taskSuggestions = suggestedTaskTitles(prefs)
   const weddingMembers = useWeddingMembersOptional()
   const [groupBy, setGroupBy] = useState<GroupBy>("status")
   const [showAddForm, setShowAddForm] = useState(false)
@@ -126,7 +137,7 @@ function TasksPageContent() {
             Assign, track, and celebrate what gets done.
           </p>
         </div>
-        <GoldButton
+        <Button
           onClick={() => {
             setShowAddForm(true)
             const selfUid =
@@ -141,7 +152,7 @@ function TasksPageContent() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           Add Task
-        </GoldButton>
+        </Button>
       </header>
 
       {eventFilter && (
@@ -174,9 +185,28 @@ function TasksPageContent() {
       ) : displayedTasks.length === 0 ? (
         <EmptyState
           illustration={<EmptyTasksIllustration />}
-          title="No tasks yet"
-          description="Add your first task to get the family organized — book the dholki, confirm the caterer, you name it."
-          action={<GoldButton onClick={() => setShowAddForm(true)}>Add Task</GoldButton>}
+          title={tasksEmpty.title}
+          description={tasksEmpty.description}
+          action={
+            <div className="flex flex-col items-center gap-3">
+              <Button onClick={() => setShowAddForm(true)}>Add Task</Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                {taskSuggestions.map((title) => (
+                  <Button
+                    key={title}
+                    variant="ghost"
+                    className="text-xs"
+                    onClick={() => {
+                      setNewTitle(title)
+                      setShowAddForm(true)
+                    }}
+                  >
+                    {title}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          }
         />
       ) : groupBy === "status" ? (
         <div className="space-y-8">
@@ -280,46 +310,33 @@ function TasksPageContent() {
       )}
 
       {showAddForm && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-maroon-dark/40 md:items-center md:p-4"
-          role="dialog"
-          aria-labelledby="add-task-title"
-          aria-modal="true"
+        <Modal
+          titleId="add-task-title"
+          title="Add Task"
+          onClose={() => setShowAddForm(false)}
         >
-          <div className="safe-bottom flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold/25 bg-ivory shadow-xl md:max-h-[90vh] md:max-w-md md:rounded-2xl">
-            <div className="flex shrink-0 justify-center pt-2.5 pb-1 md:hidden" aria-hidden="true">
-              <span className="h-1.5 w-10 rounded-full bg-maroon/15" />
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
-              <h2 id="add-task-title" className="shaadi-section-title text-xl">
-                Add Task
-              </h2>
               <form onSubmit={handleAddTask} className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="task-title" className={APP_LABEL_CLASS}>
-                    Task
-                  </label>
-                  <input
+                  <Label htmlFor="task-title">Task</Label>
+                  <Input
                     id="task-title"
                     type="text"
                     required
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className={`mt-1 ${APP_INPUT_CLASS}`}
-                    placeholder="e.g. Confirm florist"
+                    className="mt-1"
+                    placeholder={`e.g. ${taskPlaceholder(prefs)}`}
                   />
                 </div>
                 <div>
-                  <label htmlFor="task-assignee" className={APP_LABEL_CLASS}>
-                    Assign to
-                  </label>
+                  <Label htmlFor="task-assignee">Assign to</Label>
                   {isFirebaseMode && assignableMembers.length > 0 ? (
                     <>
-                      <select
+                      <Select
                         id="task-assignee"
                         value={newAssigneeUid}
                         onChange={(e) => setNewAssigneeUid(e.target.value)}
-                        className={`mt-1 ${APP_INPUT_CLASS}`}
+                        className="mt-1"
                       >
                         <option value="">Select a family member</option>
                         {assignableMembers.map((m) => (
@@ -328,7 +345,7 @@ function TasksPageContent() {
                             {m.role === "owner" ? " (you)" : ""}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       {assignableMembers.length <= 1 && (
                         <p className="mt-2 text-xs text-maroon/50">
                           Invite family members from{" "}
@@ -340,37 +357,33 @@ function TasksPageContent() {
                       )}
                     </>
                   ) : (
-                    <select
+                    <Select
                       id="task-assignee"
                       value={newAssigneeUid}
                       onChange={(e) => setNewAssigneeUid(e.target.value)}
-                      className={`mt-1 ${APP_INPUT_CLASS}`}
+                      className="mt-1"
                     >
                       <option value="">{familyUser?.name ?? "Unassigned"}</option>
-                    </select>
+                    </Select>
                   )}
                 </div>
                 <div>
-                  <label htmlFor="task-due" className={APP_LABEL_CLASS}>
-                    Due date
-                  </label>
-                  <input
+                  <Label htmlFor="task-due">Due date</Label>
+                  <Input
                     id="task-due"
                     type="date"
                     value={newDueDate}
                     onChange={(e) => setNewDueDate(e.target.value)}
-                    className={`mt-1 ${APP_INPUT_CLASS}`}
+                    className="mt-1"
                   />
                 </div>
                 <div>
-                  <label htmlFor="task-event" className={APP_LABEL_CLASS}>
-                    Event (optional)
-                  </label>
-                  <select
+                  <Label htmlFor="task-event">Event (optional)</Label>
+                  <Select
                     id="task-event"
                     value={newEvent}
                     onChange={(e) => setNewEvent(e.target.value as EventId | "")}
-                    className={`mt-1 ${APP_INPUT_CLASS}`}
+                    className="mt-1"
                   >
                     <option value="">No specific event</option>
                     {EVENTS.map((ev) => (
@@ -378,25 +391,23 @@ function TasksPageContent() {
                         {ev.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <GoldButton type="submit" className="min-h-[44px] flex-1">
+                  <Button type="submit" className="min-h-[44px] flex-1">
                     Add Task
-                  </GoldButton>
-                  <GoldButton
+                  </Button>
+                  <Button
                     type="button"
                     variant="ghost"
                     onClick={() => setShowAddForm(false)}
                     className="min-h-[44px] flex-1"
                   >
                     Cancel
-                  </GoldButton>
+                  </Button>
                 </div>
               </form>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
       <AppToast message={toastMessage} variant={toastVariant} />
     </PageTransition>

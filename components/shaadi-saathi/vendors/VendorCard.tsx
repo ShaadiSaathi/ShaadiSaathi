@@ -1,6 +1,7 @@
 import Link from "next/link"
 import CategoryIcon from "./CategoryIcon"
 import FeaturedBadge from "@/components/shaadi-saathi/premium/FeaturedBadge"
+import Badge from "@/components/shaadi-saathi/ui/Badge"
 import type { Vendor } from "@/lib/mockVendors"
 import { formatStartingPriceLabel, getCategoryById } from "@/lib/mockVendors"
 
@@ -33,8 +34,8 @@ export default function VendorCard({ vendor }: VendorCardProps) {
           <FeaturedBadge className="absolute left-3 top-3" />
         ) : null}
         {vendor.emergencyAvailable && (
-          <span className="absolute right-3 top-3 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-            Short notice
+          <span className="absolute right-3 top-3">
+            <Badge tone="success">Short notice</Badge>
           </span>
         )}
       </div>

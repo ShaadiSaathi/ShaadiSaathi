@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import Card from "@/components/shaadi-saathi/ui/Card"
 
 interface StatCardProps {
   label: string
@@ -7,10 +8,10 @@ interface StatCardProps {
   icon?: ReactNode
 }
 
-/** Monarch-style summary card: muted label, dominant number, soft shadow (via shaadi-card). */
+/** Monarch-style summary card: muted label, dominant number, soft shadow. */
 export default function StatCard({ label, value, subtext, icon }: StatCardProps) {
   return (
-    <div className="shaadi-card px-5 py-6 sm:px-6 sm:py-7">
+    <Card padding="lg">
       <div className="flex items-start justify-between gap-3">
         <p className="shaadi-label">{label}</p>
         {icon ? (
@@ -21,6 +22,6 @@ export default function StatCard({ label, value, subtext, icon }: StatCardProps)
       {subtext ? (
         <p className="mt-2 text-xs leading-relaxed text-maroon/40">{subtext}</p>
       ) : null}
-    </div>
+    </Card>
   )
 }
