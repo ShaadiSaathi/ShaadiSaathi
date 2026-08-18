@@ -78,6 +78,7 @@ interface VendorBookingsContextValue {
   ) => void | Promise<void>
   getBookingsByEvent: (eventId: EventId) => VendorBooking[]
   getBookingsByStatus: (status: BookingStatus) => VendorBooking[]
+  loading: boolean
 }
 
 const VendorBookingsContext = createContext<VendorBookingsContextValue | null>(null)
@@ -109,6 +110,7 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
   const [bookings, setBookings] = useState<VendorBooking[]>(
     firebaseMode ? [] : INITIAL_BOOKINGS
   )
+  const [loading, setLoading] = useState(firebaseMode)
   const [vendorReliability, setVendorReliability] = useState<
     Record<string, VendorReliability>
   >(() => buildReliabilityMap(firebaseMode ? [] : VENDORS))
@@ -143,11 +145,16 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
   // in-memory booking (which may carry optimistic payment-lifecycle state) and
   // only introducing newly-created / dropping deleted documents.
   useEffect(() => {
-    if (!firebaseMode) return
-    if (!weddingId) {
-      setBookings([])
+    if (!firebaseMode) {
+      setLoading(false)
       return
     }
+    if (!weddingId) {
+      setBookings([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
     const unsub = subscribeBookingsByWedding(
       weddingId,
       (list) => {
@@ -155,8 +162,9 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
           const prevById = new Map(prev.map((b) => [b.id, b]))
           return list.map((fs) => prevById.get(fs.id) ?? fs)
         })
+        setLoading(false)
       },
-      () => {}
+      () => setLoading(false)
     )
     return unsub
   }, [firebaseMode, weddingId])
@@ -566,9 +574,11 @@ export function VendorBookingsProvider({ children }: { children: ReactNode }) {
       proposeFamilyCounter,
       getBookingsByEvent,
       getBookingsByStatus,
+      loading,
     }),
     [
       bookings,
+      loading,
       vendorReliability,
       addBooking,
       vendorCheckIn,

@@ -22,6 +22,7 @@ import {
   getEventAvailability,
 } from "@/lib/mockVendors"
 import { normalizePortfolioItems } from "@/lib/firebase/vendor-portfolio"
+import { BookingDetailSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 
 interface VendorDetailPageProps {
   params: Promise<{ id: string }>
@@ -46,9 +47,9 @@ export default function VendorDetailPage({ params }: VendorDetailPageProps) {
 
   if (loading && !vendor) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-maroon/50">
-        Loading vendor…
-      </div>
+      <PageTransition>
+        <BookingDetailSkeleton />
+      </PageTransition>
     )
   }
 

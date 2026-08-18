@@ -25,6 +25,9 @@ import {
   WEDDING_AI_TOPUP_AMOUNT_MAJOR,
   WEDDING_AI_TOPUP_QUESTIONS,
 } from "@/lib/wedding-ai-limits"
+import { ChatResponseSkeleton, ChatHistorySkeleton } from "@/components/shaadi-saathi/app/skeletons"
+import EmptyState from "@/components/shaadi-saathi/app/EmptyState"
+import { EmptyChatIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
 
 type Citation = { url: string; title: string }
 
@@ -441,20 +444,22 @@ export default function WeddingAiTestPage() {
 
       <div className="flex flex-1 flex-col gap-6 py-6">
         {turns.length === 0 && !busy && (
-          <div className="rounded-3xl bg-white/60 px-5 py-8 text-center shadow-sm shadow-maroon/5 ring-1 ring-maroon/5">
-            <p className="font-sans text-sm leading-relaxed text-maroon/55">
-              Try asking about Mehndi colours, Barat décor, or Walima palettes.
-            </p>
-            <button
-              type="button"
-              className="mt-4 font-sans text-sm font-medium text-maroon underline decoration-gold/50 underline-offset-2"
-              onClick={() =>
-                setDraft("What colours and decor work well for a Pakistani mehndi?")
-              }
-            >
-              Use a starter question
-            </button>
-          </div>
+          <EmptyState
+            illustration={<EmptyChatIllustration />}
+            title="No chat history yet"
+            description="Ask about Mehndi colours, Barat décor, or Walima palettes — we’ll keep the answer grounded in our knowledge base."
+            action={
+              <button
+                type="button"
+                className="inline-flex min-h-[44px] items-center rounded-full bg-maroon px-5 py-2 text-sm font-semibold text-ivory"
+                onClick={() =>
+                  setDraft("What colours and decor work well for a Pakistani mehndi?")
+                }
+              >
+                Use a starter question
+              </button>
+            }
+          />
         )}
 
         {turns.map((turn) =>
@@ -515,16 +520,7 @@ export default function WeddingAiTestPage() {
           )
         )}
 
-        {busy && (
-          <div className="flex items-center gap-3 text-maroon/45">
-            <span className="inline-flex gap-1">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" />
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold [animation-delay:300ms]" />
-            </span>
-            <span className="font-sans text-sm">Thinking…</span>
-          </div>
-        )}
+        {busy && <ChatResponseSkeleton />}
 
         {limitReached && isFamilyPremium && (
           <div className="rounded-2xl bg-maroon/[0.04] px-4 py-4 ring-1 ring-maroon/10">
@@ -630,7 +626,7 @@ export default function WeddingAiTestPage() {
           {historyOpen && (
             <div className="mt-3 space-y-2">
               {historyLoading && history.length === 0 && (
-                <p className="font-sans text-sm text-maroon/45">Loading history…</p>
+                <ChatHistorySkeleton />
               )}
               {historyError && (
                 <p className="rounded-2xl bg-amber-50/90 px-3 py-2 font-sans text-sm text-amber-950/80">
@@ -638,10 +634,11 @@ export default function WeddingAiTestPage() {
                 </p>
               )}
               {!historyLoading && !historyError && history.length === 0 && (
-                <p className="font-sans text-sm text-maroon/45">
-                  No past questions yet. Ask something above and it will show up
-                  here after you reload.
-                </p>
+                <EmptyState
+                  illustration={<EmptyChatIllustration />}
+                  title="No past questions yet"
+                  description="Ask something above and it will show up here after you reload."
+                />
               )}
               <ul className="space-y-1.5">
                 {history.map((item) => {

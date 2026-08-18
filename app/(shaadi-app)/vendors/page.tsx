@@ -15,16 +15,15 @@ import {
   PRICE_RANGES,
   type VendorCategoryId,
 } from "@/lib/mockVendors"
+import { APP_INPUT_CLASS, APP_PAGE_HEADER_CLASS } from "@/lib/design/app-form-styles"
+import { VendorGridSkeleton } from "@/components/shaadi-saathi/app/skeletons"
+import { EmptyVendorsIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
 import { sortVendorsForBrowse } from "@/lib/premium"
 
 export default function VendorsBrowsePage() {
   return (
     <Suspense
-      fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-maroon/50">
-          Loading vendors…
-        </div>
-      }
+      fallback={<VendorGridSkeleton />}
     >
       <VendorsBrowseContent />
     </Suspense>
@@ -81,7 +80,7 @@ function VendorsBrowseContent() {
 
   return (
     <PageTransition>
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className={`${APP_PAGE_HEADER_CLASS} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}>
         <div>
           <h1 className="shaadi-page-title">
             Vendors
@@ -118,7 +117,7 @@ function VendorsBrowseContent() {
           placeholder="Search by name or service..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="min-h-[44px] w-full rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm text-maroon-dark placeholder:text-maroon/40 focus:border-maroon/30 focus:outline-none focus:ring-2 focus:ring-maroon/10"
+          className={`${APP_INPUT_CLASS} min-h-[44px] w-full`}
         />
 
         <div className="flex flex-col gap-2 md:flex-row">
@@ -126,7 +125,7 @@ function VendorsBrowseContent() {
             aria-label="Filter by city"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+            className={`${APP_INPUT_CLASS} min-h-[44px] flex-1`}
           >
             <option value="all">All cities</option>
             {cityOptions.map((c) => (
@@ -139,7 +138,7 @@ function VendorsBrowseContent() {
             aria-label="Filter by price range"
             value={priceRange}
             onChange={(e) => setPriceRange(Number(e.target.value))}
-            className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+            className={`${APP_INPUT_CLASS} min-h-[44px] flex-1`}
           >
             {PRICE_RANGES.map((r, i) => (
               <option key={r.label} value={i}>
@@ -151,7 +150,7 @@ function VendorsBrowseContent() {
             aria-label="Filter by minimum rating"
             value={minRating}
             onChange={(e) => setMinRating(Number(e.target.value))}
-            className="min-h-[44px] flex-1 rounded-xl border border-gold/20 bg-white px-4 py-2.5 text-sm focus:border-maroon/30 focus:outline-none"
+            className={`${APP_INPUT_CLASS} min-h-[44px] flex-1`}
           >
             <option value={0}>Any rating</option>
             <option value={4}>4+ stars</option>
@@ -169,25 +168,28 @@ function VendorsBrowseContent() {
         </h2>
 
         {loading ? (
-          <div className="flex min-h-[30vh] items-center justify-center text-maroon/50">
-            Loading vendors…
-          </div>
+          <VendorGridSkeleton />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={
-              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-              </svg>
-            }
+            illustration={<EmptyVendorsIllustration />}
             title={vendors.length === 0 ? "No vendors listed yet" : "No vendors match"}
             description={
               vendors.length === 0
                 ? "When vendors sign up on Shaadi Saathi, they will appear here for families to discover."
                 : "Try adjusting your filters or search — our directory has caterers, photographers, mehndi artists, and more."
             }
+            action={
+              vendors.length === 0 ? (
+                <Link href="/vendors/bookings">
+                  <span className="inline-flex min-h-[44px] items-center text-sm font-semibold text-gold-dark hover:underline">
+                    View bookings →
+                  </span>
+                </Link>
+              ) : undefined
+            }
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filtered.map((vendor) => (
               <VendorCard key={vendor.id} vendor={vendor} />
             ))}

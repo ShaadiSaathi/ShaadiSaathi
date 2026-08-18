@@ -37,7 +37,7 @@ export default function BookingStatusCard({
             {subtitle && <p className="text-xs text-maroon/50">{subtitle}</p>}
           </div>
         </div>
-        {price && <p className="text-sm font-semibold text-maroon-dark">{price}</p>}
+        {price && <p className="shaadi-num text-sm font-semibold text-maroon-dark">{price}</p>}
       </div>
       {badges && <div className="mt-3 flex flex-wrap gap-2">{badges}</div>}
       {children && <div className="mt-4 space-y-3 border-t border-gold/10 pt-4">{children}</div>}

@@ -18,7 +18,9 @@ import WeddingInviteLinkButton from "@/components/shaadi-saathi/guests/WeddingIn
 import UpgradePromptBanner from "@/components/shaadi-saathi/premium/UpgradePromptBanner"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
-import { APP_INPUT_CLASS, APP_LABEL_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import { APP_INPUT_CLASS, APP_LABEL_CLASS, APP_PAGE_HEADER_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import { GuestListSkeleton } from "@/components/shaadi-saathi/app/skeletons"
+import { EmptyGuestsIllustration } from "@/components/shaadi-saathi/app/empty-illustrations"
 import { motionTransitionIfMotion } from "@/lib/design/motion-tokens"
 import {
   EVENTS,
@@ -44,7 +46,7 @@ interface PendingOverride {
 }
 
 export default function GuestsPage() {
-  const { guests, addGuest, updateRsvpByOrganiser, clearRsvpOrganiserAlerts } = useGuests()
+  const { guests, addGuest, updateRsvpByOrganiser, clearRsvpOrganiserAlerts, loading } = useGuests()
   const { isFamilyPremium } = usePremium()
   const { message: toastMessage, variant: toastVariant, showToast } = useAppToast()
   const [tab, setTab] = useState<Tab>("all")
@@ -196,7 +198,7 @@ export default function GuestsPage() {
 
   return (
     <PageTransition>
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className={`${APP_PAGE_HEADER_CLASS} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}>
         <div>
           <h1 className="shaadi-page-title">
             Guests
@@ -244,7 +246,9 @@ export default function GuestsPage() {
         ))}
       </div>
 
-      {tab === "rsvp" ? (
+      {loading ? (
+        <GuestListSkeleton />
+      ) : tab === "rsvp" ? (
         <RsvpOverview
           rsvpEvent={rsvpEvent}
           setRsvpEvent={setRsvpEvent}
@@ -300,13 +304,13 @@ export default function GuestsPage() {
 
           {filteredGuests.length === 0 ? (
             <EmptyState
-              icon={
-                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                </svg>
+              illustration={<EmptyGuestsIllustration />}
+              title={guests.length === 0 ? "No guests yet" : "No guests found"}
+              description={
+                guests.length === 0
+                  ? "Invite your first guest and keep every mehndi, baraat, and walima RSVP in one place."
+                  : "Try adjusting your filters, or add another guest to the register."
               }
-              title="No guests found"
-              description="Try adjusting your filters, or add your first guest to get started."
               action={
                 <GoldButton onClick={() => openAddForm("individual")}>
                   Add Guest
@@ -314,7 +318,7 @@ export default function GuestsPage() {
               }
             />
           ) : (
-            <ul className="w-full space-y-3 md:space-y-2" role="list">
+            <ul className="shaadi-stack w-full" role="list">
               {filteredGuests.map((guest) => (
                 <GuestRow
                   key={guest.id}
@@ -520,9 +524,9 @@ function GuestRow({
           : "0 1px 3px rgba(0, 0, 0, 0.08)",
       }}
       transition={motionTransitionIfMotion(prefersReducedMotion, "standard")}
-      className="shaadi-card shaadi-card-interactive flex w-full flex-col gap-5 p-6 md:flex-row md:items-center md:gap-4 md:p-5"
+      className="shaadi-card shaadi-card-interactive flex w-full flex-col gap-5 p-6 md:grid md:grid-cols-[minmax(12rem,1.4fr)_minmax(8rem,1fr)_auto] md:items-center md:gap-6 md:p-5"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <Avatar initials={initials} size="md" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -548,7 +552,7 @@ function GuestRow({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5 md:justify-end md:gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2.5 md:gap-2">
         {guest.events.map((e) => {
           const status = guest.rsvp[e]
           if (!status) return null
@@ -674,7 +678,7 @@ function RsvpOverview({
         </div>
       </div>
 
-      <ul className="w-full space-y-3 md:space-y-3" role="list">
+      <ul className="shaadi-stack w-full" role="list">
         {guests.map((guest) => (
           <RsvpOverviewGuestRow
             key={guest.id}
@@ -715,7 +719,7 @@ function RsvpOverviewGuestRow({
           : "0 1px 3px rgba(0, 0, 0, 0.08)",
       }}
       transition={motionTransitionIfMotion(prefersReducedMotion, "standard")}
-      className="shaadi-card shaadi-card-interactive flex w-full items-center justify-between gap-3 p-5 md:p-5"
+      className="shaadi-card shaadi-card-interactive flex w-full items-center justify-between gap-3 p-5"
     >
       <div className="flex min-w-0 items-center gap-3">
         <Avatar

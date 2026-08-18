@@ -4,14 +4,15 @@ import Link from "next/link"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import PageTransition from "@/components/shaadi-saathi/app/PageTransition"
-import { APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import { APP_PAGE_HEADER_CLASS, APP_TAB_CLASS } from "@/lib/design/app-form-styles"
+import { BookingListSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 import EventChip from "@/components/shaadi-saathi/app/EventChip"
 import MyBookings from "@/components/shaadi-saathi/vendors/MyBookings"
 import { useVendorBookings } from "@/components/shaadi-saathi/vendors/VendorBookingsContext"
 import { EVENTS, type EventId } from "@/lib/mockData"
 
 function VendorBookingsContent() {
-  const { bookings } = useVendorBookings()
+  const { bookings, loading } = useVendorBookings()
   const searchParams = useSearchParams()
   const eventParam = searchParams.get("event")
   const highlightId = searchParams.get("highlight")
@@ -33,7 +34,7 @@ function VendorBookingsContent() {
 
   return (
     <PageTransition>
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className={`${APP_PAGE_HEADER_CLASS} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}>
         <div>
           <Link
             href="/vendors"
@@ -41,7 +42,7 @@ function VendorBookingsContent() {
           >
             ← Browse vendors
           </Link>
-          <h1 className="font-display text-2xl font-bold text-maroon-dark sm:text-3xl">
+          <h1 className="shaadi-page-title">
             My Bookings
           </h1>
           <p className="mt-1 text-maroon/60">
@@ -78,11 +79,15 @@ function VendorBookingsContent() {
         ))}
       </div>
 
-      <MyBookings
-        bookings={filteredBookings}
-        groupBy={groupBy}
-        highlightId={highlightId ?? undefined}
-      />
+      {loading ? (
+        <BookingListSkeleton />
+      ) : (
+        <MyBookings
+          bookings={filteredBookings}
+          groupBy={groupBy}
+          highlightId={highlightId ?? undefined}
+        />
+      )}
     </PageTransition>
   )
 }
@@ -90,11 +95,7 @@ function VendorBookingsContent() {
 export default function VendorBookingsPage() {
   return (
     <Suspense
-      fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-maroon/50">
-          Loading bookings…
-        </div>
-      }
+      fallback={<BookingListSkeleton />}
     >
       <VendorBookingsContent />
     </Suspense>

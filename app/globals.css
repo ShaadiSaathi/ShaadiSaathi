@@ -70,6 +70,15 @@ body:has(.refine-app) {
   --motion-ease-snappy: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-duration-micro: 180ms;
   --motion-duration-standard: 280ms;
+
+  /* Shared spacing scale — family app layout density */
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
 }
 
 .shaadi-saathi .font-display {
@@ -117,6 +126,25 @@ body:has(.refine-app) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--maroon-dark) 42%, transparent);
+}
+
+.shaadi-saathi .shaadi-page-header {
+  margin-bottom: var(--space-10);
+}
+
+.shaadi-saathi .shaadi-section {
+  margin-bottom: var(--space-10);
+}
+
+.shaadi-saathi .shaadi-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.shaadi-saathi .shaadi-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .shaadi-saathi .shaadi-card {
@@ -307,4 +335,27 @@ input:focus, select:focus, textarea:focus {
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+@keyframes shaadi-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.shaadi-saathi .shaadi-skeleton {
+  display: inline-block;
+  background: color-mix(in srgb, var(--maroon) 9%, #ece4d8);
+  animation: shaadi-skeleton-pulse 1.2s var(--motion-ease-snappy) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shaadi-saathi .shaadi-skeleton {
+    animation: none;
+    opacity: 0.7;
+  }
 }

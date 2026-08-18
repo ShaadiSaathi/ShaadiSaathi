@@ -9,6 +9,7 @@ import { isFirebaseConfigured } from "@/lib/firebase/config"
 import type { FirestoreBooking } from "@/lib/firebase/types"
 import { getVendor } from "@/lib/firebase/vendors"
 import { EVENTS } from "@/lib/mockData"
+import { BookingDetailSkeleton } from "@/components/shaadi-saathi/app/skeletons"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -63,7 +64,11 @@ export default function FamilyBookingMessagesPage({ params }: PageProps) {
   }, [id, weddingId, authLoading])
 
   if (authLoading || booking === undefined) {
-    return <p className="text-maroon/60">Loading chat…</p>
+    return (
+      <div className="py-4">
+        <BookingDetailSkeleton />
+      </div>
+    )
   }
 
   if (!booking || error) {
