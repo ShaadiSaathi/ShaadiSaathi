@@ -139,6 +139,12 @@ export type PayoutVendorResult = {
   createdAt: string
 }
 
+export type FirestoreCheckInPhoto = {
+  name: string
+  uploadedAt: number
+  storageUrl?: string
+}
+
 /** Persisted payment snapshot on Firestore bookings */
 export type FirestoreBookingPayment = {
   totalPrice: number
@@ -151,6 +157,8 @@ export type FirestoreBookingPayment = {
   balanceStatus: BalanceStatus
   depositPaidAt?: number
   checkInAt?: number
+  checkInStatus?: "pending" | "confirmed" | "issue_reported"
+  checkInPhoto?: FirestoreCheckInPhoto
   scheduledArrivalAt?: number
   gracePeriodEndsAt?: number
   balanceMarkedPaidAt?: number

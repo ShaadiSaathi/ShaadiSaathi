@@ -42,6 +42,12 @@ function loadEnvFile(path: string) {
 
 loadEnvFile(join(root, ".env.production.local"))
 
+// Prefer production admin JSON from env file when present (non-empty).
+const adminRaw = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON?.trim()
+if (!adminRaw || adminRaw === '""' || adminRaw === "''") {
+  delete process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON
+}
+
 if (process.env.CONFIRM_PRODUCTION_GUEST_TOKEN_MIGRATION !== "yes") {
   console.error(
     "ABORT: set CONFIRM_PRODUCTION_GUEST_TOKEN_MIGRATION=yes to rewrite production guest tokens."

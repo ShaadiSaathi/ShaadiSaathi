@@ -11,8 +11,12 @@ export default function VendorJobDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  const { jobs } = useVendorPortal()
+  const { jobs, jobsLoading } = useVendorPortal()
   const job = jobs.find((j) => j.id === id)
+
+  if (jobsLoading) {
+    return <p className="py-12 text-center text-maroon/60">Loading job…</p>
+  }
 
   if (!job) {
     return (

@@ -19,6 +19,7 @@ import { QualityConcernBadge, QualityConcernCard } from "@/components/shaadi-saa
 import MessageThread from "@/components/shaadi-saathi/shared/MessageThread"
 import { RepeatClientBadge } from "@/components/shaadi-saathi/shared/StatusBadge"
 import CheckInPhotoDisplay from "@/components/shaadi-saathi/shared/CheckInPhotoDisplay"
+import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useVendorPortal } from "@/components/shaadi-saathi/vendor-portal/VendorPortalContext"
 import { formatEventDate } from "@/lib/mockData"
 import { MOCK_NOW } from "@/lib/mockPayments"
@@ -31,15 +32,21 @@ interface JobDetailProps {
 
 /** Full job detail — check-in, mark completed, dispute response */
 export default function JobDetail({ job }: JobDetailProps) {
+  const { isFirebaseMode } = useAuth()
   const { vendorCheckIn, markJobCompleted, submitDisputeResponse } = useVendorPortal()
   const [disputeText, setDisputeText] = useState(job.disputeVendorResponse ?? "")
   const [submitted, setSubmitted] = useState(!!job.disputeVendorResponse)
+  const [checkInBusy, setCheckInBusy] = useState(false)
+  const [checkInError, setCheckInError] = useState<string | null>(null)
+  const [completeBusy, setCompleteBusy] = useState(false)
+  const [completeError, setCompleteError] = useState<string | null>(null)
+
+  const now = isFirebaseMode ? new Date() : MOCK_NOW
+  const today = now.toISOString().slice(0, 10)
 
   const payment = job.payment
-  const isEventDay =
-    job.eventDate === MOCK_NOW.toISOString().slice(0, 10) ||
-    job.jobStatus === "awaiting_check_in"
-  const isPastEvent = job.eventDate < MOCK_NOW.toISOString().slice(0, 10)
+  const isEventDay = job.eventDate === today || job.jobStatus === "awaiting_check_in"
+  const isPastEvent = job.eventDate < today
   const canCheckIn =
     !payment.checkInAt &&
     (job.jobStatus === "awaiting_check_in" || job.jobStatus === "upcoming") &&
@@ -186,13 +193,31 @@ export default function JobDetail({ job }: JobDetailProps) {
             </div>
           )}
           <div className="mt-4">
+            {checkInError ? (
+              <p className="mb-3 text-sm text-rose-700" role="alert">
+                {checkInError}
+              </p>
+            ) : null}
             <CheckInButton
               variant="vendor"
-              onCheckIn={(photo) => vendorCheckIn(job.id, photo)}
+              onCheckIn={async (photo) => {
+                setCheckInBusy(true)
+                setCheckInError(null)
+                try {
+                  await vendorCheckIn(job.id, photo)
+                } catch (err) {
+                  setCheckInError(
+                    err instanceof Error ? err.message : "Could not record check-in"
+                  )
+                } finally {
+                  setCheckInBusy(false)
+                }
+              }}
               checkedIn={!!payment.checkInAt}
               checkedInAt={payment.checkInAt}
               checkInPhoto={payment.checkInPhoto}
-              disabled={!canCheckIn && !payment.checkInAt}
+              disabled={(!canCheckIn && !payment.checkInAt) || checkInBusy}
+              busy={checkInBusy}
             />
           </div>
           {payment.checkInPhoto && payment.checkInAt && (
@@ -213,7 +238,31 @@ export default function JobDetail({ job }: JobDetailProps) {
             After the event, mark this job as completed to finalize your earnings record.
           </p>
           <div className="mt-4">
-            <GoldButton onClick={() => markJobCompleted(job.id)}>Mark Job Completed</GoldButton>
+            {completeError ? (
+              <p className="mb-3 text-sm text-rose-700" role="alert">
+                {completeError}
+              </p>
+            ) : null}
+            <GoldButton
+              disabled={completeBusy}
+              onClick={() => {
+                void (async () => {
+                  setCompleteBusy(true)
+                  setCompleteError(null)
+                  try {
+                    await markJobCompleted(job.id)
+                  } catch (err) {
+                    setCompleteError(
+                      err instanceof Error ? err.message : "Could not mark job completed"
+                    )
+                  } finally {
+                    setCompleteBusy(false)
+                  }
+                })()
+              }}
+            >
+              {completeBusy ? "Saving…" : "Mark Job Completed"}
+            </GoldButton>
           </div>
         </section>
       )}

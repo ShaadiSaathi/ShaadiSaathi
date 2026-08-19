@@ -3,12 +3,12 @@
 import { useRef, useState } from "react"
 import GoldButton from "@/components/shaadi-saathi/app/GoldButton"
 import type { CheckInPhoto } from "@/lib/mockPayments"
-import { MOCK_NOW } from "@/lib/mockPayments"
 import CheckInPhotoDisplay from "@/components/shaadi-saathi/shared/CheckInPhotoDisplay"
 
 interface CheckInButtonProps {
-  onCheckIn: (photo: CheckInPhoto) => void
+  onCheckIn: (photo: CheckInPhoto) => void | Promise<void>
   disabled?: boolean
+  busy?: boolean
   checkedIn?: boolean
   checkedInAt?: string
   checkInPhoto?: CheckInPhoto
@@ -20,6 +20,7 @@ interface CheckInButtonProps {
 export default function CheckInButton({
   onCheckIn,
   disabled,
+  busy,
   checkedIn,
   checkedInAt,
   checkInPhoto,
@@ -34,11 +35,11 @@ export default function CheckInButton({
     setPendingPhoto({
       name: file.name,
       previewUrl: URL.createObjectURL(file),
-      uploadedAt: MOCK_NOW.toISOString(),
+      uploadedAt: new Date().toISOString(),
     })
   }
 
-  if (checkedIn && checkedInAt && checkInPhoto) {
+  if (checkedIn && checkedInAt) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -55,7 +56,7 @@ export default function CheckInButton({
             })}
           </span>
         </div>
-        <CheckInPhotoDisplay photo={checkInPhoto} />
+        {checkInPhoto ? <CheckInPhotoDisplay photo={checkInPhoto} /> : null}
       </div>
     )
   }
@@ -90,14 +91,17 @@ export default function CheckInButton({
         <CheckInPhotoDisplay photo={pendingPhoto} compact />
       )}
       <GoldButton
-        onClick={() => pendingPhoto && onCheckIn(pendingPhoto)}
-        disabled={disabled || !pendingPhoto}
+        onClick={() => {
+          if (!pendingPhoto) return
+          void onCheckIn(pendingPhoto)
+        }}
+        disabled={disabled || busy || !pendingPhoto}
         className="w-full sm:w-auto"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
-        {label}
+        {busy ? "Saving…" : label}
       </GoldButton>
     </div>
   )

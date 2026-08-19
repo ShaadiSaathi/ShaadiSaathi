@@ -30,6 +30,12 @@ export type SafepayPayoutStatus =
  * optional payments subsystem — that module is not always present/enabled and
  * a stray import breaks the production build with module_not_found.
  */
+export type FirestoreCheckInPhoto = {
+  name: string
+  uploadedAt: number
+  storageUrl?: string
+}
+
 export type FirestoreBookingPayment = {
   totalPrice: number
   depositAmount: number
@@ -41,6 +47,8 @@ export type FirestoreBookingPayment = {
   balanceStatus: BalanceStatus
   depositPaidAt?: number
   checkInAt?: number
+  checkInStatus?: "pending" | "confirmed" | "issue_reported"
+  checkInPhoto?: FirestoreCheckInPhoto
   /** Epoch ms — scheduled vendor arrival for grace/no-show automation */
   scheduledArrivalAt?: number
   /** Epoch ms — arrival + grace hours; past this without check-in → no-show */
