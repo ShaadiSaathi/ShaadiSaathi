@@ -25,7 +25,7 @@ import {
   type VendorJob,
   type VendorJobStatus,
 } from "@/lib/mockVendorPortal"
-import { confirmBookingApi } from "@/lib/firebase/bookings-client"
+import { confirmBookingApi, vendorCheckInApi, completeBookingApi } from "@/lib/firebase/bookings-client"
 import { subscribeBookingsByVendor, setBookingCounterOffer, setBookingExtraWorkRequest, updateBookingFields, updateBookingStatus } from "@/lib/firebase/bookings"
 import { getVendor, submitVendorVerification } from "@/lib/firebase/vendors"
 import { getVendorKyc } from "@/lib/firebase/vendor-kyc"
@@ -44,6 +44,7 @@ interface VendorPortalContextValue {
   business: VendorBusiness
   requests: BookingRequest[]
   jobs: VendorJob[]
+  jobsLoading: boolean
   earnings: ReturnType<typeof buildEarningsFromJobs>
   acceptRequest: (id: string) => void | Promise<void>
   declineRequest: (id: string) => void | Promise<void>
@@ -51,8 +52,8 @@ interface VendorPortalContextValue {
     id: string,
     data: { price: number; packageName?: string; note?: string }
   ) => void | Promise<void>
-  vendorCheckIn: (jobId: string, photo: CheckInPhoto) => void
-  markJobCompleted: (jobId: string) => void
+  vendorCheckIn: (jobId: string, photo: CheckInPhoto) => void | Promise<void>
+  markJobCompleted: (jobId: string) => void | Promise<void>
   submitDisputeResponse: (jobId: string, response: string) => void | Promise<void>
   requestExtraWork: (
     jobId: string,
@@ -70,14 +71,24 @@ interface VendorPortalContextValue {
 
 const VendorPortalContext = createContext<VendorPortalContextValue | null>(null)
 
+function deriveJobStatus(b: FirestoreBooking, now = new Date()): VendorJobStatus {
+  if (b.status === "completed") return "completed"
+  if (b.status === "disputed") return "disputed"
+
+  const eventDate = b.eventDate || EVENTS.find((e) => e.id === b.eventId)?.date || ""
+  const today = now.toISOString().slice(0, 10)
+  const checkedIn = typeof b.payment?.checkInAt === "number"
+
+  if (b.status === "confirmed" && eventDate && !checkedIn && eventDate <= today) {
+    return "awaiting_check_in"
+  }
+
+  return "upcoming"
+}
+
 function bookingToJob(b: FirestoreBooking): VendorJob {
   const event = EVENTS.find((e) => e.id === b.eventId)
-  const jobStatus: VendorJobStatus =
-    b.status === "completed"
-      ? "completed"
-      : b.status === "disputed"
-        ? "disputed"
-        : "upcoming"
+  const jobStatus = deriveJobStatus(b)
 
   return {
     id: b.id,
@@ -155,6 +166,16 @@ function firestorePaymentToUi(b: FirestoreBooking): BookingPayment {
     balanceStatus: p.balanceStatus ?? base.balanceStatus,
     depositPaidAt: msToIso(p.depositPaidAt) ?? base.depositPaidAt,
     checkInAt: msToIso(p.checkInAt),
+    checkInStatus: p.checkInStatus,
+    checkInPhoto: p.checkInPhoto
+      ? {
+          name: p.checkInPhoto.name,
+          previewUrl: p.checkInPhoto.storageUrl ?? "",
+          uploadedAt: msToIso(p.checkInPhoto.uploadedAt) ?? new Date(p.checkInPhoto.uploadedAt).toISOString(),
+        }
+      : undefined,
+    scheduledArrivalAt: msToIso(p.scheduledArrivalAt),
+    gracePeriodEndsAt: msToIso(p.gracePeriodEndsAt),
     balanceMarkedPaidAt: msToIso(p.balanceMarkedPaidAt),
     balanceChargedAt: msToIso(p.balanceChargedAt),
     refundAmount: p.refundAmount,
@@ -175,6 +196,7 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<VendorJob[]>(
     isFirebaseMode ? [] : INITIAL_VENDOR_JOBS
   )
+  const [jobsLoading, setJobsLoading] = useState(isFirebaseMode)
 
   useEffect(() => {
     if (!vendorUser) return
@@ -258,9 +280,11 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
       if (!isFirebaseMode) {
         setJobs(INITIAL_VENDOR_JOBS)
         setRequests(INITIAL_BOOKING_REQUESTS)
+        setJobsLoading(false)
       }
       return
     }
+    setJobsLoading(true)
     return subscribeBookingsByVendor(
       vendorId,
       (bookings) => {
@@ -275,9 +299,11 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
         )
         setJobs(confirmed.map(bookingToJob))
         setRequests(pending.map(bookingToRequest))
+        setJobsLoading(false)
       },
       (err) => {
         console.error("vendor jobs subscribe failed", err)
+        setJobsLoading(false)
       }
     )
   }, [isFirebaseMode, vendorId])
@@ -370,53 +396,73 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
     [isFirebaseMode, firebaseUser, business.name]
   )
 
-  const vendorCheckIn = useCallback((jobId: string, photo: CheckInPhoto) => {
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (j.id !== jobId) return j
-        const checkInAt = MOCK_NOW.toISOString()
-        return {
-          ...j,
-          jobStatus: j.jobStatus === "awaiting_check_in" ? "upcoming" : j.jobStatus,
-          payment: {
-            ...j.payment,
-            checkInAt,
-            checkInStatus: "confirmed" as const,
-            checkInPhoto: photo,
-            depositStatus: "released",
-            balanceStatus:
-              j.payment.paymentPath === "online"
-                ? "charged_pending_release"
-                : j.payment.balanceStatus,
-            balanceChargedAt:
-              j.payment.paymentPath === "online" ? checkInAt : j.payment.balanceChargedAt,
+  const vendorCheckIn = useCallback(
+    async (jobId: string, photo: CheckInPhoto) => {
+      if (isFirebaseMode && firebaseUser) {
+        await vendorCheckInApi(jobId, {
+          checkInPhoto: {
+            name: photo.name,
+            uploadedAt: photo.uploadedAt,
           },
-        }
-      })
-    )
-  }, [])
-
-  const markJobCompleted = useCallback((jobId: string) => {
-    setJobs((prev) =>
-      prev.map((j) =>
-        j.id === jobId
-          ? {
-              ...j,
-              jobStatus: "completed",
-              completedAt: MOCK_NOW.toISOString().slice(0, 10),
-              payment: {
-                ...j.payment,
-                balanceStatus:
-                  j.payment.paymentPath === "in_person"
-                    ? "paid_in_person"
-                    : "released_online",
-                balanceMarkedPaidAt: MOCK_NOW.toISOString(),
-              },
-            }
-          : j
+        })
+        return
+      }
+      setJobs((prev) =>
+        prev.map((j) => {
+          if (j.id !== jobId) return j
+          const checkInAt = MOCK_NOW.toISOString()
+          return {
+            ...j,
+            jobStatus: j.jobStatus === "awaiting_check_in" ? "upcoming" : j.jobStatus,
+            payment: {
+              ...j.payment,
+              checkInAt,
+              checkInStatus: "confirmed" as const,
+              checkInPhoto: photo,
+              depositStatus: "released",
+              balanceStatus:
+                j.payment.paymentPath === "online"
+                  ? "charged_pending_release"
+                  : j.payment.balanceStatus,
+              balanceChargedAt:
+                j.payment.paymentPath === "online" ? checkInAt : j.payment.balanceChargedAt,
+            },
+          }
+        })
       )
-    )
-  }, [])
+    },
+    [isFirebaseMode, firebaseUser]
+  )
+
+  const markJobCompleted = useCallback(
+    async (jobId: string) => {
+      if (isFirebaseMode && firebaseUser) {
+        await completeBookingApi(jobId)
+        await refreshBusiness()
+        return
+      }
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.id === jobId
+            ? {
+                ...j,
+                jobStatus: "completed",
+                completedAt: MOCK_NOW.toISOString().slice(0, 10),
+                payment: {
+                  ...j.payment,
+                  balanceStatus:
+                    j.payment.paymentPath === "in_person"
+                      ? "paid_in_person"
+                      : "released_online",
+                  balanceMarkedPaidAt: MOCK_NOW.toISOString(),
+                },
+              }
+            : j
+        )
+      )
+    },
+    [isFirebaseMode, firebaseUser, refreshBusiness]
+  )
 
   const submitDisputeResponse = useCallback(
     async (jobId: string, response: string) => {
@@ -532,11 +578,13 @@ export function VendorPortalProvider({ children }: { children: ReactNode }) {
       updateBusiness,
       refreshBusiness,
       submitVerification,
+      jobsLoading,
     }),
     [
       business,
       requests,
       jobs,
+      jobsLoading,
       earnings,
       acceptRequest,
       declineRequest,
