@@ -89,13 +89,12 @@ async function idTokenFromCustomToken(customToken: string): Promise<string> {
 }
 
 function hasMarkdownStructure(text: string): boolean {
-  const checks = [
-    /\*\*[^*]+\*\/.test(text),
-    /^#{1,3}\s/m.test(text),
-    /^[-*]\s/m.test(text),
-    /^\d+\.\s/m.test(text),
-  ]
-  return checks.some(Boolean)
+  return (
+    /\*\*[^*]+\*\*/.test(text) ||
+    /^#{1,3}\s/m.test(text) ||
+    /^[-*]\s/m.test(text) ||
+    /^\d+\.\s/m.test(text)
+  )
 }
 
 async function main() {
