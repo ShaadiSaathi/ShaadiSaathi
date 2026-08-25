@@ -109,10 +109,8 @@ async function main() {
 
   const customToken = await auth.createCustomToken(PREMIUM_OWNER_UID)
   const idToken = await idTokenFromCustomToken(customToken)
-  const headers = {
-    Authorization: `Bearer ${idToken}`,
-    "Content-Type": "application/json",
-  }
+  const { apiAuthHeaders } = await import("./lib/api-auth-headers")
+  const headers = await apiAuthHeaders(idToken)
 
   const probe = "What are common mehndi ceremony traditions I should plan for?"
   const chatRes = await fetch(`${PRODUCTION_URL}/api/wedding-chat`, {
