@@ -16,6 +16,7 @@ import {
 } from "firebase/auth"
 import type { VendorCategoryId } from "@/lib/mockVendors"
 import { isFirebaseConfigured, getFirebaseAuth } from "@/lib/firebase/config"
+import { ensureAppCheck } from "@/lib/firebase/app-check"
 import { clearPhoneAuthSession, confirmPhoneOtp, preparePhoneOtpCaptcha, sendPhoneOtp } from "@/lib/firebase/phone-auth"
 import { getUserProfile, createUserProfile } from "@/lib/firebase/users"
 import { getFirestoreDb } from "@/lib/firebase/config"
@@ -193,6 +194,10 @@ function fromPersistedPending(stored: PersistedPending): PendingSignup {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const firebaseConfigured = isFirebaseConfigured()
+  // App Check must start before Auth/Firestore listeners do real work.
+  if (typeof window !== "undefined" && firebaseConfigured) {
+    ensureAppCheck()
+  }
   const [testerMode, setTesterMode] = useState(false)
   const [familyUser, setFamilyUser] = useState<FamilyUser | null>(null)
   const [vendorUser, setVendorUser] = useState<VendorAuthUser | null>(null)

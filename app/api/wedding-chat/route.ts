@@ -20,18 +20,15 @@ import {
   VECTOR_NOT_CONFIGURED_MESSAGE,
   type RetrievedChunk,
 } from "@/lib/knowledge/vector"
+import {
+  classifyWeddingAiMessage,
+  weddingAiScopedReply,
+} from "@/lib/wedding-ai-scope"
+import { WEDDING_AI_SYSTEM_PROMPT } from "@/lib/server/wedding-ai-system-prompt"
 
 export const runtime = "nodejs"
 
-const SYSTEM_PROMPT = `You are Shaadi Saathi's wedding planning assistant for South Asian (and related) wedding & decoration questions.
-
-STRICT RULES:
-1. Answer ONLY using the CONTEXT chunks provided below. If CONTEXT is empty or insufficient for the question, say clearly that you don't have enough information in the knowledge base — do not guess or invent.
-2. Never invent specific vendor business names, package prices, or fees. You may mention vendor *categories* only if they appear in CONTEXT.
-3. When a CONTEXT chunk is marked ANECDOTAL, say so (e.g. "this is anecdotal / informal community signal") and do not present it as settled fact.
-4. Prefer concise, practical answers (2–4 short paragraphs or a short bullet list).
-5. If the question is off-topic (not wedding planning / decoration / traditions covered in CONTEXT), say you can only help with wedding planning knowledge from the knowledge base.
-6. Do not claim the information is original ethnography — it is summarized planning guidance with sources for further reading.`
+const SYSTEM_PROMPT = WEDDING_AI_SYSTEM_PROMPT
 
 function buildContextBlock(chunks: RetrievedChunk[]): string {
   if (!chunks.length) {
@@ -143,6 +140,50 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const scopeResult = classifyWeddingAiMessage(userMessage)
+    if (scopeResult.scope !== "celebration") {
+      const reply = weddingAiScopedReply(scopeResult.scope, {
+        offTopicHint: scopeResult.offTopicHint,
+        userMessage,
+      })
+
+      let historyId: string | null = null
+      let historySaved = false
+      try {
+        historyId = await saveWeddingChatExchange({
+          weddingId,
+          userId: uid,
+          question: userMessage,
+          answer: reply,
+          citations: [],
+        })
+        historySaved = true
+      } catch (historyErr) {
+        console.error("[wedding-chat] scoped history write failed", {
+          weddingId,
+          userId: uid,
+          scope: scopeResult.scope,
+          err: historyErr,
+        })
+      }
+
+      console.info("[wedding-chat] scoped reply", {
+        scope: scopeResult.scope,
+        offTopicHint: scopeResult.offTopicHint ?? null,
+      })
+
+      return NextResponse.json({
+        reply,
+        citations: [],
+        retrieved: [],
+        grounded: false,
+        scoped: scopeResult.scope,
+        historyId,
+        historySaved,
+        usage: null,
+      })
+    }
+
     // Enforce quota before any retrieval or Anthropic call.
     let usage: WeddingAiUsageSnapshot
     try {
@@ -237,6 +278,7 @@ export async function POST(req: NextRequest) {
         region: c.region,
       })),
       grounded: chunks.length > 0,
+      scoped: "celebration" as const,
       historyId,
       historySaved,
       usage,

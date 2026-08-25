@@ -43,6 +43,16 @@ export async function verifyAdminRequest(
     throw new AdminAuthError(503, "Admin access is not configured")
   }
 
+  const { assertAppCheck, AppCheckError } = await import("@/lib/server/app-check")
+  try {
+    await assertAppCheck(request)
+  } catch (err) {
+    if (err instanceof AppCheckError) {
+      throw new AdminAuthError(err.status, err.message)
+    }
+    throw err
+  }
+
   const header = request.headers.get("authorization") ?? ""
   if (!header.startsWith("Bearer ")) {
     throw new AdminAuthError(401, "Missing authorization")

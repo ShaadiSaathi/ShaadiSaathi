@@ -1,6 +1,6 @@
 "use client"
 
-import { getFirebaseAuth } from "@/lib/firebase/config"
+import { authenticatedFetch } from "@/lib/firebase/authenticated-fetch"
 
 export interface AcceptCollaboratorInviteResult {
   weddingId: string
@@ -12,16 +12,8 @@ export interface AcceptCollaboratorInviteResult {
 export async function acceptCollaboratorInviteApi(
   inviteId: string
 ): Promise<AcceptCollaboratorInviteResult> {
-  const user = getFirebaseAuth().currentUser
-  if (!user) throw new Error("Sign in to accept this invite.")
-
-  const token = await user.getIdToken()
-  const res = await fetch("/api/collaborators/accept", {
+  const res = await authenticatedFetch("/api/collaborators/accept", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify({ inviteId }),
   })
 

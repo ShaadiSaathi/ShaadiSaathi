@@ -18,7 +18,7 @@ import remarkGfm from "remark-gfm"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import WeddingAiTopUpPayment from "@/components/shaadi-saathi/premium/WeddingAiTopUpPayment"
-import { getFirebaseAuth } from "@/lib/firebase/config"
+import { authenticatedFetch } from "@/lib/firebase/authenticated-fetch"
 import type { WeddingAiUsageClient } from "@/lib/payments/client"
 import {
   WEDDING_AI_BASE_DAILY_LIMIT,
@@ -177,14 +177,8 @@ export default function WeddingAiTestPage() {
   )
 
   const loadUsage = useCallback(async () => {
-    const fbUser = getFirebaseAuth().currentUser
-    if (!fbUser) return
     try {
-      const token = await fbUser.getIdToken()
-      const res = await fetch("/api/wedding-chat/usage", {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      })
+      const res = await authenticatedFetch("/api/wedding-chat/usage")
       const data = (await res.json()) as {
         error?: string
         usage?: WeddingAiUsageClient
@@ -198,20 +192,14 @@ export default function WeddingAiTestPage() {
   }, [])
 
   const loadHistory = useCallback(async (opts?: { append?: boolean; cursor?: number | null }) => {
-    const fbUser = getFirebaseAuth().currentUser
-    if (!fbUser) return
-
     setHistoryLoading(true)
     setHistoryError("")
     try {
-      const token = await fbUser.getIdToken()
       const params = new URLSearchParams({ limit: "20" })
       if (opts?.append && opts.cursor != null) {
         params.set("cursor", String(opts.cursor))
       }
-      const res = await fetch(`/api/wedding-chat/history?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await authenticatedFetch(`/api/wedding-chat/history?${params}`)
       const data = (await res.json()) as {
         error?: string
         items?: HistoryItem[]
@@ -291,18 +279,8 @@ export default function WeddingAiTestPage() {
     setTurns((prev) => [...prev, { id: userTurnId, role: "user", content: question }])
 
     try {
-      const fbUser = getFirebaseAuth().currentUser
-      if (!fbUser) {
-        setError("Sign in first.")
-        return
-      }
-      const token = await fbUser.getIdToken()
-      const res = await fetch("/api/wedding-chat", {
+      const res = await authenticatedFetch("/api/wedding-chat", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ message: question }),
       })
       const data = (await res.json()) as {

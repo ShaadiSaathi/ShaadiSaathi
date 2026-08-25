@@ -1,6 +1,6 @@
 "use client"
 
-import { getFirebaseAuth } from "@/lib/firebase/config"
+import { authenticatedFetch } from "@/lib/firebase/authenticated-fetch"
 import type { EventId } from "@/lib/mockData"
 import type { InPersonMethod, PaymentPath } from "@/lib/mockPayments"
 import type { BookingStatus } from "@/lib/mockVendors"
@@ -31,16 +31,8 @@ export interface CreateBookingApiResult {
 export async function createBookingApi(
   input: CreateBookingApiInput
 ): Promise<CreateBookingApiResult> {
-  const user = getFirebaseAuth().currentUser
-  if (!user) throw new Error("Sign in to book a vendor.")
-
-  const token = await user.getIdToken()
-  const res = await fetch("/api/bookings/create", {
+  const res = await authenticatedFetch("/api/bookings/create", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify(input),
   })
 
@@ -85,18 +77,13 @@ export async function confirmBookingApi(
   bookingId: string,
   input: ConfirmBookingApiInput = {}
 ): Promise<ConfirmBookingApiResult> {
-  const user = getFirebaseAuth().currentUser
-  if (!user) throw new Error("Sign in to confirm this booking.")
-
-  const token = await user.getIdToken()
-  const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/confirm`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(input),
-  })
+  const res = await authenticatedFetch(
+    `/api/bookings/${encodeURIComponent(bookingId)}/confirm`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  )
 
   const data = (await res.json().catch(() => ({}))) as {
     error?: string
@@ -141,18 +128,13 @@ export async function vendorCheckInApi(
   bookingId: string,
   input: VendorCheckInApiInput
 ): Promise<VendorCheckInApiResult> {
-  const user = getFirebaseAuth().currentUser
-  if (!user) throw new Error("Sign in to check in.")
-
-  const token = await user.getIdToken()
-  const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/check-in`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(input),
-  })
+  const res = await authenticatedFetch(
+    `/api/bookings/${encodeURIComponent(bookingId)}/check-in`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  )
 
   const data = (await res.json().catch(() => ({}))) as {
     error?: string
@@ -186,16 +168,12 @@ export interface CompleteBookingApiResult {
 export async function completeBookingApi(
   bookingId: string
 ): Promise<CompleteBookingApiResult> {
-  const user = getFirebaseAuth().currentUser
-  if (!user) throw new Error("Sign in to mark this job completed.")
-
-  const token = await user.getIdToken()
-  const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/complete`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  const res = await authenticatedFetch(
+    `/api/bookings/${encodeURIComponent(bookingId)}/complete`,
+    {
+      method: "POST",
+    }
+  )
 
   const data = (await res.json().catch(() => ({}))) as {
     error?: string

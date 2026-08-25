@@ -1,21 +1,7 @@
-import { getFirebaseAuth } from "@/lib/firebase/config"
+import { authenticatedFetch } from "@/lib/firebase/authenticated-fetch"
 
 async function adminFetch(path: string, init?: RequestInit): Promise<Response> {
-  const user = getFirebaseAuth().currentUser
-  if (!user) {
-    throw new Error("Not signed in")
-  }
-
-  const token = await user.getIdToken()
-  return fetch(path, {
-    ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      Authorization: `Bearer ${token}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-    },
-    cache: "no-store",
-  })
+  return authenticatedFetch(path, init)
 }
 
 export async function fetchAdminMe(): Promise<{ ok: boolean; phone?: string }> {

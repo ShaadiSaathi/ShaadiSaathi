@@ -48,4 +48,8 @@ tmp/
 next-env.d.ts
 .staging-login-links.txt
 .staging-guest-token-migration.json
+.staging-wedding-plan-*.pdf
+.wip/
+.tmp-*.cjs
 .production-guest-token-migration.json
+.wip/

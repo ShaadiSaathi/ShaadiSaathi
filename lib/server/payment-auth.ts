@@ -22,6 +22,17 @@ export async function verifyPaymentUser(
     throw new PaymentAuthError(503, "Firebase Admin is not configured")
   }
 
+  // App Check runs alongside Auth — never replaces it.
+  const { assertAppCheck, AppCheckError } = await import("@/lib/server/app-check")
+  try {
+    await assertAppCheck(request)
+  } catch (err) {
+    if (err instanceof AppCheckError) {
+      throw new PaymentAuthError(err.status, err.message)
+    }
+    throw err
+  }
+
   const header = request.headers.get("authorization") ?? ""
   if (!header.startsWith("Bearer ")) {
     throw new PaymentAuthError(401, "Sign in to continue with payment")

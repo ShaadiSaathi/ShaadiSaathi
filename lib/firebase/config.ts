@@ -30,7 +30,7 @@ let auth: Auth | undefined
 let db: Firestore | undefined
 let storage: FirebaseStorage | undefined
 
-function getFirebaseApp(): FirebaseApp {
+export function getFirebaseApp(): FirebaseApp {
   if (!isFirebaseConfigured()) {
     throw new Error("Firebase is not configured. Add NEXT_PUBLIC_FIREBASE_* env vars.")
   }

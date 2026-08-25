@@ -10,6 +10,7 @@ import PhoneInput from "@/components/shaadi-saathi/auth/PhoneInput"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import { useWeddingMembers } from "@/components/shaadi-saathi/family/WeddingMembersContext"
 import PremiumBadge from "@/components/shaadi-saathi/premium/PremiumBadge"
+import ExportWeddingPlanButton from "@/components/shaadi-saathi/premium/ExportWeddingPlanButton"
 import UpgradePromptBanner from "@/components/shaadi-saathi/premium/UpgradePromptBanner"
 import InviteThemePreview from "@/components/shaadi-saathi/premium/InviteThemePreview"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
@@ -225,6 +226,22 @@ export default function SettingsPage() {
           />
         </div>
       )}
+
+      <section
+        aria-labelledby="export-plan-heading"
+        className="mb-8 shaadi-card p-5 sm:p-6"
+      >
+        <h2 id="export-plan-heading" className="shaadi-section-title sm:text-xl">
+          Export wedding plan
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-maroon/60">
+          Download a branded PDF snapshot of your guests, vendors, tasks,
+          schedule, and budget — useful as a backup or to share with family.
+        </p>
+        <div className="mt-5">
+          <ExportWeddingPlanButton variant="secondary" />
+        </div>
+      </section>
 
       {/* Optional contact email — receipts & updates only; phone remains login */}
       <section

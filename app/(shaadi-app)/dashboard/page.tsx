@@ -6,6 +6,7 @@ import StatCard from "@/components/shaadi-saathi/app/StatCard"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
 import WeddingInviteLinkButton from "@/components/shaadi-saathi/guests/WeddingInviteLinkButton"
 import PremiumBadge from "@/components/shaadi-saathi/premium/PremiumBadge"
+import ExportWeddingPlanButton from "@/components/shaadi-saathi/premium/ExportWeddingPlanButton"
 import { usePremium } from "@/components/shaadi-saathi/premium/PremiumContext"
 import { useGuests } from "@/components/shaadi-saathi/guests/GuestsContext"
 import { useTasks } from "@/components/shaadi-saathi/tasks/TasksContext"
@@ -97,8 +98,9 @@ export default function DashboardPage() {
                 <span className="text-xs font-medium text-maroon/45">days left</span>
               </p>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <WeddingInviteLinkButton variant="link" />
+              <ExportWeddingPlanButton variant="ghost" />
             </div>
           </div>
         )}
@@ -112,10 +114,12 @@ export default function DashboardPage() {
             </p>
           )}
           <WeddingInviteLinkButton variant="link" />
+          <ExportWeddingPlanButton variant="ghost" />
         </div>
         {!nextEvent && (
-          <div className="mt-3 md:hidden">
+          <div className="mt-3 flex flex-wrap items-center gap-3 md:hidden">
             <WeddingInviteLinkButton variant="link" />
+            <ExportWeddingPlanButton variant="ghost" />
           </div>
         )}
       </header>

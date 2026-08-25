@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/components/shaadi-saathi/auth/AuthContext"
-import { getFirebaseAuth } from "@/lib/firebase/config"
+import { authenticatedFetch } from "@/lib/firebase/authenticated-fetch"
 import {
   createPortfolioItem,
   VENDOR_PORTFOLIO_CAPTION_MAX,
@@ -29,15 +29,8 @@ async function savePortfolioViaApi(
   vendorId: string,
   items: VendorPortfolioItem[]
 ): Promise<VendorPortfolioItem[]> {
-  const user = getFirebaseAuth().currentUser
-  if (!user) throw new Error("Sign in to save your portfolio")
-  const token = await user.getIdToken()
-  const res = await fetch("/api/vendor/portfolio", {
+  const res = await authenticatedFetch("/api/vendor/portfolio", {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({ vendorId, items }),
   })
   const data = (await res.json().catch(() => ({}))) as {

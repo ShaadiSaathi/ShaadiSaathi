@@ -184,7 +184,7 @@ export function emptyChatCopy(prefs: WeddingPlanningPreferences | null): {
   return {
     title: "No chat history yet",
     description:
-      "Ask about Mehndi colours, Barat décor, or Walima palettes — we’ll keep the answer grounded in our knowledge base.",
+      "Ask about Mehndi colours, Baraat décor, Walima palettes, guests, or traditions — celebration planning only.",
     starter,
   }
 }

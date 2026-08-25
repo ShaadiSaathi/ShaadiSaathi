@@ -2,25 +2,12 @@
  * Browser helpers for payment APIs. Never import Stripe secret logic here.
  */
 
-import { getFirebaseAuth } from "@/lib/firebase/config"
+import { authenticatedFetch } from "@/lib/firebase/authenticated-fetch"
 import type { PaymentsAvailability } from "./types"
 import { PAYMENTS_UNAVAILABLE_MESSAGE } from "./types"
 
 async function paymentFetch(path: string, init?: RequestInit): Promise<Response> {
-  const user = getFirebaseAuth().currentUser
-  if (!user) {
-    throw new Error("Sign in to continue with payment")
-  }
-  const token = await user.getIdToken()
-  return fetch(path, {
-    ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      Authorization: `Bearer ${token}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-    },
-    cache: "no-store",
-  })
+  return authenticatedFetch(path, init)
 }
 
 export async function fetchPaymentsStatus(): Promise<PaymentsAvailability> {
