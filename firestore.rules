@@ -92,19 +92,23 @@ service cloud.firestore {
         : collaboratorScopesClaim();
     }
 
+    function limitedHasScope(weddingId, scope) {
+      let scopes = collaboratorScopesForWedding(weddingId);
+      return scope in scopes
+        || (scope == 'schedule' && scopes.hasAny(['schedule', 'events', 'tasks']));
+    }
+
     function hasCollaboratorScope(weddingId, scope) {
       return isWeddingOwner(weddingId)
-        || (isWeddingMember(weddingId) && (
-          collaboratorRoleForWedding(weddingId) in ['owner', 'full']
-          || (
-            collaboratorRoleForWedding(weddingId) == 'limited'
-            && (
-              scope == 'schedule'
-                ? collaboratorScopesForWedding(weddingId).hasAny(['schedule', 'events', 'tasks'])
-                : collaboratorScopesForWedding(weddingId).hasAny([scope])
-            )
-          )
-        ));
+        || (
+          isWeddingMember(weddingId)
+          && collaboratorRoleForWedding(weddingId) in ['owner', 'full']
+        )
+        || (
+          isWeddingMember(weddingId)
+          && collaboratorRoleForWedding(weddingId) == 'limited'
+          && limitedHasScope(weddingId, scope)
+        );
     }
 
     function canAccessBookingAsFamily(weddingId) {
