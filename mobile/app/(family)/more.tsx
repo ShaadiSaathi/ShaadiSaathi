@@ -3,7 +3,6 @@ import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { BrandTitle, Card, Screen } from "@/src/components/ui"
 import { colors, spacing } from "@/src/lib/theme"
-import { openWebPath } from "@/src/lib/web"
 
 const APP_LINKS = [
   {
@@ -22,6 +21,26 @@ const APP_LINKS = [
     body: "Browse marketplace vendors",
   },
   {
+    href: "/(family)/wedding-ai" as const,
+    title: "Wedding AI",
+    body: "Ask planning questions (Premium)",
+  },
+  {
+    href: "/(family)/seating" as const,
+    title: "Seating",
+    body: "Assign guests to tables (Premium)",
+  },
+  {
+    href: "/(family)/export-pdf" as const,
+    title: "Export PDF",
+    body: "Download wedding plan PDF (Premium)",
+  },
+  {
+    href: "/(family)/upgrade" as const,
+    title: "Premium",
+    body: "Unlock AI, seating, themes, PDF",
+  },
+  {
     href: "/(family)/notifications" as const,
     title: "Notifications",
     body: "Tasks and booking alerts",
@@ -29,15 +48,8 @@ const APP_LINKS = [
   {
     href: "/(family)/settings" as const,
     title: "Settings",
-    body: "Account, wedding, sign out",
+    body: "Themes, collaborators, account",
   },
-]
-
-const WEB_LINKS = [
-  { path: "/wedding-ai", title: "Wedding AI", body: "Planning help in the web app" },
-  { path: "/seating", title: "Seating", body: "Arrange tables and seating" },
-  { path: "/upgrade", title: "Upgrade", body: "Unlock premium features" },
-  { path: "/settings", title: "PDF / plan", body: "Export plan and PDF tools" },
 ]
 
 export default function MoreScreen() {
@@ -62,35 +74,12 @@ export default function MoreScreen() {
             </Card>
           </Pressable>
         ))}
-
-        <Text style={styles.section}>On the web</Text>
-        {WEB_LINKS.map((link) => (
-          <Pressable
-            key={link.path}
-            onPress={() => void openWebPath(link.path)}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <Card>
-              <View>
-                <Text style={styles.title}>{link.title}</Text>
-                <Text style={styles.body}>{link.body}</Text>
-              </View>
-            </Card>
-          </Pressable>
-        ))}
       </ScrollView>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  section: {
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-    fontFamily: "DMSans_700Bold",
-    fontSize: 13,
-    color: colors.maroonDark,
-  },
   title: {
     fontFamily: "DMSans_700Bold",
     fontSize: 17,

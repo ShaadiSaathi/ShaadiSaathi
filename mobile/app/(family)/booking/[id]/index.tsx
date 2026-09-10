@@ -19,7 +19,6 @@ import {
   confirmBooking,
 } from "@/src/lib/mutations"
 import { colors, spacing } from "@/src/lib/theme"
-import { openWebPath } from "@/src/lib/web"
 
 function formatPkr(amount: number) {
   return `Rs ${amount.toLocaleString("en-PK")}`
@@ -142,8 +141,22 @@ export default function BookingDetailScreen() {
             }
           />
           <SecondaryButton
-            label="Payments"
-            onPress={() => void openWebPath("/vendors/bookings")}
+            label="Pay deposit"
+            onPress={() =>
+              router.push({
+                pathname: "/(family)/pay",
+                params: { kind: "deposit", bookingId },
+              })
+            }
+          />
+          <SecondaryButton
+            label="Pay balance"
+            onPress={() =>
+              router.push({
+                pathname: "/(family)/pay",
+                params: { kind: "balance", bookingId },
+              })
+            }
           />
           <SecondaryButton label="Back" onPress={() => router.back()} />
         </View>

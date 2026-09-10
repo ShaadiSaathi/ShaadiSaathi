@@ -58,6 +58,13 @@ module.exports = {
     ],
     "expo-secure-store",
     "expo-font",
+    [
+      "expo-image-picker",
+      {
+        photosPermission:
+          "Allow Shaadi Saathi to upload vendor portfolio photos.",
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

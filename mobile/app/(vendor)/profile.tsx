@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native"
+import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import {
   BrandTitle,
@@ -8,13 +9,15 @@ import {
   Screen,
 } from "@/src/components/ui"
 import { useAuth } from "@/src/context/AuthContext"
+import { useVendor } from "@/src/hooks/useWeddingData"
 import { getApiBaseUrl, getAppEnv } from "@/src/lib/firebase"
 import { colors, spacing } from "@/src/lib/theme"
-import { openWebPath } from "@/src/lib/web"
 
 export default function VendorProfileScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { profile, signOut } = useAuth()
+  const { vendor } = useVendor(profile?.vendorId ?? null)
   const env = getAppEnv()
   let apiUrl = "—"
   try {
@@ -33,6 +36,12 @@ export default function VendorProfileScreen() {
         <Text style={styles.meta}>
           Vendor ID: {profile?.vendorId || "not linked yet"}
         </Text>
+        {vendor ? (
+          <Text style={styles.meta}>
+            {vendor.subscriptionTier === "featured" ? "Featured" : "Basic"} ·{" "}
+            {vendor.verificationStatus || "unverified"}
+          </Text>
+        ) : null}
       </Card>
       <Card>
         <Text style={styles.label}>Backend</Text>
@@ -42,20 +51,12 @@ export default function VendorProfileScreen() {
       </Card>
       <View style={{ marginTop: spacing.md }}>
         <PrimaryButton
-          label="Edit profile on web"
-          onPress={() => void openWebPath("/vendor/profile")}
+          label="Onboarding / KYC / portfolio"
+          onPress={() => router.push("/(vendor)/onboarding")}
         />
         <SecondaryButton
-          label="Onboarding"
-          onPress={() => void openWebPath("/vendor/onboarding")}
-        />
-        <SecondaryButton
-          label="Upgrade"
-          onPress={() => void openWebPath("/vendor/upgrade")}
-        />
-        <SecondaryButton
-          label="Subscription"
-          onPress={() => void openWebPath("/vendor/subscription")}
+          label="Featured upgrade"
+          onPress={() => router.push("/(vendor)/upgrade")}
         />
         <PrimaryButton label="Sign out" onPress={() => void signOut()} />
       </View>

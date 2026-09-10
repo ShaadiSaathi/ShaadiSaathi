@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { ScrollView, StyleSheet, Text, View } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import {
   BrandTitle,
@@ -14,17 +15,22 @@ import { useAuth } from "@/src/context/AuthContext"
 import { useWedding } from "@/src/context/WeddingContext"
 import { getApiBaseUrl, getAppEnv } from "@/src/lib/firebase"
 import { inviteCollaborator } from "@/src/lib/mutations"
+import { INVITE_THEMES } from "@/src/lib/premium"
+import { updateWeddingInviteTheme } from "@/src/lib/premium-api"
 import { colors, spacing } from "@/src/lib/theme"
-import { openWebPath } from "@/src/lib/web"
+import type { InviteThemeId } from "@/src/lib/types"
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { profile, signOut } = useAuth()
   const { wedding, weddingId } = useWedding()
   const [phone, setPhone] = useState("")
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [inviteOk, setInviteOk] = useState(false)
+  const [themeBusy, setThemeBusy] = useState(false)
+  const [themeError, setThemeError] = useState<string | null>(null)
 
   const env = getAppEnv()
   let apiUrl = "—"
@@ -61,6 +67,24 @@ export default function SettingsScreen() {
     }
   }
 
+  async function onTheme(id: InviteThemeId) {
+    if (!weddingId) return
+    if (id !== "classic" && !wedding?.isPremium) {
+      setThemeError("Premium required for this theme")
+      router.push("/(family)/upgrade")
+      return
+    }
+    setThemeBusy(true)
+    setThemeError(null)
+    try {
+      await updateWeddingInviteTheme(weddingId, id)
+    } catch (e) {
+      setThemeError(e instanceof Error ? e.message : "Could not save theme")
+    } finally {
+      setThemeBusy(false)
+    }
+  }
+
   return (
     <Screen style={{ paddingTop: insets.top + spacing.md }}>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }}>
@@ -79,6 +103,32 @@ export default function SettingsScreen() {
             {wedding?.isPremium ? "Premium" : "Free"}
             {wedding?.shareCode ? ` · Share code ${wedding.shareCode}` : ""}
           </Text>
+          <SecondaryButton
+            label="Premium plan"
+            onPress={() => router.push("/(family)/upgrade")}
+          />
+        </Card>
+
+        <Card>
+          <Text style={styles.label}>Invite theme</Text>
+          <ErrorText message={themeError} />
+          {INVITE_THEMES.map((theme) => {
+            const selected = (wedding?.inviteTheme ?? "classic") === theme.id
+            return (
+              <Pressable
+                key={theme.id}
+                onPress={() => void onTheme(theme.id)}
+                disabled={themeBusy}
+                style={[styles.themeRow, selected && styles.themeOn]}
+              >
+                <Text style={styles.themeName}>
+                  {theme.name}
+                  {theme.premium ? " · Premium" : ""}
+                </Text>
+                <Text style={styles.meta}>{theme.description}</Text>
+              </Pressable>
+            )
+          })}
         </Card>
 
         <Card>
@@ -102,20 +152,6 @@ export default function SettingsScreen() {
         </Card>
 
         <Card>
-          <Text style={styles.label}>Web tools</Text>
-          <View style={styles.linkStack}>
-            <SecondaryButton
-              label="Premium themes"
-              onPress={() => void openWebPath("/upgrade")}
-            />
-            <SecondaryButton
-              label="Wedding settings"
-              onPress={() => void openWebPath("/settings")}
-            />
-          </View>
-        </Card>
-
-        <Card>
           <Text style={styles.label}>Backend</Text>
           <Text style={styles.meta}>
             Firebase {env} · API {apiUrl}
@@ -125,9 +161,6 @@ export default function SettingsScreen() {
         <View style={{ marginTop: spacing.md }}>
           <PrimaryButton label="Sign out" onPress={() => void signOut()} />
         </View>
-        <Text style={styles.footer}>
-          Shaadi Saathi mobile · same Firebase backend as the web app
-        </Text>
       </ScrollView>
     </Screen>
   )
@@ -155,17 +188,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     fontFamily: "DMSans_500Medium",
     fontSize: 14,
-    color: colors.success,
+    color: colors.maroon,
   },
-  linkStack: {
-    gap: spacing.sm,
+  themeRow: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: spacing.sm,
     marginTop: spacing.sm,
+    backgroundColor: colors.ivory,
   },
-  footer: {
-    marginTop: spacing.xl,
-    fontFamily: "DMSans_400Regular",
-    fontSize: 12,
-    color: colors.muted,
-    textAlign: "center",
+  themeOn: {
+    borderColor: colors.maroon,
+    backgroundColor: colors.white,
+  },
+  themeName: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 15,
+    color: colors.maroonDark,
   },
 })

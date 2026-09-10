@@ -13,16 +13,14 @@ Scan the QR with **Expo Go** (same Wi‑Fi). Tunnel mode: press `s` in the Expo 
 
 ## Env
 
-`EXPO_PUBLIC_APP_ENV=production` (default) or `staging`. Firebase configs load from `firebase/<env>/`. Optional `EXPO_PUBLIC_API_URL` overrides the Next.js API origin.
+`EXPO_PUBLIC_APP_ENV=production` (default) or `staging`. Firebase configs load from `firebase/<env>/`.
 
-## Native in the app
+## Native features
 
-**Family:** home, guests (add + RSVP + invite share), tasks (add + toggle), bookings (confirm / counter / chat), vendor marketplace + book, events, schedule, notifications, collaborators invite, settings
+**Family:** guests, tasks, events, schedule, vendors + book, bookings + chat, deposit/balance pay (Stripe WebView), Wedding AI, seating, invite themes, PDF export, Premium upgrade, collaborators, notifications
 
-**Vendor:** home, requests (accept / decline / counter), jobs (check-in / complete / chat), alerts, profile
+**Vendor:** requests, jobs + check-in/complete + chat, onboarding/KYC/portfolio upload, payout IBAN, Featured upgrade, alerts
 
-## Opens in browser from the app
+## Still lighter than web
 
-Wedding AI, seating planner, Premium upgrade, PDF export, Stripe/Safepay payment UI, full vendor KYC/portfolio editors
-
-Those stay on web for now; data syncs live into the mobile lists.
+Google Sign-In (phone OTP only on mobile), rich invite public pages (share links still work), platform admin.

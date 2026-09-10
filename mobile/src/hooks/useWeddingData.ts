@@ -203,6 +203,11 @@ function mapVendor(
       : undefined,
     suspended: Boolean(data.suspended),
     availableFor: asEventIds(data.availableFor),
+    subscriptionTier:
+      data.subscriptionTier === "featured" ? "featured" : "basic",
+    photoUrls: Array.isArray(data.photoUrls)
+      ? (data.photoUrls as unknown[]).map(String)
+      : undefined,
   }
 }
 

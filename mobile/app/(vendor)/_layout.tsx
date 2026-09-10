@@ -86,6 +86,8 @@ export default function VendorLayout() {
       />
       <Tabs.Screen name="job/[id]/index" options={{ href: null }} />
       <Tabs.Screen name="job/[id]/messages" options={{ href: null }} />
+      <Tabs.Screen name="onboarding" options={{ href: null }} />
+      <Tabs.Screen name="upgrade" options={{ href: null }} />
     </Tabs>
   )
 }

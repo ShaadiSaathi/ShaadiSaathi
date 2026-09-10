@@ -21,12 +21,25 @@ export type EventOverride = {
   rsvpLockHoursBefore?: number | null
 }
 
+export type InviteThemeId =
+  | "classic"
+  | "royal-maroon"
+  | "ivory-gold"
+  | "blush-floral"
+
+export type SeatingAssignment = {
+  guestId: string
+  tableNumber: number
+}
+
 export type FirestoreWedding = {
   id: string
   name: string
   couple?: string
   shareCode?: string
   isPremium?: boolean
+  inviteTheme?: InviteThemeId
+  seatingAssignments?: SeatingAssignment[]
   ownerId: string
   memberUids: string[]
   organiserName?: string
@@ -81,6 +94,8 @@ export type AppVendor = {
   verificationStatus?: string
   suspended?: boolean
   availableFor?: EventId[]
+  subscriptionTier?: "basic" | "featured"
+  photoUrls?: string[]
 }
 
 export type AppBooking = {
