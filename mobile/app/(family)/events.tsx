@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text } from "react-native"
+import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { BrandTitle, Card, Screen } from "@/src/components/ui"
 import { useWedding } from "@/src/context/WeddingContext"
@@ -7,6 +8,7 @@ import { colors, spacing } from "@/src/lib/theme"
 
 export default function EventsScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { wedding } = useWedding()
   const overrides = wedding?.eventOverrides ?? {}
 
@@ -20,13 +22,19 @@ export default function EventsScreen() {
             override?.date || wedding?.firstEventDate || "Date TBD"
           const time = override?.time || event.defaultTime
           return (
-            <Card key={event.id}>
-              <Text style={styles.name}>{event.name}</Text>
-              <Text style={styles.meta}>
-                {date} · {time}
-              </Text>
-              <Text style={styles.hint}>{event.venueHint}</Text>
-            </Card>
+            <Pressable
+              key={event.id}
+              onPress={() => router.push(`/(family)/event/${event.id}`)}
+              style={({ pressed }) => pressed && styles.pressed}
+            >
+              <Card>
+                <Text style={styles.name}>{event.name}</Text>
+                <Text style={styles.meta}>
+                  {date} · {time}
+                </Text>
+                <Text style={styles.hint}>{event.venueHint}</Text>
+              </Card>
+            </Pressable>
           )
         })}
         <Text style={styles.footer}>
@@ -38,6 +46,7 @@ export default function EventsScreen() {
 }
 
 const styles = StyleSheet.create({
+  pressed: { opacity: 0.85 },
   name: {
     fontFamily: "PlayfairDisplay_700Bold",
     fontSize: 22,

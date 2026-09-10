@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import {
   collection,
+  doc,
   limit,
   onSnapshot,
   orderBy,
@@ -14,7 +15,17 @@ import type {
   AppNotification,
   AppTask,
   AppVendor,
+  ChatMessage,
+  EventId,
+  VendorPackage,
 } from "@/src/lib/types"
+
+function asEventIds(value: unknown): EventId[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (e): e is EventId => e === "mehndi" || e === "baraat" || e === "walima"
+  )
+}
 
 export function useGuests(weddingId: string | null) {
   const [guests, setGuests] = useState<AppGuest[]>([])
@@ -41,9 +52,11 @@ export function useGuests(weddingId: string | null) {
             id: d.id,
             name: String(data.name ?? ""),
             phone: String(data.phone ?? ""),
-            events: Array.isArray(data.events) ? (data.events as string[]) : [],
+            events: asEventIds(data.events),
             rsvp: (data.rsvp ?? {}) as AppGuest["rsvp"],
             weddingId: String(data.weddingId ?? weddingId),
+            inviteToken: String(data.inviteToken ?? d.id),
+            notes: data.notes ? String(data.notes) : undefined,
           } satisfies AppGuest
         })
         rows.sort((a, b) => a.name.localeCompare(b.name))
@@ -89,10 +102,12 @@ export function useTasks(weddingId: string | null) {
             dueDate: String(data.dueDate ?? ""),
             status: (data.status ?? "todo") as AppTask["status"],
             weddingId: String(data.weddingId ?? weddingId),
+            eventId: asEventIds([data.eventId])[0],
           } satisfies AppTask
         })
         rows.sort(
-          (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+          (a, b) =>
+            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
         )
         setTasks(rows)
         setLoading(false)
@@ -118,20 +133,7 @@ export function useVendors() {
       collection(getFirestoreDb(), "vendors"),
       (snap) => {
         const rows = snap.docs
-          .map((d) => {
-            const data = d.data()
-            return {
-              id: d.id,
-              name: String(data.name ?? "Vendor"),
-              category: data.category ? String(data.category) : undefined,
-              city: data.city ? String(data.city) : undefined,
-              rating: typeof data.rating === "number" ? data.rating : undefined,
-              verificationStatus: data.verificationStatus
-                ? String(data.verificationStatus)
-                : undefined,
-              suspended: Boolean(data.suspended),
-            } satisfies AppVendor
-          })
+          .map((d) => mapVendor(d.id, d.data()))
           .filter((v) => !v.suspended)
         rows.sort((a, b) => a.name.localeCompare(b.name))
         setVendors(rows)
@@ -146,6 +148,98 @@ export function useVendors() {
   }, [])
 
   return { vendors, loading, error }
+}
+
+export function useVendor(vendorId: string | null) {
+  const [vendor, setVendor] = useState<AppVendor | null>(null)
+  const [loading, setLoading] = useState(Boolean(vendorId))
+
+  useEffect(() => {
+    if (!vendorId) {
+      setVendor(null)
+      setLoading(false)
+      return
+    }
+    return onSnapshot(doc(getFirestoreDb(), "vendors", vendorId), (snap) => {
+      setVendor(snap.exists() ? mapVendor(snap.id, snap.data()) : null)
+      setLoading(false)
+    })
+  }, [vendorId])
+
+  return { vendor, loading }
+}
+
+function mapVendor(
+  id: string,
+  data: Record<string, unknown>
+): AppVendor {
+  const packages = Array.isArray(data.packages)
+    ? (data.packages as VendorPackage[]).map((p) => ({
+        name: String(p.name ?? "Package"),
+        price: typeof p.price === "number" ? p.price : 0,
+        description: p.description ? String(p.description) : undefined,
+        perHead: Boolean(p.perHead),
+      }))
+    : undefined
+  return {
+    id,
+    name: String(data.businessName ?? data.name ?? "Vendor"),
+    category: data.categoryId
+      ? String(data.categoryId)
+      : data.category
+        ? String(data.category)
+        : undefined,
+    categoryId: data.categoryId ? String(data.categoryId) : undefined,
+    city: data.city ? String(data.city) : undefined,
+    rating: typeof data.rating === "number" ? data.rating : undefined,
+    reviewCount:
+      typeof data.reviewCount === "number" ? data.reviewCount : undefined,
+    startingPrice:
+      typeof data.startingPrice === "number" ? data.startingPrice : undefined,
+    bio: data.bio ? String(data.bio) : undefined,
+    packages,
+    verificationStatus: data.verificationStatus
+      ? String(data.verificationStatus)
+      : undefined,
+    suspended: Boolean(data.suspended),
+    availableFor: asEventIds(data.availableFor),
+  }
+}
+
+function mapBooking(
+  id: string,
+  data: Record<string, unknown>,
+  fallbackWeddingId?: string
+): AppBooking {
+  const counter = data.counterOffer as AppBooking["counterOffer"] | undefined
+  return {
+    id,
+    weddingId: String(data.weddingId ?? fallbackWeddingId ?? ""),
+    vendorId: String(data.vendorId ?? ""),
+    vendorName: String(data.vendorName ?? "Vendor"),
+    weddingName: data.weddingName ? String(data.weddingName) : undefined,
+    familyName: data.familyName ? String(data.familyName) : undefined,
+    eventId: data.eventId ? String(data.eventId) : undefined,
+    eventDate: data.eventDate ? String(data.eventDate) : undefined,
+    status: String(data.status ?? "requested"),
+    price: typeof data.price === "number" ? data.price : 0,
+    packageName: data.packageName ? String(data.packageName) : undefined,
+    note: data.note ? String(data.note) : undefined,
+    createdAt: typeof data.createdAt === "number" ? data.createdAt : undefined,
+    counterOffer: counter
+      ? {
+          price: typeof counter.price === "number" ? counter.price : 0,
+          note: counter.note ? String(counter.note) : undefined,
+          proposedBy: counter.proposedBy
+            ? String(counter.proposedBy)
+            : undefined,
+          proposedAt:
+            typeof counter.proposedAt === "number"
+              ? counter.proposedAt
+              : undefined,
+        }
+      : undefined,
+  }
 }
 
 export function useBookings(weddingId: string | null) {
@@ -167,29 +261,7 @@ export function useBookings(weddingId: string | null) {
     return onSnapshot(
       q,
       (snap) => {
-        const rows = snap.docs.map((d) => {
-          const data = d.data()
-          return {
-            id: d.id,
-            weddingId: String(data.weddingId ?? weddingId),
-            vendorId: String(data.vendorId ?? ""),
-            vendorName: String(data.vendorName ?? "Vendor"),
-            weddingName: data.weddingName
-              ? String(data.weddingName)
-              : undefined,
-            familyName: data.familyName ? String(data.familyName) : undefined,
-            eventId: data.eventId ? String(data.eventId) : undefined,
-            eventDate: data.eventDate ? String(data.eventDate) : undefined,
-            status: String(data.status ?? "requested"),
-            price: typeof data.price === "number" ? data.price : 0,
-            packageName: data.packageName
-              ? String(data.packageName)
-              : undefined,
-            note: data.note ? String(data.note) : undefined,
-            createdAt:
-              typeof data.createdAt === "number" ? data.createdAt : undefined,
-          } satisfies AppBooking
-        })
+        const rows = snap.docs.map((d) => mapBooking(d.id, d.data(), weddingId))
         rows.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
         setBookings(rows)
         setLoading(false)
@@ -203,6 +275,25 @@ export function useBookings(weddingId: string | null) {
   }, [weddingId])
 
   return { bookings, loading, error }
+}
+
+export function useBooking(bookingId: string | null) {
+  const [booking, setBooking] = useState<AppBooking | null>(null)
+  const [loading, setLoading] = useState(Boolean(bookingId))
+
+  useEffect(() => {
+    if (!bookingId) {
+      setBooking(null)
+      setLoading(false)
+      return
+    }
+    return onSnapshot(doc(getFirestoreDb(), "bookings", bookingId), (snap) => {
+      setBooking(snap.exists() ? mapBooking(snap.id, snap.data()) : null)
+      setLoading(false)
+    })
+  }, [bookingId])
+
+  return { booking, loading }
 }
 
 export function useNotifications(uid: string | null) {
@@ -278,31 +369,9 @@ export function useVendorJobs(vendorId: string | null) {
     return onSnapshot(
       q,
       (snap) => {
-        setJobs(
-          snap.docs.map((d) => {
-            const data = d.data()
-            return {
-              id: d.id,
-              weddingId: String(data.weddingId ?? ""),
-              vendorId: String(data.vendorId ?? vendorId),
-              vendorName: String(data.vendorName ?? "You"),
-              weddingName: data.weddingName
-                ? String(data.weddingName)
-                : undefined,
-              familyName: data.familyName ? String(data.familyName) : undefined,
-              eventId: data.eventId ? String(data.eventId) : undefined,
-              eventDate: data.eventDate ? String(data.eventDate) : undefined,
-              status: String(data.status ?? "requested"),
-              price: typeof data.price === "number" ? data.price : 0,
-              packageName: data.packageName
-                ? String(data.packageName)
-                : undefined,
-              note: data.note ? String(data.note) : undefined,
-              createdAt:
-                typeof data.createdAt === "number" ? data.createdAt : undefined,
-            } satisfies AppBooking
-          })
-        )
+        const rows = snap.docs.map((d) => mapBooking(d.id, d.data()))
+        rows.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+        setJobs(rows)
         setLoading(false)
         setError(null)
       },
@@ -314,4 +383,45 @@ export function useVendorJobs(vendorId: string | null) {
   }, [vendorId])
 
   return { jobs, loading, error }
+}
+
+export function useMessages(bookingId: string | null) {
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [loading, setLoading] = useState(Boolean(bookingId))
+
+  useEffect(() => {
+    if (!bookingId) {
+      setMessages([])
+      setLoading(false)
+      return
+    }
+    const q = query(
+      collection(getFirestoreDb(), "messages"),
+      where("bookingId", "==", bookingId),
+      orderBy("timestamp", "asc")
+    )
+    return onSnapshot(q, (snap) => {
+      setMessages(
+        snap.docs.map((d) => {
+          const data = d.data()
+          return {
+            id: d.id,
+            bookingId: data.bookingId ? String(data.bookingId) : bookingId,
+            senderId: String(data.senderId ?? ""),
+            senderType: (data.senderType === "vendor" ? "vendor" : "family") as
+              | "family"
+              | "vendor",
+            senderName: data.senderName
+              ? String(data.senderName)
+              : undefined,
+            text: String(data.text ?? ""),
+            timestamp: typeof data.timestamp === "number" ? data.timestamp : 0,
+          } satisfies ChatMessage
+        })
+      )
+      setLoading(false)
+    })
+  }, [bookingId])
+
+  return { messages, loading }
 }

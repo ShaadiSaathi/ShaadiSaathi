@@ -87,6 +87,12 @@ export default function FamilyLayout() {
       <Tabs.Screen name="vendors" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="schedule" options={{ href: null }} />
+      <Tabs.Screen name="guest/[id]" options={{ href: null }} />
+      <Tabs.Screen name="vendor/[id]" options={{ href: null }} />
+      <Tabs.Screen name="booking/[id]/index" options={{ href: null }} />
+      <Tabs.Screen name="booking/[id]/messages" options={{ href: null }} />
+      <Tabs.Screen name="event/[id]" options={{ href: null }} />
     </Tabs>
   )
 }

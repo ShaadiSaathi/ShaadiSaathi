@@ -1,4 +1,5 @@
-import { FlatList, StyleSheet, Text } from "react-native"
+import { FlatList, Pressable, StyleSheet, Text } from "react-native"
+import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import {
   BrandTitle,
@@ -13,6 +14,7 @@ import { colors, spacing } from "@/src/lib/theme"
 
 export default function VendorsScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { vendors, loading, error } = useVendors()
 
   return (
@@ -33,16 +35,27 @@ export default function VendorsScreen() {
             />
           }
           renderItem={({ item }) => (
-            <Card>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>
-                {[item.category, item.city].filter(Boolean).join(" · ") ||
-                  "Vendor"}
-              </Text>
-              {typeof item.rating === "number" && item.rating > 0 ? (
-                <Text style={styles.meta}>★ {item.rating.toFixed(1)}</Text>
-              ) : null}
-            </Card>
+            <Pressable
+              onPress={() => router.push(`/(family)/vendor/${item.id}`)}
+              style={({ pressed }) => pressed && styles.pressed}
+            >
+              <Card>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.meta}>
+                  {[item.category, item.city].filter(Boolean).join(" · ") ||
+                    "Vendor"}
+                </Text>
+                {typeof item.startingPrice === "number" &&
+                item.startingPrice > 0 ? (
+                  <Text style={styles.price}>
+                    From Rs {item.startingPrice.toLocaleString("en-PK")}
+                  </Text>
+                ) : null}
+                {typeof item.rating === "number" && item.rating > 0 ? (
+                  <Text style={styles.meta}>★ {item.rating.toFixed(1)}</Text>
+                ) : null}
+              </Card>
+            </Pressable>
           )}
         />
       )}
@@ -51,6 +64,7 @@ export default function VendorsScreen() {
 }
 
 const styles = StyleSheet.create({
+  pressed: { opacity: 0.85 },
   name: {
     fontFamily: "DMSans_700Bold",
     fontSize: 16,
@@ -61,5 +75,11 @@ const styles = StyleSheet.create({
     fontFamily: "DMSans_400Regular",
     fontSize: 13,
     color: colors.muted,
+  },
+  price: {
+    marginTop: 8,
+    fontFamily: "DMSans_500Medium",
+    fontSize: 14,
+    color: colors.maroon,
   },
 })

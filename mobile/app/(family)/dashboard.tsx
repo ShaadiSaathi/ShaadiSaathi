@@ -62,16 +62,25 @@ export default function FamilyDashboard() {
           </Text>
         </Card>
 
-        {unread > 0 ? (
-          <Pressable onPress={() => router.push("/(family)/notifications")}>
-            <Card>
-              <Text style={styles.cardTitle}>Notifications</Text>
-              <Text style={styles.cardBody}>
-                {unread} unread · tap to review
-              </Text>
-            </Card>
-          </Pressable>
-        ) : null}
+        <Pressable onPress={() => router.push("/(family)/schedule")}>
+          <Card>
+            <Text style={styles.cardTitle}>Schedule</Text>
+            <Text style={styles.cardBody}>
+              Timeline of events and open tasks · tap to open
+            </Text>
+          </Card>
+        </Pressable>
+
+        <Pressable onPress={() => router.push("/(family)/notifications")}>
+          <Card>
+            <Text style={styles.cardTitle}>Notifications</Text>
+            <Text style={styles.cardBody}>
+              {unread > 0
+                ? `${unread} unread · tap to review`
+                : "You're caught up · tap to open"}
+            </Text>
+          </Card>
+        </Pressable>
 
         <Card>
           <Text style={styles.cardTitle}>Next tasks</Text>

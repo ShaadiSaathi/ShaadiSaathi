@@ -1,4 +1,5 @@
-import { FlatList, StyleSheet, Text } from "react-native"
+import { FlatList, Pressable, StyleSheet, Text } from "react-native"
+import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import {
   BrandTitle,
@@ -10,10 +11,12 @@ import {
 } from "@/src/components/ui"
 import { useAuth } from "@/src/context/AuthContext"
 import { useVendorJobs } from "@/src/hooks/useWeddingData"
+import { eventLabel } from "@/src/lib/events"
 import { colors, spacing } from "@/src/lib/theme"
 
 export default function VendorJobsScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { profile } = useAuth()
   const { jobs, loading, error } = useVendorJobs(profile?.vendorId ?? null)
 
@@ -35,20 +38,27 @@ export default function VendorJobsScreen() {
             />
           }
           renderItem={({ item }) => (
-            <Card>
-              <Text style={styles.name}>
-                {item.weddingName || item.familyName || "Wedding booking"}
-              </Text>
-              <Text style={styles.meta}>
-                {item.status}
-                {item.eventId ? ` · ${item.eventId}` : ""}
-                {item.eventDate ? ` · ${item.eventDate}` : ""}
-              </Text>
-              <Text style={styles.price}>
-                Rs {item.price.toLocaleString("en-PK")}
-                {item.packageName ? ` · ${item.packageName}` : ""}
-              </Text>
-            </Card>
+            <Pressable
+              onPress={() => router.push(`/(vendor)/job/${item.id}`)}
+            >
+              <Card>
+                <Text style={styles.name}>
+                  {item.weddingName || item.familyName || "Wedding booking"}
+                </Text>
+                <Text style={styles.meta}>
+                  {item.status}
+                  {" · "}
+                  {eventLabel(
+                    typeof item.eventId === "string" ? item.eventId : undefined
+                  )}
+                  {item.eventDate ? ` · ${item.eventDate}` : ""}
+                </Text>
+                <Text style={styles.price}>
+                  Rs {item.price.toLocaleString("en-PK")}
+                  {item.packageName ? ` · ${item.packageName}` : ""}
+                </Text>
+              </Card>
+            </Pressable>
           )}
         />
       )}

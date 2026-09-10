@@ -1,4 +1,5 @@
-import { FlatList, StyleSheet, Text } from "react-native"
+import { FlatList, Pressable, StyleSheet, Text } from "react-native"
+import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import {
   BrandTitle,
@@ -10,6 +11,7 @@ import {
 } from "@/src/components/ui"
 import { useWedding } from "@/src/context/WeddingContext"
 import { useBookings } from "@/src/hooks/useWeddingData"
+import { eventLabel } from "@/src/lib/events"
 import { colors, spacing } from "@/src/lib/theme"
 
 function formatPkr(amount: number) {
@@ -18,6 +20,7 @@ function formatPkr(amount: number) {
 
 export default function BookingsScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { weddingId } = useWedding()
   const { bookings, loading, error } = useBookings(weddingId)
 
@@ -35,23 +38,28 @@ export default function BookingsScreen() {
           ListEmptyComponent={
             <EmptyState
               title="No bookings yet"
-              body="Request vendors from the web marketplace — confirmed jobs appear here live."
+              body="Browse vendors from More → Vendors to request a booking."
             />
           }
           renderItem={({ item }) => (
-            <Card>
-              <Text style={styles.title}>{item.vendorName}</Text>
-              <Text style={styles.meta}>
-                {item.status}
-                {item.eventId ? ` · ${item.eventId}` : ""}
-                {item.eventDate ? ` · ${item.eventDate}` : ""}
-              </Text>
-              <Text style={styles.price}>
-                {formatPkr(item.price)}
-                {item.packageName ? ` · ${item.packageName}` : ""}
-              </Text>
-              {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
-            </Card>
+            <Pressable
+              onPress={() => router.push(`/(family)/booking/${item.id}`)}
+              style={({ pressed }) => pressed && styles.pressed}
+            >
+              <Card>
+                <Text style={styles.title}>{item.vendorName}</Text>
+                <Text style={styles.meta}>
+                  {item.status}
+                  {item.eventId ? ` · ${eventLabel(String(item.eventId))}` : ""}
+                  {item.eventDate ? ` · ${item.eventDate}` : ""}
+                </Text>
+                <Text style={styles.price}>
+                  {formatPkr(item.price)}
+                  {item.packageName ? ` · ${item.packageName}` : ""}
+                </Text>
+                {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
+              </Card>
+            </Pressable>
           )}
         />
       )}
@@ -60,6 +68,7 @@ export default function BookingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  pressed: { opacity: 0.85 },
   title: {
     fontFamily: "DMSans_700Bold",
     fontSize: 16,

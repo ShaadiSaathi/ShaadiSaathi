@@ -1,4 +1,5 @@
 import { FlatList, Pressable, StyleSheet, Text } from "react-native"
+import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { doc, updateDoc } from "firebase/firestore"
 import {
@@ -13,15 +14,37 @@ import { useAuth } from "@/src/context/AuthContext"
 import { useNotifications } from "@/src/hooks/useWeddingData"
 import { getFirestoreDb } from "@/src/lib/firebase"
 import { colors, spacing } from "@/src/lib/theme"
+import type { AppNotification } from "@/src/lib/types"
 
 export default function VendorNotificationsScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { user } = useAuth()
   const { notifications, loading, error } = useNotifications(user?.uid ?? null)
+  const unread = notifications.filter((n) => !n.read).length
+
+  async function onOpen(item: AppNotification) {
+    if (!item.read) {
+      try {
+        await updateDoc(doc(getFirestoreDb(), "notifications", item.id), {
+          read: true,
+        })
+      } catch {
+        // Still navigate even if mark-read fails
+      }
+    }
+    if (item.bookingId) {
+      router.push(`/(vendor)/job/${item.bookingId}`)
+    }
+  }
 
   return (
     <Screen style={{ paddingTop: insets.top + spacing.md }}>
-      <BrandTitle subtitle="Job and quote alerts" />
+      <BrandTitle
+        subtitle={
+          unread > 0 ? `${unread} unread` : "Job and quote alerts"
+        }
+      />
       <ErrorText message={error} />
       {loading ? (
         <LoadingBlock />
@@ -37,16 +60,7 @@ export default function VendorNotificationsScreen() {
             />
           }
           renderItem={({ item }) => (
-            <Pressable
-              onPress={() => {
-                if (!item.read) {
-                  void updateDoc(
-                    doc(getFirestoreDb(), "notifications", item.id),
-                    { read: true }
-                  )
-                }
-              }}
-            >
+            <Pressable onPress={() => void onOpen(item)}>
               <Card>
                 <Text style={[styles.message, !item.read && styles.unread]}>
                   {item.message}

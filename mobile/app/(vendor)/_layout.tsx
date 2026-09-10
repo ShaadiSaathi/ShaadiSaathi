@@ -46,6 +46,7 @@ export default function VendorLayout() {
           paddingBottom: 8,
           paddingTop: 8,
         },
+        tabBarLabelStyle: { fontFamily: "DMSans_500Medium", fontSize: 11 },
       }}
     >
       <Tabs.Screen
@@ -53,6 +54,13 @@ export default function VendorLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ focused }) => <TabIcon label="⌂" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="requests"
+        options={{
+          title: "Requests",
+          tabBarIcon: ({ focused }) => <TabIcon label="◇" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -76,6 +84,8 @@ export default function VendorLayout() {
           tabBarIcon: ({ focused }) => <TabIcon label="⚙" focused={focused} />,
         }}
       />
+      <Tabs.Screen name="job/[id]/index" options={{ href: null }} />
+      <Tabs.Screen name="job/[id]/messages" options={{ href: null }} />
     </Tabs>
   )
 }

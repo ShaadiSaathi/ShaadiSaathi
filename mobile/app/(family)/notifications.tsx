@@ -1,4 +1,5 @@
 import { FlatList, Pressable, StyleSheet, Text } from "react-native"
+import { useRouter } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { doc, updateDoc } from "firebase/firestore"
 import {
@@ -18,6 +19,7 @@ import type { AppNotification } from "@/src/lib/types"
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { user } = useAuth()
   const { notifications, loading, error } = useNotifications(user?.uid ?? null)
   const unread = notifications.filter((n) => !n.read)
@@ -27,6 +29,13 @@ export default function NotificationsScreen() {
     await updateDoc(doc(getFirestoreDb(), "notifications", item.id), {
       read: true,
     })
+  }
+
+  async function onPress(item: AppNotification) {
+    await markRead(item)
+    if (item.bookingId) {
+      router.push(`/(family)/booking/${item.bookingId}`)
+    }
   }
 
   async function markAllRead() {
@@ -56,7 +65,10 @@ export default function NotificationsScreen() {
         <FlatList
           data={notifications}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: spacing.xl, marginTop: spacing.sm }}
+          contentContainerStyle={{
+            paddingBottom: spacing.xl,
+            marginTop: spacing.sm,
+          }}
           ListEmptyComponent={
             <EmptyState
               title="No notifications"
@@ -64,7 +76,7 @@ export default function NotificationsScreen() {
             />
           }
           renderItem={({ item }) => (
-            <Pressable onPress={() => void markRead(item)}>
+            <Pressable onPress={() => void onPress(item)}>
               <Card>
                 <Text style={[styles.message, !item.read && styles.unread]}>
                   {item.message}
@@ -74,6 +86,7 @@ export default function NotificationsScreen() {
                   {item.createdAt
                     ? ` · ${new Date(item.createdAt).toLocaleString()}`
                     : ""}
+                  {item.bookingId ? " · open booking" : ""}
                 </Text>
               </Card>
             </Pressable>

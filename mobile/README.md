@@ -1,43 +1,28 @@
 # Shaadi Saathi Mobile (Expo)
 
-React Native app for family + vendor portals. Uses the same Firebase projects and Twilio OTP APIs as the Next.js web app.
+React Native app for family + vendor portals. Same Firebase projects and Twilio OTP APIs as the Next.js web app.
 
-## Firebase apps (registered)
-
-| Env | Project | Bundle / package |
-|-----|---------|------------------|
-| Production | `shaadi-saathi-dd3da` | `com.shaadisaathi.app` |
-| Staging | `shaadisaathistaging` | `com.shaadisaathi.app` |
-
-Native configs live in `firebase/production/` and `firebase/staging/` (`google-services.json`, `GoogleService-Info.plist`, `firebase-web.json`). `app.config.js` picks the folder from `EXPO_PUBLIC_APP_ENV`.
-
-## Setup
+## Run on your phone
 
 ```bash
 cd mobile
-cp .env.example .env
-# Defaults: production Firebase JSON + production API URL from app.config.js
-# For staging:
-#   EXPO_PUBLIC_APP_ENV=staging
-#   EXPO_PUBLIC_API_URL=<staging Vercel URL>
 npm start
 ```
 
-From repo root: `npm run mobile` / `mobile:ios` / `mobile:android`.
+Scan the QR with **Expo Go** (same Wi‑Fi). Tunnel mode: press `s` in the Expo terminal.
 
-Press `i` (iOS), `a` (Android), or scan the QR with Expo Go.
+## Env
 
-## Auth
+`EXPO_PUBLIC_APP_ENV=production` (default) or `staging`. Firebase configs load from `firebase/<env>/`. Optional `EXPO_PUBLIC_API_URL` overrides the Next.js API origin.
 
-`/api/auth/send-otp` + `/api/auth/verify-otp` → Firebase custom token. No web reCAPTCHA.
+## Native in the app
 
-## Included
+**Family:** home, guests (add + RSVP + invite share), tasks (add + toggle), bookings (confirm / counter / chat), vendor marketplace + book, events, schedule, notifications, collaborators invite, settings
 
-**Family:** home, guests, tasks, bookings, events, vendors, notifications, settings  
-**Vendor:** home, jobs, alerts, profile  
+**Vendor:** home, requests (accept / decline / counter), jobs (check-in / complete / chat), alerts, profile
 
-Live Firestore subscriptions mirror the web data model.
+## Opens in browser from the app
 
-## Still on web
+Wedding AI, seating planner, Premium upgrade, PDF export, Stripe/Safepay payment UI, full vendor KYC/portfolio editors
 
-Wedding AI, seating charts, payments UI, PDF export, collaborator management, full messaging threads. Data written on web syncs into mobile lists automatically.
+Those stay on web for now; data syncs live into the mobile lists.
