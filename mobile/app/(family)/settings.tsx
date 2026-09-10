@@ -8,12 +8,20 @@ import {
 } from "@/src/components/ui"
 import { useAuth } from "@/src/context/AuthContext"
 import { useWedding } from "@/src/context/WeddingContext"
+import { getApiBaseUrl, getAppEnv } from "@/src/lib/firebase"
 import { colors, spacing } from "@/src/lib/theme"
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const { profile, signOut } = useAuth()
   const { wedding } = useWedding()
+  const env = getAppEnv()
+  let apiUrl = "—"
+  try {
+    apiUrl = getApiBaseUrl()
+  } catch {
+    apiUrl = "not set"
+  }
 
   return (
     <Screen style={{ paddingTop: insets.top + spacing.md }}>
@@ -29,6 +37,12 @@ export default function SettingsScreen() {
         <Text style={styles.meta}>
           {wedding?.isPremium ? "Premium" : "Free"}
           {wedding?.shareCode ? ` · ${wedding.shareCode}` : ""}
+        </Text>
+      </Card>
+      <Card>
+        <Text style={styles.label}>Backend</Text>
+        <Text style={styles.meta}>
+          Firebase {env} · API {apiUrl}
         </Text>
       </Card>
       <View style={{ marginTop: spacing.md }}>

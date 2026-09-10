@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "687688450120",
+    "project_id": "shaadi-saathi-dd3da",
+    "storage_bucket": "shaadi-saathi-dd3da.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687688450120:android:1a048363026f5cc831587d",
+        "android_client_info": {
+          "package_name": "com.formai.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCKyC05hXvrfDn_l0GnsvtB_AKoEmAT08"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687688450120:android:527f9b885324e44531587d",
+        "android_client_info": {
+          "package_name": "com.shaadisaathi.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCKyC05hXvrfDn_l0GnsvtB_AKoEmAT08"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

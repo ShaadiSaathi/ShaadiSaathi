@@ -70,19 +70,23 @@ export default function FamilyLayout() {
         }}
       />
       <Tabs.Screen
-        name="vendors"
+        name="bookings"
         options={{
-          title: "Vendors",
-          tabBarIcon: ({ focused }) => <TabIcon label="◆" focused={focused} />,
+          title: "Bookings",
+          tabBarIcon: ({ focused }) => <TabIcon label="◇" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="more"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ focused }) => <TabIcon label="⚙" focused={focused} />,
+          title: "More",
+          tabBarIcon: ({ focused }) => <TabIcon label="···" focused={focused} />,
         }}
       />
+      <Tabs.Screen name="events" options={{ href: null }} />
+      <Tabs.Screen name="vendors" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   )
 }

@@ -11,6 +11,12 @@ export type FirestoreUser = {
   createdAt: number
 }
 
+export type EventOverride = {
+  date?: string
+  time?: string
+  rsvpLockHoursBefore?: number | null
+}
+
 export type FirestoreWedding = {
   id: string
   name: string
@@ -23,9 +29,11 @@ export type FirestoreWedding = {
   organiserPhone?: string
   firstEventDate?: string
   createdAt?: number
+  eventOverrides?: Partial<Record<string, EventOverride>>
+  timezone?: string
 }
 
-export type GuestRsvp = Record<string, "pending" | "yes" | "no" | "maybe">
+export type GuestRsvp = Record<string, "pending" | "yes" | "no" | "maybe" | null>
 
 export type AppGuest = {
   id: string
@@ -41,7 +49,7 @@ export type AppTask = {
   title: string
   assignee: string
   dueDate: string
-  status: "todo" | "doing" | "done" | "blocked"
+  status: "todo" | "doing" | "in_progress" | "done" | "blocked"
   weddingId?: string
 }
 
@@ -53,4 +61,32 @@ export type AppVendor = {
   rating?: number
   verificationStatus?: string
   suspended?: boolean
+}
+
+export type AppBooking = {
+  id: string
+  weddingId: string
+  vendorId: string
+  vendorName: string
+  weddingName?: string
+  familyName?: string
+  eventId?: string
+  eventDate?: string
+  status: string
+  price: number
+  packageName?: string
+  note?: string
+  createdAt?: number
+}
+
+export type AppNotification = {
+  id: string
+  recipientUid: string
+  message: string
+  type: string
+  read: boolean
+  createdAt: number
+  weddingId?: string
+  bookingId?: string
+  taskId?: string
 }

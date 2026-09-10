@@ -1,31 +1,43 @@
 # Shaadi Saathi Mobile (Expo)
 
-React Native app for family + vendor portals. Uses the same Firebase project and Twilio OTP APIs as the Next.js web app.
+React Native app for family + vendor portals. Uses the same Firebase projects and Twilio OTP APIs as the Next.js web app.
+
+## Firebase apps (registered)
+
+| Env | Project | Bundle / package |
+|-----|---------|------------------|
+| Production | `shaadi-saathi-dd3da` | `com.shaadisaathi.app` |
+| Staging | `shaadisaathistaging` | `com.shaadisaathi.app` |
+
+Native configs live in `firebase/production/` and `firebase/staging/` (`google-services.json`, `GoogleService-Info.plist`, `firebase-web.json`). `app.config.js` picks the folder from `EXPO_PUBLIC_APP_ENV`.
 
 ## Setup
 
 ```bash
 cd mobile
 cp .env.example .env
-# Fill EXPO_PUBLIC_* from the web app's NEXT_PUBLIC_FIREBASE_* values
-# Set EXPO_PUBLIC_API_URL to your deployed Next.js origin (production or staging)
+# Defaults: production Firebase JSON + production API URL from app.config.js
+# For staging:
+#   EXPO_PUBLIC_APP_ENV=staging
+#   EXPO_PUBLIC_API_URL=<staging Vercel URL>
 npm start
 ```
 
-Then press `i` (iOS simulator), `a` (Android), or scan the QR with Expo Go.
+From repo root: `npm run mobile` / `mobile:ios` / `mobile:android`.
+
+Press `i` (iOS), `a` (Android), or scan the QR with Expo Go.
 
 ## Auth
 
-Mobile login uses `/api/auth/send-otp` + `/api/auth/verify-otp` (Twilio WhatsApp/SMS → Firebase custom token). No web reCAPTCHA required.
+`/api/auth/send-otp` + `/api/auth/verify-otp` → Firebase custom token. No web reCAPTCHA.
 
-## What's included
+## Included
 
-- Family: home, guests, tasks (toggle done), vendors browse, settings
-- Vendor: home stats, jobs list, profile
-- Live Firestore subscriptions for wedding, guests, tasks, vendors, bookings
+**Family:** home, guests, tasks, bookings, events, vendors, notifications, settings  
+**Vendor:** home, jobs, alerts, profile  
 
-## Not yet ported
+Live Firestore subscriptions mirror the web data model.
 
-- Full onboarding wizards, Wedding AI, seating, payments UI, PDF export, collaborator management UI, messaging threads
+## Still on web
 
-Those stay on web for now; data written on web syncs into the mobile lists automatically.
+Wedding AI, seating charts, payments UI, PDF export, collaborator management, full messaging threads. Data written on web syncs into mobile lists automatically.

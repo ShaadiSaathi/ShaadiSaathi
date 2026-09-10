@@ -8,46 +8,49 @@ import {
   LoadingBlock,
   Screen,
 } from "@/src/components/ui"
-import { useAuth } from "@/src/context/AuthContext"
-import { useVendorJobs } from "@/src/hooks/useWeddingData"
+import { useWedding } from "@/src/context/WeddingContext"
+import { useBookings } from "@/src/hooks/useWeddingData"
 import { colors, spacing } from "@/src/lib/theme"
 
-export default function VendorJobsScreen() {
+function formatPkr(amount: number) {
+  return `Rs ${amount.toLocaleString("en-PK")}`
+}
+
+export default function BookingsScreen() {
   const insets = useSafeAreaInsets()
-  const { profile } = useAuth()
-  const { jobs, loading, error } = useVendorJobs(profile?.vendorId ?? null)
+  const { weddingId } = useWedding()
+  const { bookings, loading, error } = useBookings(weddingId)
 
   return (
     <Screen style={{ paddingTop: insets.top + spacing.md }}>
-      <BrandTitle subtitle="Your bookings" />
+      <BrandTitle subtitle="Vendor bookings for this wedding" />
       <ErrorText message={error} />
       {loading ? (
         <LoadingBlock />
       ) : (
         <FlatList
-          data={jobs}
+          data={bookings}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: spacing.xl }}
           ListEmptyComponent={
             <EmptyState
-              title="No jobs yet"
-              body="When families book you, jobs show up here live."
+              title="No bookings yet"
+              body="Request vendors from the web marketplace — confirmed jobs appear here live."
             />
           }
           renderItem={({ item }) => (
             <Card>
-              <Text style={styles.name}>
-                {item.weddingName || item.familyName || "Wedding booking"}
-              </Text>
+              <Text style={styles.title}>{item.vendorName}</Text>
               <Text style={styles.meta}>
                 {item.status}
                 {item.eventId ? ` · ${item.eventId}` : ""}
                 {item.eventDate ? ` · ${item.eventDate}` : ""}
               </Text>
               <Text style={styles.price}>
-                Rs {item.price.toLocaleString("en-PK")}
+                {formatPkr(item.price)}
                 {item.packageName ? ` · ${item.packageName}` : ""}
               </Text>
+              {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
             </Card>
           )}
         />
@@ -57,7 +60,7 @@ export default function VendorJobsScreen() {
 }
 
 const styles = StyleSheet.create({
-  name: {
+  title: {
     fontFamily: "DMSans_700Bold",
     fontSize: 16,
     color: colors.ink,
@@ -74,5 +77,11 @@ const styles = StyleSheet.create({
     fontFamily: "DMSans_500Medium",
     fontSize: 15,
     color: colors.maroon,
+  },
+  note: {
+    marginTop: 6,
+    fontFamily: "DMSans_400Regular",
+    fontSize: 13,
+    color: colors.muted,
   },
 })

@@ -1,13 +1,4 @@
-const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "")
-
-export function getApiBaseUrl(): string {
-  if (!API_URL) {
-    throw new Error(
-      "EXPO_PUBLIC_API_URL is not set. Point it at your Next.js deploy (e.g. https://shaadi-saathi-kappa.vercel.app)."
-    )
-  }
-  return API_URL
-}
+import { getApiBaseUrl } from "@/src/lib/firebase"
 
 type OtpJson = {
   ok?: boolean

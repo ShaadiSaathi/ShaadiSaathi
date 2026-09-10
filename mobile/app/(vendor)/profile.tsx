@@ -7,11 +7,19 @@ import {
   Screen,
 } from "@/src/components/ui"
 import { useAuth } from "@/src/context/AuthContext"
+import { getApiBaseUrl, getAppEnv } from "@/src/lib/firebase"
 import { colors, spacing } from "@/src/lib/theme"
 
 export default function VendorProfileScreen() {
   const insets = useSafeAreaInsets()
   const { profile, signOut } = useAuth()
+  const env = getAppEnv()
+  let apiUrl = "—"
+  try {
+    apiUrl = getApiBaseUrl()
+  } catch {
+    apiUrl = "not set"
+  }
 
   return (
     <Screen style={{ paddingTop: insets.top + spacing.md }}>
@@ -22,6 +30,12 @@ export default function VendorProfileScreen() {
         <Text style={styles.meta}>{profile?.phone}</Text>
         <Text style={styles.meta}>
           Vendor ID: {profile?.vendorId || "not linked yet"}
+        </Text>
+      </Card>
+      <Card>
+        <Text style={styles.label}>Backend</Text>
+        <Text style={styles.meta}>
+          Firebase {env} · API {apiUrl}
         </Text>
       </Card>
       <View style={{ marginTop: spacing.md }}>
