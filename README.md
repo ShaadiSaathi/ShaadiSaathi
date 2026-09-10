@@ -6,15 +6,19 @@ First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### React Native (Expo)
+
+A native family/vendor app lives in `mobile/`:
+
+```bash
+cd mobile
+cp .env.example .env   # set EXPO_PUBLIC_FIREBASE_* + EXPO_PUBLIC_API_URL
+npm start              # or: npm run mobile from repo root
+```
+
+See [mobile/README.md](mobile/README.md).
 
 ## Preview on your phone (QR code)
 

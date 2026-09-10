@@ -10,6 +10,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "mobile": "npm --prefix mobile start",
+    "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:android": "npm --prefix mobile run android",
     "knowledge:validate": "npx tsx scripts/research-knowledge-base.ts",
     "knowledge:embed": "npx tsx scripts/embed-knowledge-base.ts"
   },
